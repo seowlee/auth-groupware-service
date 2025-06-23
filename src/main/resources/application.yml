@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: auth-groupware
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/groupware_db
+    username: myuser
+    password: ENC(bg3SOL/khQb3hTHXdQ6a7Cc34D7c7SFq2DeqkSxg/ct7VZU9LCNmMmpCdmtAwZ6Z)
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # 또는 validate, create-drop 등
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/groupware
+
+logging:
+  level:
+    root: INFO                              # 전체 로그 기본 레벨
+    org.springframework.security: DEBUG     # 스프링 시큐리티 디버그
+    sun.rmi.transport.tcp: WARN             # RMI/JMX 잡음 억제
+#    org.springframework.security: DEBUG
+#    org.springframework.security.oauth2: DEBUG
+#    org.springframework.security.oauth2.jwt: DEBUG
+
+keycloak:
+  realm: groupware
+  auth-server-url: http://localhost:8080
+  resource: spring-app
+  credentials:
+    secret: ENC(D1kYZi7bBTLoBPPYg+TKrt3JSi6nZpZ9mss7Ut6/dEns33jfVWcEu82wp+d0uhswNx7ukJ70XfQ80qN5Pf7U9vI1DlDokmK91uS41cbttrY=)
+
+server:
+  port: 8081
