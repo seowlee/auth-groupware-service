@@ -18,6 +18,23 @@ spring:
 
   security:
     oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: spring-groupware-app
+            client-secret: ENC(wafvD03FERqIMop5Wmsh3lA+kXGVVnPWBS57dJFE1ReHBwm9zvDKGfrHxAr0p64tfT6pK7WiD8MPQzGHSOscBVBLB0FkKTResKjJ5CTXnNQ=)
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+            provider: keycloak
+
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/groupware
+      #          jwk-set-uri: http://localhost:8080/realms/groupware/protocol/openid-connect/certs
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8080/realms/groupware
@@ -27,16 +44,6 @@ logging:
     root: INFO                              # 전체 로그 기본 레벨
     org.springframework.security: DEBUG     # 스프링 시큐리티 디버그
     sun.rmi.transport.tcp: WARN             # RMI/JMX 잡음 억제
-#    org.springframework.security: DEBUG
-#    org.springframework.security.oauth2: DEBUG
-#    org.springframework.security.oauth2.jwt: DEBUG
-
-keycloak:
-  realm: groupware
-  auth-server-url: http://localhost:8080
-  resource: spring-app
-  credentials:
-    secret: ENC(D1kYZi7bBTLoBPPYg+TKrt3JSi6nZpZ9mss7Ut6/dEns33jfVWcEu82wp+d0uhswNx7ukJ70XfQ80qN5Pf7U9vI1DlDokmK91uS41cbttrY=)
 
 server:
   port: 8081

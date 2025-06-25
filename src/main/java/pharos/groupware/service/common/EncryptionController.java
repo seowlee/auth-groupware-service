@@ -1,4 +1,4 @@
-package com.pharos.auth.groupware.service.common;
+package pharos.groupware.service.common;
 
 import org.jasypt.encryption.StringEncryptor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +18,7 @@ public class EncryptionController {
      * 예) GET /encrypt?plain=MySecretPassword
      * returns ENC(암호화된문자열)
      */
-    @GetMapping("/encrypt")
+    @GetMapping("/test/encrypt")
     public String encrypt(@RequestParam("plain") String plain) {
         String cipher = encryptor.encrypt(plain);
         return "ENC(" + cipher + ")";

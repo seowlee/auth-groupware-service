@@ -1,0 +1,24 @@
+<!-- src/main/resources/templates/home.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Home</title>
+</head>
+<body>
+<h1>Welcome, <span th:text="${username}">User</span>!</h1>
+
+<p>
+    <a th:href="@{/logout}">Logout</a>
+</p>
+
+<hr/>
+
+<h2>Your Actions</h2>
+<ul>
+    <li><a th:href="@{/me}">View Profile (G1)</a></li>
+    <li><a th:href="@{/me/memberOf}">View Groups (G2)</a></li>
+    <!-- ...필요한 링크를 추가하세요... -->
+</ul>
+</body>
+</html>

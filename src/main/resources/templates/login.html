@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>로그인</title></head>
+<body>
+<h1>로그인</h1>
+<!-- 1) 로컬 폼 로그인 -->
+<form method="post" th:action="@{/perform_login}">
+    <input name="username" placeholder="username"/>
+    <input name="password" placeholder="password" type="password"/>
+    <button type="submit">폼 로그인</button>
+</form>
+<hr/>
+<!-- 2) 소셜/Keycloak 로그인 -->
+<a th:href="@{/oauth2/authorization/google}">Google 로그인</a><br/>
+<a th:href="@{/oauth2/authorization/kakao}">Kakao 로그인</a><br/>
+<a th:href="@{/oauth2/authorization/keycloak}">Keycloak 로그인</a>
+</body>
+</html>

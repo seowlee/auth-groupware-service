@@ -1,4 +1,4 @@
-package com.pharos.auth.groupware.service.config;
+package pharos.groupware.service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,19 +18,35 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+    
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // ... 생략
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwkSetUri("http://localhost:8080/realms/groupware/protocol/openid-connect/certs")
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter())     // <-- 변경
-                        )
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/login", "/css/**", "/oauth2/**", "/test/**").permitAll().
+                        anyRequest().authenticated()
+                )
+                // 2) 폼 로그인 (로컬 DB)
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/perform_login")
+                        .defaultSuccessUrl("/", true)
+                )
+
+                // 3) OAuth2 로그인 (Google, Kakao, Keycloak)
+                .oauth2Login(oauth2 -> oauth2
+                                .loginPage("/login")
+//                        .userInfoEndpoint(user -> user
+//                                .userService(oAuth2UserService)
+//                        )
+                )
+                .oauth2ResourceServer(rs -> rs
+                        .jwt(withDefaults())
                 );
         return http.build();
     }
