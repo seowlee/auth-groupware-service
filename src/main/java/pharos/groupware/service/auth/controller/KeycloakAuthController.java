@@ -19,7 +19,7 @@ public class KeycloakAuthController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<String> addKeycloakUser(@RequestBody CreateUserReqDTO reqDTO) {
         String newUserId = authService.createUser(reqDTO);
         URI location = URI.create("/api/users/" + newUserId);
@@ -27,7 +27,7 @@ public class KeycloakAuthController {
     }
 
     @PostMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('MASTER')")
     public String deleteKeycloakUser(@PathVariable("userId") String userId) {
         authService.deleteUser(userId);
         return "OK";

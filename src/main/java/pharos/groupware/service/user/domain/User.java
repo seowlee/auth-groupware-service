@@ -30,8 +30,8 @@ public class User implements UserDetails {
 
     @NotNull
     @ColumnDefault("gen_random_uuid()")
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @Column(name = "user_uuid", nullable = false)
+    private UUID userUUID;
 
     @Size(max = 100)
     @NotNull
@@ -89,7 +89,7 @@ public class User implements UserDetails {
         user.setLastName(dto.getLastName());
         user.setRole(dto.getRole());
         user.setStatus(UserStatusEnum.ACTIVE);
-        user.setUserId(UUID.randomUUID());
+        user.setUserUUID(dto.getUserUUID() != null ? UUID.fromString(dto.getUserUUID()) : UUID.randomUUID());
         user.setCreatedAt(OffsetDateTime.now());
         user.setCreatedBy(dto.getUsername());
         user.setUpdatedAt(OffsetDateTime.now());

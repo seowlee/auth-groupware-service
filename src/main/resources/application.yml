@@ -23,7 +23,7 @@ spring:
       client:
         registration:
           keycloak:
-            client-id: spring-groupware-app
+            client-id: groupware-app
             client-secret: ENC(mAGIvRdMo+gBrnq2l8l8/eJJ17OcB1VGSyA8JXs9+5lIXPFKQj8CTPtouVvmrjhUtwjOQPhtWqPgL02KERBAcspNhjyVLf/5HJ10+Nkp8iE=)
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
@@ -32,11 +32,18 @@ spring:
               - profile
               - email
             provider: keycloak
-
+          graph:
+            client-id: 1640f4fe-98b2-4473-b788-d9fc81bfdf42
+            client-secret: ENC(B2D/BVmI/E1Sv20kDhp8BmPmRuoGySIoum1QZ/PdQ2xOWFAb++srm1VchpGSxOPizAGfqe/hbYVsawssiwwwCqD7HvdFkkz3o/CDFMQkRoE=)
+            authorization-grant-type: client_credentials
+            scope: https://graph.microsoft.com/.default
+            provider: graph
         provider:
           keycloak:
             issuer-uri: http://localhost:8080/realms/groupware
-      #          jwk-set-uri: http://localhost:8080/realms/groupware/protocol/openid-connect/certs
+          #          jwk-set-uri: http://localhost:8080/realms/groupware/protocol/openid-connect/certs
+          graph:
+            token-uri: https://login.microsoftonline.com/${azure.tenant-id}/oauth2/v2.0/token
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8080/realms/groupware
@@ -45,8 +52,15 @@ spring:
 keycloak:
   auth-server-url: http://localhost:8080
   realm: groupware
-  client-id: spring-groupware-app
-  client-secret: ENC(mAGIvRdMo+gBrnq2l8l8/eJJ17OcB1VGSyA8JXs9+5lIXPFKQj8CTPtouVvmrjhUtwjOQPhtWqPgL02KERBAcspNhjyVLf/5HJ10+Nkp8iE=)
+  client-id: groupware-provisioner
+  client-secret: ENC(0ZjMdAa3zyLxsyUl7LpWAYA+q9+35ius2+w1F0+gysJ7n5kZrrMx5dBX94uwJZdY2KTINwBThta+Gws25x1m7hFJdjB1WLwbH7lLV2Bfr5k=)
+
+azure:
+  client-id: 1640f4fe-98b2-4473-b788-d9fc81bfdf42
+  client-secret: ENC(B2D/BVmI/E1Sv20kDhp8BmPmRuoGySIoum1QZ/PdQ2xOWFAb++srm1VchpGSxOPizAGfqe/hbYVsawssiwwwCqD7HvdFkkz3o/CDFMQkRoE=)
+  tenant-id: e541a9f1-8ca0-4956-bff1-8e357bbc559b
+  scope: https://graph.microsoft.com/.default
+  token-uri: https://login.microsoftonline.com/${azure.tenant-id}/oauth2/v2.0/token
 
 
 logging:

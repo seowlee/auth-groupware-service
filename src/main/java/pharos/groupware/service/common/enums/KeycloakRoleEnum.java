@@ -1,16 +1,18 @@
 package pharos.groupware.service.common.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum KeycloakRoleEnum {
-    ADMIN("ADMIN"),
-    USER("USER");
+    ADMIN("ADMIN", "admin-group"),
+    USER("USER", "user-group");
 
-    private final String name;
+    private final String roleName;
+    private final String groupName;
 
-    KeycloakRoleEnum(String name) {
-        this.name = name;
-    }
 
-    public String getName() {
-        return name;
+    KeycloakRoleEnum(String roleName, String groupName) {
+        this.roleName = roleName;
+        this.groupName = groupName;
     }
 }

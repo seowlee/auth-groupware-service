@@ -21,10 +21,12 @@ public class LocalAuthServiceImpl implements LocalAuthService {
 
     @Override
     public String createUser(CreateUserReqDTO reqDTO) {
+        // local db
         User user = User.from(reqDTO, passwordEncoder);
         User savedUser = userRepository.save(user);
         log.info("로컬 사용자 생성 완료: {}", savedUser.getUsername());
-        return savedUser.getUserId().toString();
+
+        return savedUser.getUserUUID().toString();
     }
 
     @Override

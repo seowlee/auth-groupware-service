@@ -5,25 +5,25 @@ import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
-import org.keycloak.representations.idm.RoleRepresentation;
+import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
 import pharos.groupware.service.auth.dto.CreateUserReqDTO;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakAdminClientFactory;
 
 import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 @Service
-public class KeycloakAdminServiceImpl implements KeycloakAuthService {
+public class KeycloakAuthServiceImpl implements KeycloakAuthService {
 
     private final KeycloakAdminClientFactory factory;
+    private final LocalAuthService localAuthService;
 
-    public KeycloakAdminServiceImpl(KeycloakAdminClientFactory factory) {
+    public KeycloakAuthServiceImpl(KeycloakAdminClientFactory factory, LocalAuthService localAuthService) {
         this.factory = factory;
+        this.localAuthService = localAuthService;
     }
 
     @Override
@@ -56,17 +56,27 @@ public class KeycloakAdminServiceImpl implements KeycloakAuthService {
         }
 
         // get new userid
-        String newUserId = CreatedResponseUtil.getCreatedId(response);
+        String newUserUUID = CreatedResponseUtil.getCreatedId(response);
+        reqDTO.setUserUUID(newUserUUID);
         response.close();
 
-        // Assign client level role to user
-        ClientRepresentation client = factory.realmResource().clients().findByClientId("spring-groupware-app").get(0);
+        // Assign group to user
+        GroupRepresentation group = factory.realmResource()
+                .groups()
+                .groups()
+                .stream()
+                .filter(g -> g.getName().equals(reqDTO.getRole().getGroupName()))
+                .findFirst()
+                .orElseThrow();
 
-        RoleRepresentation clientRole = factory.realmResource().clients().get(client.getId()).roles().get(reqDTO.getRole().name()).toRepresentation();
+        factory.realmResource()
+                .users()
+                .get(newUserUUID)
+                .joinGroup(group.getId());
 
-        usersResource.get(newUserId).roles().clientLevel(client.getId()).add(List.of(clientRole));
+        localAuthService.createUser(reqDTO);
 
-        return newUserId;
+        return newUserUUID;
     }
 
     ;
