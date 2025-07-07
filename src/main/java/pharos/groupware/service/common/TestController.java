@@ -1,4 +1,4 @@
-package pharos.groupware.service.user;
+package pharos.groupware.service.common;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;

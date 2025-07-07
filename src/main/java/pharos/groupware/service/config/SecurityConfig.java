@@ -26,7 +26,8 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/login", "/css/**", "/oauth2/**", "/test/**", "/local/auth/**", "/graph/**").permitAll().
+                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                                "/login", "/css/**", "/oauth2/**", "/test/**", "/swagger-ui/**", "/v3/api-docs/**", "/graph/**").permitAll().
                         anyRequest().authenticated()
                 )
                 // 2) 폼 로그인

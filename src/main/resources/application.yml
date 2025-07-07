@@ -24,7 +24,7 @@ spring:
         registration:
           keycloak:
             client-id: groupware-app
-            client-secret: ENC(mAGIvRdMo+gBrnq2l8l8/eJJ17OcB1VGSyA8JXs9+5lIXPFKQj8CTPtouVvmrjhUtwjOQPhtWqPgL02KERBAcspNhjyVLf/5HJ10+Nkp8iE=)
+            client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope:

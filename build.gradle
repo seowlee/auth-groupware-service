@@ -4,7 +4,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'com.pharos'
+group = 'pharos'
 version = '0.0.1-SNAPSHOT'
 
 java {
@@ -55,6 +55,9 @@ dependencies {
 
     // ── 암호화된 설정 관리 (Jasypt) ─────────────────────────
     implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5'
+
+    // ── swagger-ui ─────────────────────────
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
 
     // ── 테스트 ─────────────────────────────────────────────
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
