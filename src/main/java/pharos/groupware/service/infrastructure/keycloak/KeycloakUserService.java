@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.team.service.UserService;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -19,22 +18,27 @@ import java.util.Map;
 @Service
 public class KeycloakUserService {
 
-    private final RestClient restClient;
     private final KeycloakTokenProvider tokenProvider;
+    private final RestClient.Builder restClientBuilder;
+    private final String baseUrl;
 
     public KeycloakUserService(
             KeycloakTokenProvider tokenProvider,
-            UserService localAuthService,
             RestClient.Builder builder,
             @Value("${keycloak.auth-server-url}") String keycloakUrl,
             @Value("${keycloak.realm}") String realm
     ) {
         this.tokenProvider = tokenProvider;
-        this.restClient = builder
-                .baseUrl(keycloakUrl + "/admin/realms/" + realm)
+        this.restClientBuilder = builder;
+        this.baseUrl = keycloakUrl + "/admin/realms/" + realm;
+    }
+
+    private RestClient withAuth() {
+        return RestClient.builder()
+                .baseUrl(baseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenProvider.getAccessToken())
                 .build();
-        ;
     }
 
     public String createUser(CreateUserReqDto reqDto) {
@@ -50,9 +54,8 @@ public class KeycloakUserService {
                 "temporary", false
         )));
 
-        ResponseEntity<Void> response = restClient.post()
+        ResponseEntity<Void> response = withAuth().post()
                 .uri("/users")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenProvider.getAccessToken())
                 .body(user)
                 .retrieve()
                 .toBodilessEntity();
@@ -68,9 +71,8 @@ public class KeycloakUserService {
     ;
 
     public void deleteUser(String userId) {
-        restClient.delete()
+        withAuth().delete()
                 .uri("/users/{id}", userId)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenProvider.getAccessToken())
                 .retrieve()
                 .toBodilessEntity();
     }

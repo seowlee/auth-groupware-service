@@ -33,6 +33,10 @@ public class User implements UserDetails {
     private UUID userUuid;
 
     @Size(max = 100)
+    @Column(name = "graph_user_id", length = 100)
+    private String graphUserId;
+
+    @Size(max = 100)
     @NotNull
     @Column(name = "username", nullable = false, length = 100)
     private String username;

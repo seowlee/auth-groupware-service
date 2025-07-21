@@ -15,23 +15,31 @@ import java.util.Map;
 
 @Service
 public class GraphUserService {
-    private final RestClient restClient;
+    private final GraphTokenProvider graphTokenProvider;
+    private final RestClient.Builder restClientBuilder;
+    private final String baseUrl;
+//    private final RestClient restClient;
 
     public GraphUserService(
             GraphTokenProvider tokenProvider,
             RestClient.Builder builder,
             @Value("${graph.base-url}") String baseUrl
     ) {
-        String token = tokenProvider.getAccessToken();
-        this.restClient = builder
+        this.graphTokenProvider = tokenProvider;
+        this.restClientBuilder = builder;
+        this.baseUrl = baseUrl;
+    }
+
+    private RestClient withAuth() {
+        return restClientBuilder
                 .baseUrl(baseUrl)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + graphTokenProvider.getAccessToken())
                 .build();
     }
 
     // 특정 사용자 조회
     public Map<String, Object> getUser(String userId) {
-        return restClient.get()
+        return withAuth().get()
                 .uri("/users/{id}", userId)
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
@@ -51,15 +59,23 @@ public class GraphUserService {
         ));
 
         // 본문으로부터 id 추출
-        Map<String, Object> responseBody = restClient.post()
+        Map<String, Object> responseBody = withAuth().post()
                 .uri("/users")
                 .body(userData)
                 .retrieve()
-                .body(Map.class);
-        System.out.println("userId: " + responseBody.get("id").toString());
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
 //        assignLicenseToUser(userId);
 
+        assert responseBody != null;
         return responseBody.get("id").toString();
+    }
+
+    public void deleteUser(String userId) {
+        withAuth().delete()
+                .uri("/users/{id}", userId)
+                .retrieve()
+                .toBodilessEntity();
     }
 
     public void assignLicenseToUser(String userId) {
@@ -70,7 +86,7 @@ public class GraphUserService {
                 "removeLicenses", List.of()
         );
 
-        restClient.post()
+        withAuth().post()
                 .uri("/users/{id}/assignLicense", userId)
                 .body(requestBody)
                 .retrieve()
@@ -79,7 +95,7 @@ public class GraphUserService {
 
 
     public Map<String, Object> listUsers() {
-        return restClient.get()
+        return withAuth().get()
                 .uri("/users")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
@@ -87,7 +103,7 @@ public class GraphUserService {
     }
 
     public Map<String, Object> listEvents(String userId) {
-        return restClient.get()
+        return withAuth().get()
                 .uri("/users/{userId}/calendar/events", userId)
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
@@ -101,7 +117,7 @@ public class GraphUserService {
                 "start", Map.of("dateTime", dto.getStartDateTime(), "timeZone", dto.getTimezone()),
                 "end", Map.of("dateTime", dto.getEndDateTime(), "timeZone", dto.getTimezone())
         );
-        restClient.post()
+        withAuth().post()
                 .uri("/users/{userId}/events", dto.getGraphUserId())
                 .body(eventData)
                 .retrieve()
@@ -109,7 +125,7 @@ public class GraphUserService {
     }
 
     public void deleteEvent(String userId, String eventId) {
-        restClient.delete()
+        withAuth().delete()
                 .uri("/users/{userId}/calendar/events/{eventId}", userId, eventId)
                 .retrieve()
                 .toBodilessEntity();
