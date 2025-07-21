@@ -32,18 +32,9 @@ spring:
               - profile
               - email
             provider: keycloak
-          graph:
-            client-id: 1640f4fe-98b2-4473-b788-d9fc81bfdf42
-            client-secret: ENC(B2D/BVmI/E1Sv20kDhp8BmPmRuoGySIoum1QZ/PdQ2xOWFAb++srm1VchpGSxOPizAGfqe/hbYVsawssiwwwCqD7HvdFkkz3o/CDFMQkRoE=)
-            authorization-grant-type: client_credentials
-            scope: https://graph.microsoft.com/.default
-            provider: graph
         provider:
           keycloak:
             issuer-uri: http://localhost:8080/realms/groupware
-          #          jwk-set-uri: http://localhost:8080/realms/groupware/protocol/openid-connect/certs
-          graph:
-            token-uri: https://login.microsoftonline.com/${azure.tenant-id}/oauth2/v2.0/token
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8080/realms/groupware
@@ -52,15 +43,16 @@ spring:
 keycloak:
   auth-server-url: http://localhost:8080
   realm: groupware
-  client-id: groupware-provisioner
-  client-secret: ENC(0ZjMdAa3zyLxsyUl7LpWAYA+q9+35ius2+w1F0+gysJ7n5kZrrMx5dBX94uwJZdY2KTINwBThta+Gws25x1m7hFJdjB1WLwbH7lLV2Bfr5k=)
-
-azure:
-  client-id: 1640f4fe-98b2-4473-b788-d9fc81bfdf42
-  client-secret: ENC(B2D/BVmI/E1Sv20kDhp8BmPmRuoGySIoum1QZ/PdQ2xOWFAb++srm1VchpGSxOPizAGfqe/hbYVsawssiwwwCqD7HvdFkkz3o/CDFMQkRoE=)
-  tenant-id: e541a9f1-8ca0-4956-bff1-8e357bbc559b
+  client-id: groupware-app
+  client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
+  token-uri: "${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token"
+graph:
+  client-id: 1ce57593-86c4-4ceb-a024-c2b15a0c129e
+  client-secret: ENC(0btuSDMFX+RI7OHTLBRJlle36AwkHGpDa4+v6LmmoGEnxadgD6oDdCabqn7jdXjgEMWuwL3tGA+fMyGG96SDv1C4lxk2WSZc6KKlJz/KX/c=)
+  tenant-id: 3c6e1605-cc29-4ef2-8ac8-ad3901cb0d85
+  token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
   scope: https://graph.microsoft.com/.default
-  token-uri: https://login.microsoftonline.com/${azure.tenant-id}/oauth2/v2.0/token
+  base-url: https://graph.microsoft.com/v1.0
 
 
 logging:
@@ -68,6 +60,10 @@ logging:
     root: INFO                              # 전체 로그 기본 레벨
     org.springframework.security: DEBUG     # 스프링 시큐리티 디버그
     sun.rmi.transport.tcp: WARN             # RMI/JMX 잡음 억제
+
+springdoc:
+  swagger-ui:
+    tagsSorter: alpha
 
 server:
   port: 8081

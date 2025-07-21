@@ -3,15 +3,26 @@ package pharos.groupware.service.admin.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import pharos.groupware.service.admin.dto.LoginReqDto;
 
 
-@Tag(name = "🛠 관리자 기능", description = "연차 승인/거절, 사용자 관리, 통계 관련 API")
+@Tag(name = "02. 최고 관리자", description = "연차 승인/거절, 사용자 관리, 통계 관련 API")
 @RestController
 @RequestMapping("/admin")
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
+    @Operation(
+            summary = "Local 로그인 (Fallback)",
+            description = "Keycloak 서비스 장애 시 대응용 로그인 API입니다. 최고관리자만 사용 가능합니다."
+    )
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginReqDto reqDTO) {
+        // TODO: fallback 로그인 로직 구현 (토큰 생성 or 세션 기반)
+//        return ResponseEntity.ok(localAuthService.login(reqDTO));
+        return ResponseEntity.ok("ok");
+
+    }
+
     @Operation(summary = "전체 사용자 조회", description = "조직 내 모든 사용자 정보를 조회합니다.")
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers() {

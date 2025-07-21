@@ -2,15 +2,20 @@ package pharos.groupware.service.leave.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import pharos.groupware.service.infrastructure.graph.GraphUserService;
+import pharos.groupware.service.team.dto.CreateCalendarEventReqDto;
 
-@Tag(name = "🌴 연차 기능", description = "연차 신청, 조회, 수정, 취소 등 연차 관련 API")
+@Tag(name = "03. 연차 기능", description = "연차 신청, 조회, 수정, 취소 등 연차 관련 API")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/leaves")
 @PreAuthorize("hasRole('USER')")
 public class LeaveController {
+    private final GraphUserService graphUserService;
 
     @Operation(summary = "내 연차 목록 조회", description = "내가 신청한 연차 목록을 상태 정보와 함께 조회합니다.")
     @GetMapping("/my")
@@ -21,8 +26,8 @@ public class LeaveController {
 
     @Operation(summary = "연차 신청", description = "새로운 연차를 신청합니다.")
     @PostMapping
-    public ResponseEntity<?> applyLeave(@RequestBody Object leaveRequest) {
-        // TODO: INSERT INTO leaves ...
+    public ResponseEntity<?> applyLeave(@RequestBody CreateCalendarEventReqDto dto) {
+        graphUserService.createEvent(dto);
         return ResponseEntity.ok("연차 신청 완료");
     }
 

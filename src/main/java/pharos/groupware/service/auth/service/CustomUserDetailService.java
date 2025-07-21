@@ -5,8 +5,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import pharos.groupware.service.user.domain.User;
-import pharos.groupware.service.user.domain.UserRepository;
+import pharos.groupware.service.team.domain.User;
+import pharos.groupware.service.team.domain.UserRepository;
 
 @Service
 public class CustomUserDetailService implements UserDetailsService {
