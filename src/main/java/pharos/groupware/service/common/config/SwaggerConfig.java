@@ -1,4 +1,4 @@
-package pharos.groupware.service.config;
+package pharos.groupware.service.common.config;
 
 
 import io.swagger.v3.oas.models.Components;

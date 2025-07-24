@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import pharos.groupware.service.leave.dto.CreateLeaveBalanceReqDto;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -20,6 +21,9 @@ public class LeaveBalance {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @Size(max = 30)
     @NotNull
     @Column(name = "leave_type", nullable = false, length = 30)
@@ -30,12 +34,12 @@ public class LeaveBalance {
     @Column(name = "year_number", nullable = false)
     private Integer yearNumber;
 
-    @ColumnDefault("15.00")
-    @Column(name = "total_allocated", precision = 5, scale = 2)
+    @ColumnDefault("15.000")
+    @Column(name = "total_allocated", precision = 6, scale = 3)
     private BigDecimal totalAllocated;
 
-    @ColumnDefault("0.00")
-    @Column(name = "used", precision = 5, scale = 2)
+    @ColumnDefault("0.000")
+    @Column(name = "used", precision = 6, scale = 3)
     private BigDecimal used;
 
     @ColumnDefault("now()")
@@ -56,4 +60,18 @@ public class LeaveBalance {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
+    public static LeaveBalance create(CreateLeaveBalanceReqDto reqDto) {
+        LeaveBalance lb = new LeaveBalance();
+        lb.userId = reqDto.getUserId();
+        lb.leaveType = reqDto.getLeaveType().name();
+        lb.yearNumber = reqDto.getYearNumber();
+        lb.totalAllocated = reqDto.getTotalAllocated();
+        lb.used = BigDecimal.ZERO;
+        lb.createdAt = OffsetDateTime.now();
+        lb.createdBy = "system";
+        lb.updatedAt = OffsetDateTime.now();
+        lb.updatedBy = "system";
+
+        return lb;
+    }
 }

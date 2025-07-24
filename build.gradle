@@ -29,11 +29,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     testImplementation 'io.projectreactor:reactor-test'
 
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6:3.1.3.RELEASE'
     // ── 데이터베이스 드라이버 ───────────────────────────────
     implementation 'org.postgresql:postgresql:42.7.4'
 
-    // keycloak
-    implementation 'org.keycloak:keycloak-admin-client:26.0.5'
 
     // ── JWT 토큰 라이브러리 ────────────────────────────────
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -67,4 +66,5 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    systemProperty "JASYPT_ENCRYPTOR_PASSWORD", "MasterSecretKey"
 }

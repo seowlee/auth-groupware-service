@@ -4,9 +4,14 @@ import lombok.Getter;
 
 @Getter
 public enum UserRoleEnum {
-    SUPER_ADMIN,
-    TEAM_LEADER,
-    TEAM_MEMBER;
+    SUPER_ADMIN("최고관리자"),
+    TEAM_LEADER("팀장"),
+    TEAM_MEMBER("팀원");
+    private final String description;
+
+    UserRoleEnum(String description) {
+        this.description = description;
+    }
 
     public boolean isSuperAdmin() {
         return this == SUPER_ADMIN;

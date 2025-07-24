@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:sec="https://www.thymeleaf.org/extras/spring-security"
+      xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
     <title>Home</title>
@@ -7,7 +8,12 @@
 <body>
 <h1>Welcome, <span th:text="${username}">User</span>!</h1>
 
-<p><a th:href="@{/logout}">Logout</a></p>
+<div sec:authorize="isAuthenticated()">
+    <form method="post" th:action="@{/logout}">
+        <button type="submit">로그아웃</button>
+    </form>
+</div>
+<!--<p><a th:href="@{/logout}">Logout</a></p>-->
 <hr/>
 
 <!-- 💼 최고 관리자 -->
@@ -17,7 +23,6 @@
         <li><a th:href="@{/admin/users/create}">사용자 생성</a></li>
         <li><a th:href="@{/admin/manage-roles}">사용자 비활성화</a></li>
         <li><a th:href="@{/admin/settings}">시스템 설정</a></li>
-        <li><a th:href="@{/graphapi/users}">Graph API - 사용자 등록</a></li>
     </ul>
 </div>
 

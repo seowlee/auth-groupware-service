@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import org.hibernate.annotations.ColumnDefault;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
 import pharos.groupware.service.common.enums.UserRoleEnum;
@@ -14,14 +12,12 @@ import pharos.groupware.service.common.enums.UserStatusEnum;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
 
 @Getter
 @Entity
 @Table(name = "users", schema = "groupware")
-public class User implements UserDetails {
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -63,15 +59,19 @@ public class User implements UserDetails {
     private LocalDate joinedDate;
 
     @NotNull
+    @ColumnDefault("1")
+    @Column(name = "year_number", nullable = false)
+    private Integer yearNumber;
+
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private UserRoleEnum role;
 
-    @Size(max = 20)
     @NotNull
-    @ColumnDefault("'ACTIVE'")
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private UserStatusEnum status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
@@ -95,7 +95,7 @@ public class User implements UserDetails {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
-    public static User from(CreateUserReqDto reqDTO, PasswordEncoder passwordEncoder) {
+    public static User create(CreateUserReqDto reqDTO, PasswordEncoder passwordEncoder) {
         User user = new User();
         user.userUuid = reqDTO.getUserUUID() != null ? UUID.fromString(reqDTO.getUserUUID()) : UUID.randomUUID();
         user.username = reqDTO.getUsername();
@@ -103,36 +103,17 @@ public class User implements UserDetails {
         user.password = passwordEncoder.encode(reqDTO.getRawPassword());
         user.firstName = reqDTO.getFirstName();
         user.lastName = reqDTO.getLastName();
-        user.joinedDate = LocalDate.now(); // TODO:
+        user.joinedDate = reqDTO.getJoinedDate();
+        user.yearNumber = 1;
         user.role = reqDTO.getRole();
-        user.status = UserStatusEnum.ACTIVE.name();
+        user.status = UserStatusEnum.ACTIVE;
         user.createdBy = reqDTO.getUsername();
         user.updatedBy = reqDTO.getUsername();
         return user;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+    public void deactivate() {
+        this.status = UserStatusEnum.INACTIVE;
     }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
-    }
+    
 }

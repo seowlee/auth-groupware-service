@@ -2,25 +2,38 @@ package pharos.groupware.service.admin.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.admin.dto.LoginReqDto;
+import pharos.groupware.service.admin.dto.LoginResDto;
+import pharos.groupware.service.admin.service.AdminService;
+
+import java.util.Map;
 
 
 @Tag(name = "02. 최고 관리자", description = "연차 승인/거절, 사용자 관리, 통계 관련 API")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/admin")
 public class AdminController {
+    private final AdminService adminService;
+
     @Operation(
             summary = "Local 로그인 (Fallback)",
-            description = "Keycloak 서비스 장애 시 대응용 로그인 API입니다. 최고관리자만 사용 가능합니다."
+            description = "Keycloak 서비스 장애 시 사용할 최고관리자 전용 로그인 API 입니다."
     )
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginReqDto reqDTO) {
-        // TODO: fallback 로그인 로직 구현 (토큰 생성 or 세션 기반)
-//        return ResponseEntity.ok(localAuthService.login(reqDTO));
-        return ResponseEntity.ok("ok");
-
+    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginReqDto reqDto,
+                                                     HttpServletRequest request,
+                                                     HttpServletResponse response) {
+        LoginResDto resDto = adminService.login(reqDto, request, response);
+        return ResponseEntity.ok(Map.of(
+                "accessToken", resDto.getAccessToken(),
+                "redirectUrl", "/home"
+        ));
     }
 
     @Operation(summary = "전체 사용자 조회", description = "조직 내 모든 사용자 정보를 조회합니다.")

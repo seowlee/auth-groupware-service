@@ -54,6 +54,11 @@ graph:
   scope: https://graph.microsoft.com/.default
   base-url: https://graph.microsoft.com/v1.0
 
+# 3) JWT 토큰 설정 (Fallback 로그인용)
+jwt:
+  secret-key: "VW5saWtlbHlMb25nU2VjdXJlU2VjcmV0S2V5U3RyaW5nQ2hhbmdlVGhpcyEhMTIz"  # Base64-encoded 256bit
+  access-token-validity: 900000      # 15분 (15 * 60 * 1000ms)
+  refresh-token-validity: 604800000  # 7일 (7 * 24 * 60 * 60 * 1000ms)
 
 logging:
   level:

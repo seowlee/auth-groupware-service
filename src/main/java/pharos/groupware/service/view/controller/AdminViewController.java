@@ -12,6 +12,6 @@ public class AdminViewController {
     @GetMapping("/users/create")
     public String showCreateUserForm(Model model) {
         model.addAttribute("userDto", new CreateUserReqDto());
-        return "admin/create-user";  // src/main/resources/templates/admin/create-user.html
+        return "admin/create-user-form";  // src/main/resources/templates/admin/create-user-form.html
     }
 }

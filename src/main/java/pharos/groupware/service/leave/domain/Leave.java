@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @Setter
 @Entity
 @Table(name = "leaves", schema = "groupware")
-public class Leaf {
+public class Leave {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)

@@ -14,7 +14,7 @@
 <body>
 
 <div class="login-container">
-    <h1>Groupware</h1>
+    <h1>로그인</h1>
 
     <!-- ✅ Keycloak 로그인 메인 -->
     <a class="oauth-btn" th:href="@{/oauth2/authorization/keycloak}">
@@ -26,16 +26,39 @@
 
     <!-- ⛑ 폼 로그인 영역 -->
     <div id="formLogin">
-        <form method="post" th:action="@{/perform_login}">
+        <form id="adminLoginForm">
+            <!--        <form method="post" th:action="@{/perform_login}">-->
             <input id="username" name="username" placeholder="Username" required/>
             <input id="password" name="password" placeholder="Password" required type="password"/>
             <button class="btn" type="submit">폼 로그인</button>
         </form>
     </div>
 </div>
-<script th:if="${session.errorMessage != null}" th:inline="javascript">
-    alert([[${session.errorMessage}]]);
-</script>
+<script>
+    document.getElementById("adminLoginForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
 
+        const res = await fetch("/admin/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({username, password})
+        });
+
+        if (res.ok) {
+            const {accessToken, redirectUrl} = await res.json();
+            // JWT 토큰을 localStorage나 cookie 등에 저장
+            localStorage.setItem("accessToken", accessToken);
+            // 로그인 성공 후 홈으로 이동
+            window.location.href = redirectUrl;
+            // window.location.href = "/home.html"
+        } else {
+            alert("로그인 실패");
+        }
+    });
+</script>
 </body>
 </html>

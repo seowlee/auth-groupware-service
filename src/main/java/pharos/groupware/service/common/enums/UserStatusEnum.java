@@ -2,5 +2,9 @@ package pharos.groupware.service.common.enums;
 
 public enum UserStatusEnum {
     ACTIVE,
-    INACTIVE,
+    INACTIVE;
+
+    public boolean isActive() {
+        return this == ACTIVE;
+    }
 }

@@ -6,7 +6,7 @@ import pharos.groupware.service.admin.dto.CreateUserReqDto;
 public interface UserManagementService {
     String createUser(CreateUserReqDto reqDTO);
 
-    void deleteUser(String keycloakUserId, String graphUserId);
+    void deleteUser(String userId);
 
-    void deactivateUser(String userId);
+    String deactivateUser(String userId);
 }

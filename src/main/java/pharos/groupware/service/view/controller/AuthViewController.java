@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import pharos.groupware.service.common.security.CustomUserDetails;
 import pharos.groupware.service.team.domain.User;
 import pharos.groupware.service.team.domain.UserRepository;
 
@@ -38,16 +39,55 @@ public class AuthViewController {
     }
 
     @GetMapping("/home")
-    public String home(Authentication auth, Model model) {
+    public String home(Authentication authentication, Model model) {
+        Object principal = authentication.getPrincipal();
 
-        String userUUID = auth.getName();  // JWT의 subject 값 = UUID
-        User user = userRepository.findByUserUuid(UUID.fromString(userUUID))
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+        // OIDC 로그인 사용자는 JwtAuthenticationToken이므로 타입 분기 필요
+        if (principal instanceof CustomUserDetails customUser) {
+            UUID userUuid = customUser.getUserUuid();
+            User user = userRepository.findByUserUuid(userUuid)
+                    .orElseThrow(() -> new RuntimeException("사용자 없음"));
 
-        String role = user.getRole().name();
-        String username = user.getUsername();
-        model.addAttribute("username", username);
-        model.addAttribute("role", role);
-        return "home";  // src/main/resources/templates/home.html
+            model.addAttribute("username", user.getUsername());
+            model.addAttribute("role", user.getRole().name());
+        } else {
+            // OIDC 사용자는 JwtAuthenticationToken 처리 (예시)
+            String sub = authentication.getName();
+            UUID userUuid = UUID.fromString(sub);
+            User user = userRepository.findByUserUuid(userUuid)
+                    .orElseThrow(() -> new RuntimeException("사용자 없음"));
+
+            model.addAttribute("username", user.getUsername());
+            model.addAttribute("role", user.getRole().name());
+        }
+
+        return "home";
     }
+
+
+//    @GetMapping("/home")
+//    public String home(Authentication auth, Model model) {
+//        String rawPrincipal = auth.getName();  // UUID or 일반 로그인 ID
+//        System.out.println("🔐 auth.getName(): " + rawPrincipal);
+//
+//        User user;
+//
+//        try {
+//            // OIDC 로그인 사용자는 UUID 기반으로 조회
+//            UUID uuid = UUID.fromString(rawPrincipal);
+//            user = userRepository.findByUserUuid(uuid)
+//                    .orElseThrow(() -> new RuntimeException("사용자 없음"));
+//        } catch (IllegalArgumentException e) {
+//            // 폼 로그인 사용자 (예: superadmin)
+//            user = userRepository.findByUsername(rawPrincipal)
+//                    .orElseThrow(() -> new RuntimeException("사용자 없음"));
+//        }
+//
+//        String role = user.getRole().name();
+//        String username = user.getUsername();
+//        model.addAttribute("username", username);
+//        model.addAttribute("role", role);
+//        return "home";  // templates/home.html
+//    }
+
 }

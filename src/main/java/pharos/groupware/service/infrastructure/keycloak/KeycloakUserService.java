@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+
 @Slf4j
 @Service
 public class KeycloakUserService {
@@ -34,7 +36,7 @@ public class KeycloakUserService {
     }
 
     private RestClient withAuth() {
-        return RestClient.builder()
+        return restClientBuilder
                 .baseUrl(baseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenProvider.getAccessToken())
@@ -78,4 +80,13 @@ public class KeycloakUserService {
     }
 
 
+    public void deactivateUser(String userId) {
+        Map<String, Object> body = Map.of("enabled", false);
+        withAuth().put()
+                .uri("/users/{id}", userId)
+                .contentType(APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
+    }
 }
