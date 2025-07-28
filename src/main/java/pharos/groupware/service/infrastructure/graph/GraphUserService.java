@@ -6,7 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.team.dto.CreateCalendarEventReqDto;
+import pharos.groupware.service.leave.dto.CreateCalendarEventReqDto;
 
 import java.util.HashMap;
 import java.util.List;

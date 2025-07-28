@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
-import pharos.groupware.service.team.dto.CreateCalendarEventReqDto;
+import pharos.groupware.service.leave.dto.CreateCalendarEventReqDto;
 
 @Tag(name = "03. 연차 기능", description = "연차 신청, 조회, 수정, 취소 등 연차 관련 API")
 @RestController

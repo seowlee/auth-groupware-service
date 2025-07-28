@@ -55,7 +55,8 @@ public class KeycloakUserService {
                 "value", reqDto.getRawPassword(),
                 "temporary", false
         )));
-
+        user.put("requiredActions", List.of("UPDATE_PASSWORD"));
+        
         ResponseEntity<Void> response = withAuth().post()
                 .uri("/users")
                 .body(user)
@@ -89,4 +90,15 @@ public class KeycloakUserService {
                 .retrieve()
                 .toBodilessEntity();
     }
+
+    public void reactivateUser(String userId) {
+        Map<String, Object> body = Map.of("enabled", true);
+        withAuth().put()
+                .uri("/users/{id}", userId)
+                .contentType(APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
 }

@@ -9,9 +9,18 @@ import pharos.groupware.service.admin.dto.CreateUserReqDto;
 @Controller
 @RequestMapping("/admin")
 public class AdminViewController {
+    // 사용자 등록 폼
     @GetMapping("/users/create")
     public String showCreateUserForm(Model model) {
         model.addAttribute("userDto", new CreateUserReqDto());
         return "admin/create-user-form";  // src/main/resources/templates/admin/create-user-form.html
     }
+
+    // 로그 목록 페이지
+    @GetMapping("/logs")
+    public String showLogListPage() {
+        return "admin/audit-log-list";
+    }
+
+
 }

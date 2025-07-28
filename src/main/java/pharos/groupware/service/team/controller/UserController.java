@@ -3,16 +3,26 @@ package pharos.groupware.service.team.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pharos.groupware.service.common.page.PagedResponse;
+import pharos.groupware.service.team.dto.UserResDto;
+import pharos.groupware.service.team.dto.UserSearchReqDto;
+import pharos.groupware.service.team.service.UserService;
 
-@Tag(name = "05. 사용자 기능", description = "사용자 개인 정보 관련 API")
+@Tag(name = "05. 사용자 기능", description = "사용자 목록, 개별 정보 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/user")
+@RequestMapping("/api/team")
 public class UserController {
+    private final UserService userService;
 
     //    {
 //        "graphUserId": "leader1@gwco.onmicrosoft.com",
@@ -22,6 +32,16 @@ public class UserController {
 //            "endDateTime": "2025-07-21T11:00:00",
 //            "timezone": "Asia/Seoul"
 //    }
+
+    @Operation(summary = "전체 사용자 조회", description = "조직 내 모든 사용자 정보를 조회합니다.")
+    @GetMapping("/users")
+    public ResponseEntity<PagedResponse<UserResDto>> getAllUsers(
+            @ParameterObject @ModelAttribute UserSearchReqDto userSearchReqDto,
+            @ParameterObject @PageableDefault(size = 5) Pageable pageable) {
+        Page<UserResDto> userPage = userService.findAllUsers(userSearchReqDto, pageable);
+        return ResponseEntity.ok(new PagedResponse<>(userPage));
+    }
+
     @Operation(summary = "내 프로필 조회", description = "로그인한 사용자의 이름, 이메일, 소속 팀 등의 정보를 확인합니다.")
     @GetMapping("/profile")
     public ResponseEntity<?> getMyProfile() {

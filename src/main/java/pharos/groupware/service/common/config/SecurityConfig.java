@@ -10,13 +10,12 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import pharos.groupware.service.common.security.CustomOAuth2SuccessHandler;
 
 import java.util.List;
 
@@ -24,21 +23,24 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final List<String> CLIENTS_TO_EXTRACT = List.of("groupware-app");
+    private final CustomOAuth2SuccessHandler successHandler;
+
+    public SecurityConfig(CustomOAuth2SuccessHandler successHandler) {
+        this.successHandler = successHandler;
+    }
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
 //                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .authorizeHttpRequests(auth -> auth.requestMatchers(
-                                "/login",
-                                "/admin/login",
-                                "/css/**",
-                                "/oauth2/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**").permitAll()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/login", "/api/admin/login", "/oauth2/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
+
                 // 폼 로그인 : 실제 사용자 로그인 뷰 제공용
                 .formLogin(form -> form
                         .loginPage("/login")
@@ -65,11 +67,9 @@ public class SecurityConfig {
                 )
                 // Keycloak 또는 외부 IDP용 OAuth2 로그인
                 .oauth2Login(oauth2 -> oauth2
-                                .loginPage("/login")
-                                .defaultSuccessUrl("/home", true)
-//                        .userInfoEndpoint(user -> user
-//                                .userService(oAuth2UserService)
-//                        )
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/home", true)
+                        .successHandler(successHandler)
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -86,11 +86,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 
     @Bean
     OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {

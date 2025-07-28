@@ -4,41 +4,36 @@
     <meta charset="UTF-8"/>
     <title>사용자 생성</title>
     <link rel="stylesheet" th:href="@{/css/createUserform.css}"/>
+    <script defer th:src="@{/js/create-user-form.js}"></script>
 </head>
 <body>
 <div class="container">
     <h1>신규 사용자 생성</h1>
-    <form onsubmit="submitForm(event)">
+    <form action="javascript:void(0)" id="createUserForm">
         <div class="form-group">
             <label for="username">사용자명:</label>
             <input id="username" name="username" required type="text">
         </div>
-
         <div class="form-group">
             <label for="rawPassword">비밀번호:</label>
             <input id="rawPassword" name="rawPassword" required type="password">
         </div>
-
         <div class="form-group">
             <label for="email">이메일:</label>
             <input id="email" name="email" required type="email">
         </div>
-
         <div class="form-group">
             <label for="firstName">이름:</label>
             <input id="firstName" name="firstName" required type="text">
         </div>
-
         <div class="form-group">
             <label for="lastName">성:</label>
             <input id="lastName" name="lastName" required type="text">
         </div>
-
         <div class="form-group">
             <label for="joinedDate">입사일:</label>
             <input id="joinedDate" name="joinedDate" required type="date">
         </div>
-
         <div class="form-group">
             <label for="role">역할:</label>
             <select id="role" name="role" required>
@@ -47,38 +42,8 @@
                 <option value="SUPER_ADMIN">최고관리자</option>
             </select>
         </div>
-
-        <button class="btn" type="submit">사용자 등록</button>
+        <button class="btn" type="submit">등록</button>
     </form>
-
 </div>
-
-<script>
-    async function submitForm(event) {
-        event.preventDefault();
-        const data = {
-            username: document.getElementById('username').value,
-            rawPassword: document.getElementById('rawPassword').value,
-            email: document.getElementById('email').value,
-            firstName: document.getElementById('firstName').value,
-            lastName: document.getElementById('lastName').value,
-            joinedDate: document.getElementById('joinedDate').value,
-            role: document.getElementById('role').value
-        };
-
-        const response = await fetch('/admin/users', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
-            alert('성공적으로 생성되었습니다!');
-            window.location.href = '/home';
-        } else {
-            alert('오류가 발생했습니다. 입력값을 확인하세요.');
-        }
-    }
-</script>
 </body>
 </html>

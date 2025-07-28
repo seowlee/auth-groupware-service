@@ -1,6 +1,5 @@
 package pharos.groupware.service.admin.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +7,7 @@ import org.springframework.stereotype.Service;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
+import pharos.groupware.service.team.domain.User;
 import pharos.groupware.service.team.domain.UserRepository;
 import pharos.groupware.service.team.service.UserService;
 
@@ -47,27 +47,46 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(String keycloakUserId) {
         UUID uuid = UUID.fromString(keycloakUserId);
-        boolean exists = userRepository.existsByUserUuid(uuid);
-        if (!exists) throw new EntityNotFoundException("사용자 없음");
-
-//        graphUserService.deleteUser(graphUserId);
-
-        keycloakUserService.deleteUser(keycloakUserId);
-        localUserService.deleteUser(uuid);
-        log.info("Deleted user. keycloakId={}", keycloakUserId);
+        User user = userRepository.findByUserUuid(uuid)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+        try {
+            //        graphUserService.deleteUser(graphUserId);
+            keycloakUserService.deleteUser(keycloakUserId);
+            localUserService.deleteUser(user);
+            log.info("Deleted user. userUUID={}", keycloakUserId);
 //        auditLogService.record("USER_DELETE", "SUCCESS", "Deleted user_uuid: " + keycloakUserId);
+
+        } catch (Exception e) {
+            log.error("failed to delete user. keycloakUserId={}", keycloakUserId, e);
+        }
+
     }
 
     @Override
+    @Transactional
     public String deactivateUser(String keycloakUserId) {
         UUID uuid = UUID.fromString(keycloakUserId);
-        boolean exists = userRepository.existsByUserUuid(uuid);
-        if (!exists) throw new EntityNotFoundException("사용자 없음");
 
-        keycloakUserService.deactivateUser(keycloakUserId);
-        localUserService.deactivateUser(uuid);
-        return keycloakUserId;
+        User user = userRepository.findByUserUuid(uuid)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+
+        try {
+            keycloakUserService.deactivateUser(keycloakUserId);
+            localUserService.deactivateUser(user);
+            log.info("Deactivated user. userUUID={}", keycloakUserId);
+            return keycloakUserId;
+        } catch (Exception e) {
+            log.error("사용자 비활성화 중 DB 오류 발생. Keycloak 사용자 복원 시도", e);
+            // 복구 시도
+            try {
+                keycloakUserService.reactivateUser(keycloakUserId); // 보상 트랜잭션
+            } catch (Exception rollbackEx) {
+                log.error("Keycloak 사용자 복구 실패! ", rollbackEx);
+            }
+            throw e;
+        }
     }
 }

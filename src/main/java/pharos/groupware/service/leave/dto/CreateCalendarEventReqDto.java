@@ -1,4 +1,4 @@
-package pharos.groupware.service.team.dto;
+package pharos.groupware.service.leave.dto;
 
 import lombok.Data;
 
