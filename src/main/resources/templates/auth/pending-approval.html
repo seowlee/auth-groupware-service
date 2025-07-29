@@ -1,10 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>승인 대기 중</title>
 </head>
 <body>
-$END$
+<h2>승인 대기 중입니다.</h2>
+<p th:if="${email}">
+    이메일 <strong th:text="${email}">사용자 이메일</strong>은 현재 승인 대기 중입니다.
+</p>
+<p>관리자에게 문의하여 승인을 요청하세요.</p>
+
+<p>
+    <a th:href="@{/logout}">로그인 페이지로 돌아가기</a>
+</p>
 </body>
 </html>
+

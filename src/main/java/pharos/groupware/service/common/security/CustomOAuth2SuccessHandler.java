@@ -3,6 +3,7 @@ package pharos.groupware.service.common.security;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final UserRepository userRepository;
@@ -31,13 +33,15 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+//        log.info("OAuth2User attributes: {}", oAuth2User.getAttributes());
         String email = oAuth2User.getAttribute("email");
 
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     // 🔥 최초 로그인 시 사용자 등록 + 비활성화
                     CreateIdpUserReqDto dto = new CreateIdpUserReqDto();
-                    dto.setUsername(oAuth2User.getAttribute("name"));
+                    dto.setUserUUID(oAuth2User.getAttribute("sub"));
+                    dto.setUsername(oAuth2User.getAttribute("preferred_username"));
                     dto.setEmail(email);
                     dto.setFirstName(oAuth2User.getAttribute("given_name")); // 없으면 null
                     dto.setLastName(oAuth2User.getAttribute("family_name")); // 없으면 null
@@ -50,6 +54,8 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 });
 
         if (user.getStatus() == UserStatusEnum.PENDING) {
+//            request.getSession().invalidate();
+//            SecurityContextHolder.clearContext();
             response.sendRedirect("/error/pending-approval");
             return;
         }

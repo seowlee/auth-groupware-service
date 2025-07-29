@@ -22,6 +22,6 @@ public class LeaveViewController {
     // 연차 등록 폼
     @GetMapping("/create")
     public String showCreateLeaveForm() {
-        return "leave/create-leave-form";  // src/main/resources/templates/admin/create-user-form.html
+        return "leave/create-leave-form";  // src/main/resources/templates/admin/create-user-popup.html
     }
 }

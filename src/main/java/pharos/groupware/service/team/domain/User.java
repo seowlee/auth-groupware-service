@@ -113,7 +113,7 @@ public class User {
 
     public static User create(CreateIdpUserReqDto reqDTO, PasswordEncoder passwordEncoder) {
         User user = new User();
-        user.userUuid = UUID.randomUUID();  // IDP 사용자는 UUID 고정
+        user.userUuid = reqDTO.getUserUUID() != null ? UUID.fromString(reqDTO.getUserUUID()) : UUID.randomUUID();
         user.username = reqDTO.getUsername();
         user.email = reqDTO.getEmail();
         user.password = passwordEncoder.encode(reqDTO.getRawPassword());

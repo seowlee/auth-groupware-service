@@ -1,52 +1,129 @@
 <!DOCTYPE html>
-<html xmlns:sec="https://www.thymeleaf.org/extras/spring-security"
-      xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>Home</title>
+    <title>SuperAdmin Home</title>
+    <link rel="stylesheet" th:href="@{/css/home.css}"/>
 </head>
 <body>
-<h1>Welcome, <span th:text="${username}">User</span>!</h1>
-
-<div sec:authorize="isAuthenticated()">
-    <form method="post" th:action="@{/logout}">
-        <button type="submit">로그아웃</button>
+<nav>
+    <h1 th:text="${username}">사용자</h1>
+    <ul>
+        <li>
+            <a class="menu-link active" data-url="/team/users" href="#"
+            >전체 사용자 목록</a
+            >
+        </li>
+        <li>
+            <a class="menu-link" data-url="/leave/calendar" href="#"
+            >연차 캘린더</a
+            >
+        </li>
+        <li>
+            <a class="menu-link" data-url="/leave/list" href="#">연차 목록</a>
+        </li>
+        <li>
+            <a class="menu-link" data-url="/leave/calendar" href="#">연차 관리</a>
+        </li>
+        <li>
+            <a class="menu-link" data-url="/admin/logs" href="#">로그 보기</a>
+        </li>
+    </ul>
+    <form class="logout-form" method="post" th:action="@{/logout}">
+        <button class="logout-btn" type="submit">로그아웃</button>
     </form>
-</div>
-<!--<p><a th:href="@{/logout}">Logout</a></p>-->
-<hr/>
+</nav>
+<main id="main-content">
+    <h2>사용자 홈</h2>
+    <p>왼쪽 메뉴를 선택하여 기능을 이용하세요.</p>
+</main>
+<script>
+    document.querySelectorAll(".menu-link").forEach((link) => {
+        link.addEventListener("click", async function (e) {
+            e.preventDefault();
+            const url = this.getAttribute("data-url");
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("페이지 로드 실패");
+                const html = await res.text();
+                document.getElementById("main-content").innerHTML = html;
+                document
+                    .querySelectorAll(".menu-link")
+                    .forEach((l) => l.classList.remove("active"));
+                this.classList.add("active");
 
-<!-- 💼 최고 관리자 -->
-<div th:if="${role == 'SUPER_ADMIN'}">
-    <h2>최고관리자 기능</h2>
-    <ul>
-        <li><a th:href="@{/admin/users/create}">사용자 생성</a></li>
-        <li><a th:href="@{/admin/manage-roles}">사용자 비활성화</a></li>
-        <li><a th:href="@{/admin/settings}">시스템 설정</a></li>
-    </ul>
-</div>
+                // 사용자 목록 페이지가 로드된 경우 JavaScript 초기화
+                if (url === "/team/users") {
+                    console.log("사용자 목록 페이지 로드됨");
+                    // 필요한 스크립트들을 순서대로 로드
+                    const scripts = ["/js/common/pagination.js", "/js/user-list.js"];
 
-<!-- 👩‍💼 팀장 -->
-<div th:if="${role == 'TEAM_LEADER'}">
-    <h2>관리자 기능</h2>
-    <ul>
-        <li><a th:href="@{/admin/users}">사용자 목록 조회</a></li>
-        <li><a th:href="@{/admin/vacation-approvals}">연차 </a></li>
-        <li><a th:href="@{/admin/schedule-check}">일정 충돌 확인</a></li>
-        <li><a th:href="@{/admin/send-mail}">알림 메일 전송</a></li>
-    </ul>
-</div>
+                    let loadedCount = 0;
+                    scripts.forEach((src) => {
+                        const script = document.createElement("script");
+                        script.src = src;
+                        script.onload = () => {
+                            loadedCount++;
+                            if (loadedCount === scripts.length) {
+                                if (window.initUserListManager) {
+                                    window.initUserListManager();
+                                }
+                            }
+                        };
+                        document.head.appendChild(script);
+                    });
+                }
+            } catch (err) {
+                document.getElementById(
+                    "main-content"
+                ).innerHTML = `<p style="color:red;">${err.message}</p>`;
+            }
+        });
+    });
 
-<!-- 👤 팀원 -->
-<div th:if="${role == 'TEAM_MEMBER'}">
-    <h2>내 연차 관리</h2>
-    <ul>
-        <li><a th:href="@{/me/calendar}">연차 일정 등록</a></li>
-        <li><a th:href="@{/me/calendar/edit}">내 일정 수정</a></li>
-        <li><a th:href="@{/me/mail}">받은 메일 보기</a></li>
-    </ul>
-</div>
+    // 햄버거 메뉴 토글 기능
+    function toggleMobileMenu() {
+        const navUl = document.querySelector("nav ul");
+        navUl.classList.toggle("show");
+    }
 
+    // 햄버거 버튼 클릭 이벤트
+    document.addEventListener("DOMContentLoaded", function () {
+        const nav = document.querySelector("nav");
+
+        // 햄버거 버튼 클릭 감지 개선
+        nav.addEventListener("click", function (e) {
+            // 모바일에서만 작동
+            if (window.innerWidth <= 768) {
+                const rect = nav.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+
+                // 햄버거 버튼은 왼쪽 끝에 위치 (order: -1)
+                if (clickX <= 50) {
+                    e.preventDefault();
+                    toggleMobileMenu();
+                }
+            }
+        });
+
+        // 메뉴 외부 클릭 시 메뉴 닫기
+        document.addEventListener("click", function (e) {
+            if (window.innerWidth <= 768) {
+                const navUl = document.querySelector("nav ul");
+                if (!nav.contains(e.target) && navUl.classList.contains("show")) {
+                    navUl.classList.remove("show");
+                }
+            }
+        });
+
+        // 창 크기 변경 시 메뉴 상태 초기화
+        window.addEventListener("resize", function () {
+            if (window.innerWidth > 768) {
+                const navUl = document.querySelector("nav ul");
+                navUl.classList.remove("show");
+            }
+        });
+    });
+</script>
 </body>
 </html>
-

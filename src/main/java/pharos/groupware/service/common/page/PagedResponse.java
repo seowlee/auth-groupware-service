@@ -12,7 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class PagedResponse<T> {
     private List<T> content;
-    private int page;
+    private int number; // current page
     private int size;
     private long totalElements;
     private int totalPages;
@@ -20,7 +20,7 @@ public class PagedResponse<T> {
 
     public PagedResponse(Page<T> page) {
         this.content = page.getContent();
-        this.page = page.getNumber();
+        this.number = page.getNumber();
         this.size = page.getSize();
         this.totalElements = page.getTotalElements();
         this.totalPages = page.getTotalPages();
