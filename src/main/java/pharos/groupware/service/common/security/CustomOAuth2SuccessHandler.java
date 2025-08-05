@@ -33,7 +33,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-//        log.info("OAuth2User attributes: {}", oAuth2User.getAttributes());
+        log.info("OAuth2User attributes: {}", oAuth2User.getAttributes());
         String email = oAuth2User.getAttribute("email");
 
         User user = userRepository.findByEmail(email)
@@ -54,8 +54,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 });
 
         if (user.getStatus() == UserStatusEnum.PENDING) {
-//            request.getSession().invalidate();
-//            SecurityContextHolder.clearContext();
+
             response.sendRedirect("/error/pending-approval");
             return;
         }

@@ -11,7 +11,7 @@ public class AdminViewController {
     @GetMapping("/users/create")
     public String showCreateUserForm() {
 //        model.addAttribute("userDto", new CreateUserReqDto());
-        return "admin/create-user-popup";  // src/main/resources/templates/admin/create-user-popup.html
+        return "admin/create-user-form";  // src/main/resources/templates/admin/create-user-form.html
     }
 
     // 로그 목록 페이지

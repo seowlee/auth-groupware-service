@@ -3,7 +3,7 @@ spring:
     name: auth-groupware
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/groupware_db
+    url: jdbc:postgresql://localhost:5432/groupware_db?options=-c%20TimeZone=Asia/Seoul
     username: myuser
     password: ENC(bg3SOL/khQb3hTHXdQ6a7Cc34D7c7SFq2DeqkSxg/ct7VZU9LCNmMmpCdmtAwZ6Z)
     driver-class-name: org.postgresql.Driver
@@ -53,6 +53,8 @@ graph:
   token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
   scope: https://graph.microsoft.com/.default
   base-url: https://graph.microsoft.com/v1.0
+  calendar-user-id: 9950969b-933c-4860-aece-c7396e2c16cc
+  timezone: Asia/Seoul
 
 # 3) JWT 토큰 설정 (Fallback 로그인용)
 jwt:

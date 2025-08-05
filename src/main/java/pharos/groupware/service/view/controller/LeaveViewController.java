@@ -20,8 +20,8 @@ public class LeaveViewController {
     }
 
     // 연차 등록 폼
-    @GetMapping("/create")
+    @GetMapping("/apply")
     public String showCreateLeaveForm() {
-        return "leave/create-leave-form";  // src/main/resources/templates/admin/create-user-popup.html
+        return "leave/leave-form";  // src/main/resources/templates/admin/create-user-form.html
     }
 }

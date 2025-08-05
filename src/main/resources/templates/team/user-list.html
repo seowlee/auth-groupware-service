@@ -4,7 +4,6 @@
     <meta charset="UTF-8"/>
     <title>User List</title>
     <link rel="stylesheet" th:href="@{/css/list.css}"/>
-    <link rel="stylesheet" th:href="@{/css/form.css}"/>
 </head>
 <body>
 <div class="list-container">
@@ -36,14 +35,14 @@
     </div>
 
     <div class="action-buttons">
-        <button class="btn" id="toggleUserFormBtn">사용자 등록</button>
+        <!--        <button class="btn" id="toggleUserFormBtn">사용자 등록</button>-->
         <button class="btn btn-secondary" id="refreshUsersBtn">
             목록 새로고침
         </button>
     </div>
 
     <!-- 사용자 등록 팝업 (동적으로 로드됨) -->
-    <div id="userFormContainer"></div>
+    <!--    <div id="userFormContainer"></div>-->
 
     <!-- 메시지 영역 -->
     <div id="messageArea"></div>
@@ -54,11 +53,11 @@
         <table class="data-table" id="userTable" style="display: none">
             <thead>
             <tr>
-                <th>사용자명</th>
+                <th class="sortable" data-sort="username">사용자명</th>
                 <th>이메일</th>
                 <th>역할</th>
                 <th>팀</th>
-                <th>입사일</th>
+                <th class="sortable" data-sort="joinedDate">입사일</th>
                 <th>상태</th>
             </tr>
             </thead>
@@ -96,8 +95,8 @@
     </div>
 </div>
 
-<script th:src="@{/js/common/pagination.js}"></script>
-<script th:src="@{/js/user-list.js}"></script>
+<!--<script th:src="@{/js/common/pagination.js}"></script>-->
+<!--<script th:src="@{/js/user-list.js}"></script>-->
 <script>
     // 페이지 로드 시 초기화
     document.addEventListener("DOMContentLoaded", () => {

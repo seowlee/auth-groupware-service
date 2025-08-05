@@ -6,11 +6,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.leave.dto.CreateCalendarEventReqDto;
+import pharos.groupware.service.common.util.DateUtils;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 @Service
@@ -18,16 +20,22 @@ public class GraphUserService {
     private final GraphTokenProvider graphTokenProvider;
     private final RestClient.Builder restClientBuilder;
     private final String baseUrl;
+    private final String graphUserId;
+    private final String timezone;
 //    private final RestClient restClient;
 
     public GraphUserService(
             GraphTokenProvider tokenProvider,
             RestClient.Builder builder,
-            @Value("${graph.base-url}") String baseUrl
+            @Value("${graph.base-url}") String baseUrl,
+            @Value("${graph.calendar-user-id}") String graphUserId,
+            @Value("${graph.timezone}") String timezone
     ) {
         this.graphTokenProvider = tokenProvider;
         this.restClientBuilder = builder;
         this.baseUrl = baseUrl;
+        this.graphUserId = graphUserId;
+        this.timezone = timezone;
     }
 
     private RestClient withAuth() {
@@ -110,18 +118,27 @@ public class GraphUserService {
                 });
     }
 
-    public void createEvent(CreateCalendarEventReqDto dto) {
+    public String createEvent(
+            String subject,
+            String body,
+            LocalDateTime start,
+            LocalDateTime end) {
+
         Map<String, Object> eventData = Map.of(
-                "subject", dto.getSubject(),
-                "body", Map.of("contentType", "Text", "content", dto.getBodyContent()),
-                "start", Map.of("dateTime", dto.getStartDateTime(), "timeZone", dto.getTimezone()),
-                "end", Map.of("dateTime", dto.getEndDateTime(), "timeZone", dto.getTimezone())
+                "subject", subject,
+                "body", Map.of("contentType", "Text", "content", body),
+                "start", Map.of("dateTime", start.format(DateUtils.LOCAL_FORMATTER), "timeZone", timezone),
+                "end", Map.of("dateTime", end.format(DateUtils.LOCAL_FORMATTER), "timeZone", timezone),
+                "location", Map.of("displayName", "휴가")
         );
-        withAuth().post()
-                .uri("/users/{userId}/events", dto.getGraphUserId())
+        Map<String, Object> response = withAuth().post()
+                .uri("/users/{userId}/events", graphUserId)
                 .body(eventData)
                 .retrieve()
-                .toBodilessEntity();
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+        assert response != null;
+        return Objects.toString(response.get("id"), null);
     }
 
     public void deleteEvent(String userId, String eventId) {

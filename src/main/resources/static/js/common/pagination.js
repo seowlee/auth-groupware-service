@@ -59,8 +59,8 @@ class PaginationManager {
         this.pageSize = pageData.size;
         this.totalElements = pageData.totalElements;
         this.totalPages = pageData.totalPages;
-        console.log("pageinfo-=================")
-        console.log(this.currentPage, this.pageSize, this.totalElements, this.totalPages)
+        // console.log("pageinfo-=================")
+        // console.log(this.currentPage, this.pageSize, this.totalElements, this.totalPages)
         this.updateUI();
     }
 

@@ -4,18 +4,19 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
-import pharos.groupware.service.leave.dto.CreateCalendarEventReqDto;
+import pharos.groupware.service.leave.dto.CreateLeaveReqDto;
+import pharos.groupware.service.leave.dto.LeaveDetailResDto;
+import pharos.groupware.service.leave.service.LeaveService;
 
 @Tag(name = "03. 연차 기능", description = "연차 신청, 조회, 수정, 취소 등 연차 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/leaves")
-@PreAuthorize("hasRole('USER')")
+@RequestMapping("/api/leave")
 public class LeaveController {
     private final GraphUserService graphUserService;
+    private final LeaveService leaveService;
 
     @Operation(summary = "내 연차 목록 조회", description = "내가 신청한 연차 목록을 상태 정보와 함께 조회합니다.")
     @GetMapping("/my")
@@ -26,9 +27,16 @@ public class LeaveController {
 
     @Operation(summary = "연차 신청", description = "새로운 연차를 신청합니다.")
     @PostMapping
-    public ResponseEntity<?> applyLeave(@RequestBody CreateCalendarEventReqDto dto) {
-        graphUserService.createEvent(dto);
+    public ResponseEntity<String> applyLeave(@RequestBody CreateLeaveReqDto reqDto) {
+        leaveService.applyLeave(reqDto);
         return ResponseEntity.ok("연차 신청 완료");
+    }
+
+    @Operation(summary = "연차 상세 조회", description = "ID로 연차 상세 정보를 조회합니다.")
+    @GetMapping("/{id}")
+    public ResponseEntity<LeaveDetailResDto> getLeave(@PathVariable Long id) {
+        LeaveDetailResDto dto = leaveService.getLeaveDetail(id);
+        return ResponseEntity.ok(dto);
     }
 
     @Operation(summary = "연차 수정", description = "기존 연차 정보를 수정합니다.")

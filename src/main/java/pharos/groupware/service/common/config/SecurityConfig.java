@@ -23,6 +23,7 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final List<String> CLIENTS_TO_EXTRACT = List.of("groupware-app");
+
     private final CustomOAuth2SuccessHandler successHandler;
 
     public SecurityConfig(CustomOAuth2SuccessHandler successHandler) {
@@ -32,11 +33,13 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
 //                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/login", "/api/admin/login", "/oauth2/**").permitAll()
+                        .requestMatchers("/realms/**", "/api/admin/users/pending", "/error/pending-approval").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -67,9 +70,23 @@ public class SecurityConfig {
                 )
                 // Keycloak 또는 외부 IDP용 OAuth2 로그인
                 .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/login")
-                        .defaultSuccessUrl("/home", true)
-                        .successHandler(successHandler)
+                                .loginPage("/login")
+//                                .userInfoEndpoint(userInfo -> userInfo
+//                                        .oidcUserService(customOAuth2UserService)
+//                                )
+//                                .failureHandler((request, response, exception) -> {
+//                                    if (exception instanceof OAuth2AuthenticationException authEx &&
+//                                            "pending_user".equals(authEx.getError().getErrorCode())) {
+//                                        System.out.println("case11111111111==========");
+//                                        response.sendRedirect("/error/pending-approval");
+//                                    } else {
+//                                        System.out.println("case22222222222=========");
+//                                        response.sendRedirect("/login?error");
+//                                    }
+//                                })
+                                .defaultSuccessUrl("/home", true)
+//                                .successHandler(successHandler)
+
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")

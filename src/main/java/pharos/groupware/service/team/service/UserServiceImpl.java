@@ -1,5 +1,6 @@
 package pharos.groupware.service.team.service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
+import pharos.groupware.service.admin.dto.PendingUserDto;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.team.domain.Team;
@@ -17,8 +19,11 @@ import pharos.groupware.service.team.domain.TeamRepository;
 import pharos.groupware.service.team.domain.User;
 import pharos.groupware.service.team.domain.UserRepository;
 import pharos.groupware.service.team.dto.CreateIdpUserReqDto;
+import pharos.groupware.service.team.dto.UserDetailResDto;
 import pharos.groupware.service.team.dto.UserResDto;
 import pharos.groupware.service.team.dto.UserSearchReqDto;
+
+import java.util.UUID;
 
 
 @Slf4j
@@ -30,14 +35,14 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public String createUser(CreateUserReqDto reqDTO) {
+    public Long createUser(CreateUserReqDto reqDTO, String currentUsername) {
 
         Team team = teamRepository.findById(reqDTO.getTeamId())
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
-        User user = User.create(reqDTO, team, passwordEncoder);
+        User user = User.create(reqDTO, team, currentUsername, passwordEncoder);
         User savedUser = userRepository.save(user);
 
-        return savedUser.getUserUuid().toString();
+        return savedUser.getId();
     }
 
     @Override
@@ -46,6 +51,30 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
+    @Override
+    @Transactional
+    public void registerPendingUser(PendingUserDto reqDto) {
+        Team defaultTeam = teamRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> new IllegalStateException("등록된 팀이 없습니다"));
+        User user = User.fromPendingDto(reqDto, defaultTeam, passwordEncoder);
+        userRepository.save(user);
+        log.info("승인 대기 사용자 등록 완료: {}", user.getEmail());
+    }
+
+    //    public void registerPendingUser(PendingUserDto dto) {
+//        if (!userRepository.existsByEmail(dto.getEmail())) {
+//            User user = User.builder()
+//                    .email(dto.getEmail())
+//                    .username(dto.getUsername())
+//                    .firstName(dto.getFirstName())
+//                    .lastName(dto.getLastName())
+//                    .provider(dto.getProvider())
+//                    .status(UserStatus.PENDING)
+//                    .build();
+//
+//            userRepository.save(user);
+//        }
+//    }
     @Override
     public void deleteUser(User user) {
         userRepository.deleteByUserUuid(user.getUserUuid());
@@ -58,11 +87,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<UserResDto> findAllUsers(UserSearchReqDto reqDto, Pageable pageable) {
-//        Specification<User> spec = UserSpecification.search(reqDto);
-//        Page<User> page = userRepository.findAll(spec, pageable);
-        // 1. 클라이언트가 정렬 조건을 보냈는지 확인합니다.
+
+        // 정렬 조건 없으면 입사일 내림차순
         if (pageable.getSort().isUnsorted()) {
-            // 2. 정렬 조건이 없다면, 안정적인 기본 정렬을 새로 만들어 적용합니다.
             Sort defaultSort = Sort.by(Sort.Order.desc("joinedDate"), Sort.Order.asc("id"));
             pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), defaultSort);
         }
@@ -78,10 +105,32 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.hasText(statusStr)) {
             statusEnum = UserStatusEnum.valueOf(statusStr.toUpperCase());
         }
-  
+
         Page<User> page = userRepository.findAllBySearchFilter(reqDto.getKeyword(), reqDto.getTeamId(), roleEnum, statusEnum, pageable);
 
-        System.out.println("page = " + page);
+//        System.out.println("page = " + page);
         return page.map(UserResDto::fromEntity);
     }
+
+    @Override
+    public UserDetailResDto getUserDetail(UUID uuid) {
+        User user = userRepository.findByUserUuid(uuid)
+                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
+        UserDetailResDto dto = new UserDetailResDto();
+        dto.setUuid(user.getUserUuid());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setJoinedDate(user.getJoinedDate().toString());
+        dto.setRole(user.getRole().name());
+        dto.setStatus(user.getStatus().name());
+        dto.setTeamId(user.getTeam().getId());
+        dto.setTeamName(user.getTeam().getName());
+        // 연차 정보는 제외
+        return dto;
+//        return null;
+    }
+
+
 }

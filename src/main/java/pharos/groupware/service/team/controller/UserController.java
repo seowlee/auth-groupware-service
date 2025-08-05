@@ -8,14 +8,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.common.page.PagedResponse;
+import pharos.groupware.service.team.dto.UpdateUserProfileReqDto;
+import pharos.groupware.service.team.dto.UserDetailResDto;
 import pharos.groupware.service.team.dto.UserResDto;
 import pharos.groupware.service.team.dto.UserSearchReqDto;
 import pharos.groupware.service.team.service.UserService;
+
+import java.util.UUID;
 
 @Tag(name = "05. 사용자 기능", description = "사용자 목록, 개별 정보 관련 API")
 @RestController
@@ -40,6 +41,20 @@ public class UserController {
             @ParameterObject @PageableDefault(size = 5) Pageable pageable) {
         Page<UserResDto> userPage = userService.findAllUsers(userSearchReqDto, pageable);
         return ResponseEntity.ok(new PagedResponse<>(userPage));
+    }
+
+    @Operation(summary = "단일 사용자 조회")
+    @GetMapping("/users/{uuid}")
+    public ResponseEntity<UserDetailResDto> getUserDetail(@PathVariable UUID uuid) {
+        return ResponseEntity.ok(userService.getUserDetail(uuid));
+    }
+
+    @Operation(summary = "사용자 수정")
+    @PutMapping("/users/{uuid}")
+    public ResponseEntity<Void> updateUser(@PathVariable UUID uuid,
+                                           @RequestBody UpdateUserProfileReqDto reqDto) {
+//        userService.updateUser(uuid, reqDto);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "내 프로필 조회", description = "로그인한 사용자의 이름, 이메일, 소속 팀 등의 정보를 확인합니다.")

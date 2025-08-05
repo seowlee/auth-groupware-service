@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
+import pharos.groupware.service.admin.dto.UpdateUserByAdminReqDto;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ public class KeycloakUserService {
                 "temporary", false
         )));
         user.put("requiredActions", List.of("UPDATE_PASSWORD"));
-        
+
         ResponseEntity<Void> response = withAuth().post()
                 .uri("/users")
                 .body(user)
@@ -96,6 +97,36 @@ public class KeycloakUserService {
         withAuth().put()
                 .uri("/users/{id}", userId)
                 .contentType(APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+
+    public void updateUserProfile(String keycloakUserId, UpdateUserByAdminReqDto reqDto) {
+        Map<String, Object> updates = new HashMap<>();
+
+        if (reqDto.getFirstName() != null) updates.put("firstName", reqDto.getFirstName());
+        if (reqDto.getLastName() != null) updates.put("lastName", reqDto.getLastName());
+        if (reqDto.getEmail() != null) updates.put("email", reqDto.getEmail());
+//        if (reqDto.getUsername() != null)  updates.put("username", reqDto.getUsername());
+
+        withAuth().put()
+                .uri("/users/{id}", keycloakUserId)
+                .body(updates)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    public void linkKakaoFederatedIdentity(String keycloakUserId, String kakaoUserId, String kakaoUsername) {
+        Map<String, Object> body = Map.of(
+                "userId", kakaoUserId,
+                "userName", kakaoUsername
+        );
+
+        withAuth().post()
+                .uri("/users/{id}/federated-identity/kakao", keycloakUserId)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
                 .toBodilessEntity();

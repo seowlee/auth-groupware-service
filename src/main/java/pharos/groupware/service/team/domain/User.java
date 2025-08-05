@@ -3,20 +3,26 @@ package pharos.groupware.service.team.domain;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
+import pharos.groupware.service.admin.dto.PendingUserDto;
+import pharos.groupware.service.admin.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.team.dto.CreateIdpUserReqDto;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Getter
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users", schema = "groupware")
 public class User {
     @Id
@@ -91,7 +97,7 @@ public class User {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
-    public static User create(CreateUserReqDto reqDTO, Team team, PasswordEncoder passwordEncoder) {
+    public static User create(CreateUserReqDto reqDTO, Team team, String currentUsername, PasswordEncoder passwordEncoder) {
         User user = new User();
         user.userUuid = reqDTO.getUserUUID() != null ? UUID.fromString(reqDTO.getUserUUID()) : UUID.randomUUID();
         user.username = reqDTO.getUsername();
@@ -100,15 +106,39 @@ public class User {
         user.firstName = reqDTO.getFirstName();
         user.lastName = reqDTO.getLastName();
         user.joinedDate = reqDTO.getJoinedDate();
-        user.yearNumber = 1;
+        user.yearNumber = reqDTO.getYearNumber();
         user.role = reqDTO.getRole();
         user.status = UserStatusEnum.ACTIVE;
         user.team = team;
         user.createdAt = OffsetDateTime.now();
-        user.createdBy = reqDTO.getUsername();
+        user.createdBy = currentUsername;
         user.updatedAt = OffsetDateTime.now();
-        user.updatedBy = reqDTO.getUsername();
+        user.updatedBy = currentUsername;
         return user;
+    }
+
+    public static User fromPendingDto(
+            PendingUserDto dto,
+            Team defaultTeam,
+            PasswordEncoder passwordEncoder
+    ) {
+        User u = new User();
+        u.userUuid = UUID.randomUUID();
+        u.username = dto.getUsername();
+        u.email = dto.getEmail();
+        u.password = passwordEncoder.encode("1234");
+        u.firstName = dto.getFirstName();
+        u.lastName = dto.getLastName();
+        u.joinedDate = LocalDate.now();
+        u.yearNumber = 1;
+        u.role = UserRoleEnum.TEAM_MEMBER;
+        u.status = UserStatusEnum.PENDING;
+        u.team = defaultTeam;
+        u.createdAt = OffsetDateTime.now();
+        u.createdBy = Optional.ofNullable(dto.getProvider()).orElse("system");
+        u.updatedAt = u.createdAt;
+        u.updatedBy = u.createdBy;
+        return u;
     }
 
     public static User create(CreateIdpUserReqDto reqDTO, PasswordEncoder passwordEncoder) {
@@ -135,4 +165,30 @@ public class User {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    public void updateByAdmin(UpdateUserByAdminReqDto reqDto, String currentUsername) {
+        if (reqDto.getEmail() != null) this.email = reqDto.getEmail();
+        if (reqDto.getFirstName() != null) this.firstName = reqDto.getFirstName();
+        if (reqDto.getLastName() != null) this.lastName = reqDto.getLastName();
+        if (reqDto.getRole() != null) this.role = UserRoleEnum.valueOf(reqDto.getRole());
+        if (reqDto.getStatus() != null) this.status = UserStatusEnum.valueOf(reqDto.getStatus());
+        if (reqDto.getTeamId() != null) this.team = new Team(reqDto.getTeamId());
+        this.updatedAt = OffsetDateTime.now();
+        this.updatedBy = currentUsername;
+    }
+
+    /**
+     * PENDING → ACTIVE 승인 처리
+     *
+     * @param encodedPassword 새로 인코딩된 비밀번호
+     * @param keycloakUserId  Keycloak 에 생성된 사용자 ID
+     * @param approver        승인자(관리자) 이름
+     */
+    public void approve(String encodedPassword,
+                        String keycloakUserId) {
+        this.password = encodedPassword;
+        this.userUuid = UUID.fromString(keycloakUserId);
+        this.status = UserStatusEnum.ACTIVE;
+        this.updatedAt = OffsetDateTime.now();
+        this.updatedBy = "system";
+    }
 }

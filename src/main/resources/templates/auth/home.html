@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>SuperAdmin Home</title>
+    <link rel="stylesheet" th:href="@{/css/home.css}"/>
+</head>
+<body>
+<nav>
+    <h1 th:text="|${username} (${roleDisplayName})|">사용자 (역할)</h1>
+    <ul>
+        <li>
+            <a class="menu-link active" data-url="/team/users" href="#"
+            >전체 사용자 목록</a
+            >
+        </li>
+        <li th:if="${isSuperAdmin}">
+            <a class="menu-link" data-url="/admin/users/create" href="#">사용자 등록</a>
+        </li>
+        <li><a class="menu-link" data-url="/leave/calendar" href="#">연차 캘린더</a></li>
+        <li><a class="menu-link" data-url="/leave/list" href="#">연차 목록</a></li>
+        <li><a class="menu-link" data-url="/leave/apply" href="#">연차 등록</a></li>
+        <li><a class="menu-link" data-url="/admin/logs" href="#">로그 보기</a></li>
+    </ul>
+    <form class="logout-form" method="post" th:action="@{/logout}">
+        <button class="logout-btn" type="submit">로그아웃</button>
+    </form>
+</nav>
+<main id="main-content">
+    <h2 th:text="| ${roleDisplayName} 홈|"></h2>
+    <p>왼쪽 메뉴를 선택하여 기능을 이용하세요.</p>
+</main>
+<script>
+    const currentPath = window.location.pathname;
+    if (currentPath !== "/home" && !currentPath.startsWith("/home")) {
+        window.location.replace("/home" + currentPath);
+    }
+    // ✅ 최초 /home 진입 시 /team/users로 자동 리디렉션 및 화면 로딩
+    document.addEventListener("DOMContentLoaded", function () {
+        if (currentPath === "/home") {
+            const defaultPath = "/team/users";
+            history.replaceState({path: defaultPath}, "", defaultPath);
+            loadPageIntoMainContent(defaultPath);
+        }
+
+        // ✅ 메뉴 클릭 시 Ajax 로딩 처리
+        document.querySelectorAll(".menu-link").forEach((link) => {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                const url = this.getAttribute("data-url");
+                history.pushState({path: url}, "", url);
+                loadPageIntoMainContent(url);
+                document.querySelectorAll(".menu-link").forEach((l) => l.classList.remove("active"));
+                this.classList.add("active");
+            });
+        });
+    });
+
+    // ✅ 뒤로가기 동작 대응
+    window.addEventListener("popstate", (event) => {
+        const path = window.location.pathname;
+        loadPageIntoMainContent(path);
+    });
+
+    // ✅ 공통 Ajax 페이지 로더 + 스크립트 동적 로딩
+    async function loadPageIntoMainContent(path) {
+        try {
+            const res = await fetch(path);
+            if (!res.ok) throw new Error("페이지 로딩 실패");
+
+            const html = await res.text();
+            document.getElementById("main-content").innerHTML = html;
+
+            // 페이지에 따라 필요한 JS 로드
+            if (path.includes("/team/users/")) {
+                const script = document.createElement("script");
+                script.src = "/js/user-detail.js";
+                script.onload = () => window.initUserDetail?.();
+                document.head.appendChild(script);
+            } else if (path === "/team/users") {
+                const scripts = ["/js/common/pagination.js", "/js/user-list.js"];
+                let loaded = 0;
+                scripts.forEach(src => {
+                    const script = document.createElement("script");
+                    script.src = src;
+                    script.onload = () => {
+                        loaded++;
+                        if (loaded === scripts.length) {
+                            window.initUserListManager?.();
+                        }
+                    };
+                    document.head.appendChild(script);
+                });
+            } else if (path === "/admin/users/create") {
+                const script = document.createElement("script");
+                script.src = "/js/create-user-form.js";
+                script.onload = () => window.initCreateUserForm?.();
+                document.head.appendChild(script);
+            } else if (path === "/leave/apply") {
+                const script = document.createElement("script");
+                script.src = "/js/leave/leave-form.js";
+                script.onload = () => window.initLeaveForm?.("create");
+                document.head.appendChild(script);
+            } else if (path.startsWith("/leave/") && path !== "/leave/list" && path !== "/leave/apply") {
+                const script = document.createElement("script");
+                script.src = "/js/leave/leave-form.js";
+                script.onload = () => {
+                    const leaveId = path.split("/").pop();
+                    fetch(`/api/leave/${leaveId}`)
+                        .then(res => res.json())
+                        .then(data => window.initLeaveForm("edit", data));
+                };
+                document.head.appendChild(script);
+            }
+        } catch (err) {
+            console.error("페이지 로딩 에러:", err);
+            document.getElementById("main-content").innerHTML = `<p style="color:red;">${err.message}</p>`;
+        }
+    }
+
+    // ✅ 햄버거 메뉴 토글 (모바일 대응)
+    function toggleMobileMenu() {
+        const navUl = document.querySelector("nav ul");
+        navUl.classList.toggle("show");
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const nav = document.querySelector("nav");
+        nav.addEventListener("click", function (e) {
+            if (window.innerWidth <= 768) {
+                const rect = nav.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                if (clickX <= 50) {
+                    e.preventDefault();
+                    toggleMobileMenu();
+                }
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (window.innerWidth <= 768) {
+                const navUl = document.querySelector("nav ul");
+                if (!nav.contains(e.target) && navUl.classList.contains("show")) {
+                    navUl.classList.remove("show");
+                }
+            }
+        });
+
+        window.addEventListener("resize", function () {
+            if (window.innerWidth > 768) {
+                const navUl = document.querySelector("nav ul");
+                navUl.classList.remove("show");
+            }
+        });
+    });
+</script>
+</body>
+</html>

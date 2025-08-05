@@ -1,5 +1,6 @@
 package pharos.groupware.service.leave.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -7,12 +8,16 @@ import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import pharos.groupware.service.leave.domain.LeaveBalance;
 import pharos.groupware.service.leave.domain.LeaveBalanceRepository;
 import pharos.groupware.service.leave.dto.CreateLeaveBalanceReqDto;
+import pharos.groupware.service.leave.dto.LeaveBalanceResDto;
+import pharos.groupware.service.team.domain.User;
 import pharos.groupware.service.team.domain.UserRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,6 +61,27 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
 //            leaveBalanceService.initializeLeaveBalancesForUser(user.getId(), newYearNumber);
 //        }
 
+    }
+
+    @Override
+    public List<LeaveBalanceResDto> getLeaveBalances(UUID uuid) {
+        User user = userRepository.findByUserUuid(uuid)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+
+        // 2. userId(Long)로 연차 잔여 조회
+        List<LeaveBalance> balances = leaveBalanceRepository.findByUserId(user.getId());
+
+//        return balances.stream().map(balance -> {
+//            LeaveBalanceResDto dto = new LeaveBalanceResDto();
+//            dto.setTypeCode(balance.getLeaveType().name());
+//            dto.setTypeName(balance.getType().getDisplayName());
+//            dto.setRemainingDays(balance.getRemainingDays());
+//            dto.setUsedDays(balance.getUsedDays());
+//            dto.setTotalDays(balance.getTotalDays());
+//            return dto;
+//        }).collect(Collectors.toList());
+        LeaveBalanceResDto dto = new LeaveBalanceResDto();
+        return Collections.singletonList(dto);
     }
 
 

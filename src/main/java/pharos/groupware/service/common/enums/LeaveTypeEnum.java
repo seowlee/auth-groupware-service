@@ -20,5 +20,5 @@ public enum LeaveTypeEnum {
         this.defaultDays = defaultDays;
         this.initialGrant = initialGrant;
     }
-
+    
 }

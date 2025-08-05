@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import pharos.groupware.service.leave.dto.CreateLeaveBalanceReqDto;
 
 import java.math.BigDecimal;
@@ -24,10 +25,10 @@ public class LeaveBalance {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Size(max = 30)
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "leave_type", nullable = false, length = 30)
-    private String leaveType;
+    private LeaveTypeEnum leaveType;
 
     @NotNull
     @ColumnDefault("1")
@@ -63,7 +64,7 @@ public class LeaveBalance {
     public static LeaveBalance create(CreateLeaveBalanceReqDto reqDto) {
         LeaveBalance lb = new LeaveBalance();
         lb.userId = reqDto.getUserId();
-        lb.leaveType = reqDto.getLeaveType().name();
+        lb.leaveType = reqDto.getLeaveType();
         lb.yearNumber = reqDto.getYearNumber();
         lb.totalAllocated = reqDto.getTotalAllocated();
         lb.used = BigDecimal.ZERO;

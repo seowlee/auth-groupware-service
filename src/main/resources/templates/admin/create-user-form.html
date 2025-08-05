@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>사용자 등록</title>
+    <link rel="stylesheet" th:href="@{/css/form.css}"/>
+</head>
+<body>
+<!--<div class="form-container">-->
+<h2>신규 사용자 등록</h2>
+<!--    <form id="createUserForm">-->
+<form id="form-container">
+    <div class="form-group">
+        <label for="username">사용자명:</label>
+        <input id="username" name="username" required type="text"/>
+    </div>
+    <div class="form-group">
+        <label for="rawPassword">비밀번호:</label>
+        <input id="rawPassword" name="rawPassword" required type="password"/>
+    </div>
+    <div class="form-group">
+        <label for="email">이메일:</label>
+        <input id="email" name="email" required type="email"/>
+    </div>
+    <div class="form-group">
+        <label for="firstName">이름:</label>
+        <input id="firstName" name="firstName" required type="text"/>
+    </div>
+    <div class="form-group">
+        <label for="lastName">성:</label>
+        <input id="lastName" name="lastName" required type="text"/>
+    </div>
+    <div class="form-group">
+        <label for="joinedDate">입사일:</label>
+        <input id="joinedDate" name="joinedDate" required type="date"/>
+    </div>
+    <div class="form-group">
+        <label for="role">역할:</label>
+        <select id="role" name="role" required>
+            <option value="TEAM_MEMBER">팀원</option>
+            <option value="TEAM_LEADER">팀장</option>
+            <option value="SUPER_ADMIN">최고관리자</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="teamId">소속 팀:</label>
+        <select id="teamId" name="teamId" required>
+            <option value="">팀을 선택하세요</option>
+        </select>
+    </div>
+    <div class="action-buttons">
+        <button class="btn" type="submit">등록</button>
+        <button class="btn btn-secondary" id="cancelFormBtn" type="button">
+            취소
+        </button>
+    </div>
+</form>
+<!--    </form>-->
+<!--</div>-->
+<!--<script th:src="@{/js/create-user-form.js}"></script>-->
+
+</body>
+</html>

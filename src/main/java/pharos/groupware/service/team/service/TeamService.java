@@ -1,9 +1,9 @@
 package pharos.groupware.service.team.service;
 
-import pharos.groupware.service.team.domain.Team;
+import pharos.groupware.service.team.dto.TeamDto;
 
 import java.util.List;
 
 public interface TeamService {
-    List<Team> findAllTeams();
+    List<TeamDto> findAllTeams();
 }
