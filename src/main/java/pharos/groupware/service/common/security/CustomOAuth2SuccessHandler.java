@@ -38,7 +38,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
-                    // 🔥 최초 로그인 시 사용자 등록 + 비활성화
+                    // 최초 로그인 시 사용자 등록 + 비활성화
                     CreateIdpUserReqDto dto = new CreateIdpUserReqDto();
                     dto.setUserUUID(oAuth2User.getAttribute("sub"));
                     dto.setUsername(oAuth2User.getAttribute("preferred_username"));

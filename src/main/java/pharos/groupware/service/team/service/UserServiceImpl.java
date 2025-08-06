@@ -60,21 +60,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         log.info("승인 대기 사용자 등록 완료: {}", user.getEmail());
     }
-
-    //    public void registerPendingUser(PendingUserDto dto) {
-//        if (!userRepository.existsByEmail(dto.getEmail())) {
-//            User user = User.builder()
-//                    .email(dto.getEmail())
-//                    .username(dto.getUsername())
-//                    .firstName(dto.getFirstName())
-//                    .lastName(dto.getLastName())
-//                    .provider(dto.getProvider())
-//                    .status(UserStatus.PENDING)
-//                    .build();
-//
-//            userRepository.save(user);
-//        }
-//    }
+    
     @Override
     public void deleteUser(User user) {
         userRepository.deleteByUserUuid(user.getUserUuid());

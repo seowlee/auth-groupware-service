@@ -9,7 +9,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pharos.groupware.service.admin.dto.LinkKakaoIdpReqDto;
 import pharos.groupware.service.common.page.PagedResponse;
+import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 import pharos.groupware.service.team.dto.UpdateUserProfileReqDto;
 import pharos.groupware.service.team.dto.UserDetailResDto;
 import pharos.groupware.service.team.dto.UserResDto;
@@ -24,6 +26,7 @@ import java.util.UUID;
 @RequestMapping("/api/team")
 public class UserController {
     private final UserService userService;
+    private final KeycloakUserService keycloakUserService;
 
     //    {
 //        "graphUserId": "leader1@gwco.onmicrosoft.com",
@@ -54,6 +57,20 @@ public class UserController {
     public ResponseEntity<Void> updateUser(@PathVariable UUID uuid,
                                            @RequestBody UpdateUserProfileReqDto reqDto) {
 //        userService.updateUser(uuid, reqDto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "카카오 로그인 연동", description = "기존 계정의 카카오로그인 연동을 수행합니다")
+    @PostMapping("/{userId}/link-kakao")
+    public ResponseEntity<Void> linkKakaoFederatedIdentity(
+            @PathVariable String userId,
+            @RequestBody LinkKakaoIdpReqDto dto
+    ) {
+        keycloakUserService.linkKakaoFederatedIdentity(
+                userId,
+                dto.getKakaoUserId(),
+                dto.getKakaoUsername()
+        );
         return ResponseEntity.ok().build();
     }
 

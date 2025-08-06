@@ -5,12 +5,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import pharos.groupware.service.team.domain.UserRepository;
 
 import java.io.IOException;
@@ -67,9 +66,8 @@ public class AuthViewController {
 //    }
 //
     @GetMapping("/error/pending-approval")
-    public String pendingApproval(Model model, @AuthenticationPrincipal OAuth2User user) {
-        model.addAttribute("email",
-                user != null ? user.getAttribute("email") : "—");
+    public String pendingApproval(Model model, @RequestParam(name = "email", required = false, defaultValue = "—") String email) {
+        model.addAttribute("email", email);
         return "auth/pending-approval";
     }
 

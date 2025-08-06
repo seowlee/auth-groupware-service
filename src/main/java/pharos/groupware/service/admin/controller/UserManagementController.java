@@ -9,13 +9,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.admin.dto.LinkKakaoIdpReqDto;
 import pharos.groupware.service.admin.dto.PendingUserDto;
 import pharos.groupware.service.admin.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.admin.service.UserManagementService;
 import pharos.groupware.service.common.annotation.RequireSuperAdmin;
 import pharos.groupware.service.common.util.AuthUtils;
-import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 import pharos.groupware.service.team.service.UserService;
 
 import java.net.URI;
@@ -29,7 +27,6 @@ import java.util.UUID;
 public class UserManagementController {
 
     private final UserManagementService userManagementService;
-    private final KeycloakUserService keycloakUserService;
     private final UserService localUserService;
 
     @PostMapping
@@ -50,9 +47,10 @@ public class UserManagementController {
         return ResponseEntity.created(location).body(newUserId);
     }
 
+    @Operation(summary = "대기 사용자 등록", description = "Keycloak 계정 없는 소셜로그인 사용자를 대기상태로 추가합니다.")
     @PostMapping("/pending")
     public ResponseEntity<Void> registerPendingUser(@RequestBody PendingUserDto dto) {
-        log.info("신규 카카오 사용자 등록 요청: {}", dto.getEmail());
+        log.info("신규 카카오 사용자 등록 요청: {}", dto);
 
         localUserService.registerPendingUser(dto);
 
@@ -84,15 +82,14 @@ public class UserManagementController {
         return ResponseEntity.ok(userUuid);
     }
 
-    /**
-     * 로컬에서 PENDING 상태인 사용자를 승인하고
-     * Keycloak에도 User 생성 → Kakao IdP 연동까지 수행합니다.
-     */
+    @Operation(
+            summary = "대기(PENDING) 사용자 승인",
+            description = "대기 중인 사용자를 승인하여 로컬 DB와 Keycloak에 사용자 계정을 생성하고 Kakao IdP와 연동합니다."
+    )
     @PostMapping("/{userUuid}/approve")
     public ResponseEntity<Void> approvePending(
             @PathVariable UUID userUuid
     ) {
-        // userUuid 만 넘겨주면 내부에서 kakaoSub/kakaoUsername은 엔티티에 저장된 값을 꺼내 씁니다.
         userManagementService.approvePendingUser(userUuid);
         return ResponseEntity.ok().build();
     }
@@ -116,19 +113,6 @@ public class UserManagementController {
     public String getLeaveStatsByTeam(@PathVariable("teamId") Long teamId) {
         // TODO: 통계 로직
         return "팀 통계";
-    }
-
-    @PostMapping("/{userId}/link-kakao")
-    public ResponseEntity<Void> linkKakaoFederatedIdentity(
-            @PathVariable String userId,
-            @RequestBody LinkKakaoIdpReqDto dto
-    ) {
-        keycloakUserService.linkKakaoFederatedIdentity(
-                userId,
-                dto.getKakaoUserId(),
-                dto.getKakaoUsername()
-        );
-        return ResponseEntity.ok().build();
     }
 
 

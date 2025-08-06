@@ -10,4 +10,5 @@ public class PendingUserDto {
     private String firstName;
     private String lastName;
     private String provider; // kakao 등
+    private String providerUserId;
 }

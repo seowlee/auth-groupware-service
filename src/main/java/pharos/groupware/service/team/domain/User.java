@@ -124,7 +124,7 @@ public class User {
     ) {
         User u = new User();
         u.userUuid = UUID.randomUUID();
-        u.username = dto.getUsername();
+        u.username = dto.getEmail().substring(0, dto.getEmail().indexOf('@'));
         u.email = dto.getEmail();
         u.password = passwordEncoder.encode("1234");
         u.firstName = dto.getFirstName();

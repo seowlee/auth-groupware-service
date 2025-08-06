@@ -131,6 +131,7 @@ public class UserManagementServiceImpl implements UserManagementService {
      * 3) Kakao IdP 연동
      * 4) 로컬 User 엔티티 approve(...) 호출 및 저장
      */
+    @Override
     @Transactional
     public void approvePendingUser(UUID localUserUuid) {
         // 1. 로컬 사용자 조회
@@ -151,6 +152,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         String keycloakUserId = keycloakUserService.createUser(reqDto);
 
         // 4. Kakao IdP 연동 (sub, username 등 로컬에 저장된 값으로)
+        //TODO: getUsername -> getKakaoUserId or getProviderUserId of provider kakao
         keycloakUserService.linkKakaoFederatedIdentity(
                 keycloakUserId,
                 localUser.getUsername(),      // 로컬에 저장된 카카오 sub
