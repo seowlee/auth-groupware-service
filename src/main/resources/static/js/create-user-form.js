@@ -136,9 +136,7 @@ class CreateUserForm {
     }
 }
 
-
-window.initCreateUserForm = async function () {
+export async function initCreateUserForm() {
     new CreateUserForm();
-
-};
+}
 

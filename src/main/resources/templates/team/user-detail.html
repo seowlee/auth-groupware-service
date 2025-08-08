@@ -1,40 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>User Detail</title>
-    <link rel="stylesheet" th:href="@{/css/form.css}"/>
-</head>
-<body>
-<div class="user-detail-container">
-    <h2>사용자 상세 정보</h2>
-    <div class="form-group"><label>사용자명:</label><span id="detailUsername"></span></div>
-    <div class="form-group"><label>이메일:</label><span id="detailEmail"></span></div>
-    <div class="form-group"><label>이름:</label><input disabled id="detailFirstName" type="text"></div>
-    <div class="form-group"><label>성:</label><input disabled id="detailLastName" type="text"></div>
-    <div class="form-group"><label>역할:</label><select disabled id="detailRole"></select></div>
+<div data-fragment="content" th:fragment="content">
+    <div class="form-container">
+        <h2>사용자 상세 정보</h2>
+        <div class="form-group"><label>사용자명:</label><span id="detailUsername"></span></div>
+        <div class="form-group"><label>이메일:</label><span id="detailEmail"></span></div>
+        <div class="form-group"><label>이름:</label><input disabled id="detailFirstName" type="text"></div>
+        <div class="form-group"><label>성:</label><input disabled id="detailLastName" type="text"></div>
+        <div class="form-group"><label>역할:</label><select disabled id="detailRole"></select></div>
 
-    <div class="form-group"><label>소속 팀:</label><select disabled id="detailTeam"></select></div>
-    <div class="form-group"><label>입사일:</label><span id="detailJoinedDate"></span></div>
+        <div class="form-group"><label>소속 팀:</label><select disabled id="detailTeam"></select></div>
+        <div class="form-group"><label>입사일:</label><span id="detailJoinedDate"></span></div>
 
-    <div class="form-group"><label>상태:</label>
-        <select disabled id="detailStatus">
-            <option value="ACTIVE">활성</option>
-            <option value="INACTIVE">비활성</option>
-        </select>
-    </div>
-    <h3>연차 보유 현황</h3>
-    <div id="leaveStats"></div>
-    <div class="action-buttons" th:if="${role} == 'SUPER_ADMIN'">
-        <button class="btn" id="toggleEditBtn">수정</button>
-        <button class="btn btn-danger" id="deleteUserBtn">삭제</button>
-    </div>
+        <div class="form-group"><label>상태:</label>
+            <select disabled id="detailStatus">
+                <option value="ACTIVE">활성</option>
+                <option value="INACTIVE">비활성</option>
+            </select>
+        </div>
+        <h3>연차 보유 현황</h3>
+        <div id="leaveStats"></div>
+        <div class="action-buttons" th:if="${role} == 'SUPER_ADMIN'">
+            <button class="btn" id="toggleEditBtn">수정</button>
+            <button class="btn btn-danger" id="deleteUserBtn">삭제</button>
+        </div>
 
-    <div class="action-buttons">
-        <button class="btn btn-secondary" id="backBtn">목록으로</button>
+        <div class="action-buttons">
+            <button class="btn btn-secondary" id="backBtn">목록으로</button>
+        </div>
     </div>
 </div>
-
-<!--<script src="/js/user-detail.js"></script>-->
-</body>
-</html>

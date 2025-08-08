@@ -3,23 +3,26 @@
  * 모든 목록 페이지에서 재사용 가능
  */
 class PaginationManager {
-    constructor(containerId, options = {}) {
+    constructor(containerId, {
+        onPageChange = () => {
+        }, onPageSizeChange = () => {
+        }
+    } = {}) {
+        this.containerId = containerId;
         this.container = document.getElementById(containerId);
         this.currentPage = 0;
         this.pageSize = 5;
         this.totalElements = 0;
         this.totalPages = 0;
-        this.onPageChange = options.onPageChange || (() => {
-        });
-        this.onPageSizeChange = options.onPageSizeChange || (() => {
-        });
+        this.onPageChange = onPageChange;
+        this.onPageSizeChange = onPageSizeChange;
 
         this.init();
     }
 
     init() {
         if (!this.container) {
-            console.error("Pagination container not found:", containerId);
+            console.error("Pagination container not found:", this.containerId);
             return;
         }
 
@@ -59,9 +62,12 @@ class PaginationManager {
         this.pageSize = pageData.size;
         this.totalElements = pageData.totalElements;
         this.totalPages = pageData.totalPages;
-        // console.log("pageinfo-=================")
-        // console.log(this.currentPage, this.pageSize, this.totalElements, this.totalPages)
         this.updateUI();
+        if (this.totalPages > 0) {
+            this.show();
+        } else {
+            this.hide();
+        }
     }
 
     updateUI() {
@@ -107,21 +113,25 @@ class PaginationManager {
         if (page < 0 || page >= this.totalPages) return;
 
         this.currentPage = page;
-        this.onPageChange(page, this.pageSize);
+        this.onPageChange(page);
     }
 
     changePageSize(newSize) {
         this.pageSize = newSize;
         this.currentPage = 0; // 페이지 크기 변경 시 첫 페이지로 이동
-        this.onPageSizeChange(this.currentPage, newSize);
+        this.onPageSizeChange();
+    }
+
+    reset() {
+        this.goToPage(0);
     }
 
     show() {
-        this.container.style.display = "flex";
+        this.container.classList.remove('hidden');
     }
 
     hide() {
-        this.container.style.display = "none";
+        this.container.classList.add('hidden');
     }
 
     getCurrentPage() {
@@ -133,5 +143,6 @@ class PaginationManager {
     }
 }
 
+export {PaginationManager};
 // 전역에서 사용할 수 있도록 등록
-window.PaginationManager = PaginationManager;
+// window.PaginationManager = PaginationManager;

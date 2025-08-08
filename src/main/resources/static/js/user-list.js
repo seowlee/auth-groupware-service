@@ -1,355 +1,197 @@
-/**
- * 사용자 목록 관리자
- * 검색 필터, 페이징, 사용자 등록 기능을 포함
- */
+// src/js/user-list.js
+import {PaginationManager} from './pagination.js';
+import {navigateTo} from './router.js';
+
+let _userListManager = null;
+
+export function initUserListManager(onRowClick = (userId) => {
+    navigateTo(`/team/users/${userId}`);
+}) {
+    if (!_userListManager) {
+        _userListManager = new UserListManager(onRowClick);
+    }
+    _userListManager.init();
+}
+
 class UserListManager {
-    constructor() {
-        this.currentFilters = {
-            keyword: "",
-            teamId: "",
-            role: "",
-            status: "",
-        };
-        this.paginationManager = null;
-        this.isLoading = false;
-        this.sortField = "joinedDate";
-        this.sortDirection = "desc";
+    constructor(onRowClick) {
+        this.onRowClick = onRowClick;
+        this.filters = {keyword: '', teamId: '', role: '', status: ''};
+        this.sortField = 'joinedDate';
+        this.sortDir = 'desc';
 
-
-        // this.init();
     }
 
     async init() {
-        console.log("UserListManager 초기화 시작");
-
-        // 페이징 매니저 초기화
-        this.initPagination();
-
-        // 이벤트 바인딩
-        this.bindEvents();
-
-        // 초기 데이터 로드
-        await this.loadUsers();
-
-        // 팀 목록 로드
         await this.loadTeams();
+        this.pagination = new PaginationManager('paginationContainer', {
+            onPageChange: page => this.loadUsers(page),
+            onPageSizeChange: () => this.loadUsers(0),
+        });
+        this.pagination.init();
 
-        console.log("UserListManager 초기화 완료");
-    }
-
-    initPagination() {
-        // 공통 페이징 컴포넌트 사용
-        if (typeof window.PaginationManager !== "undefined") {
-            this.paginationManager = new PaginationManager("paginationContainer", {
-                onPageChange: async (page, size) => {
-                    await this.loadUsers(page, size);
-                },
-                onPageSizeChange: async (page, size) => {
-                    await this.loadUsers(page, size);
-                },
-            });
-        } else {
-            console.error("PaginationManager가 로드되지 않았습니다.");
-        }
+        this.bindEvents();
+        await this.loadUsers();
     }
 
     bindEvents() {
-        // 검색 버튼
-        const searchBtn = document.getElementById("searchBtn");
-        if (searchBtn) {
-            searchBtn.addEventListener("click", () => this.handleSearch());
-        }
-
-        // 초기화 버튼
-        const resetFilterBtn = document.getElementById("resetFilterBtn");
-        if (resetFilterBtn) {
-            resetFilterBtn.addEventListener("click", () => this.resetFilters());
-        }
-
-        // 새로고침 버튼
-        const refreshUsersBtn = document.getElementById("refreshUsersBtn");
-        if (refreshUsersBtn) {
-            refreshUsersBtn.addEventListener("click", () => this.loadUsers());
-        }
-
-        // 사용자 등록 폼 토글
-        const toggleUserFormBtn = document.getElementById("toggleUserFormBtn");
-        if (toggleUserFormBtn) {
-            toggleUserFormBtn.addEventListener("click", () => window.UserPopup.toggleForm());
-
-        }
-
-        // 검색 필터 엔터키 이벤트
-        const searchKeyword = document.getElementById("searchKeyword");
-        if (searchKeyword) {
-            searchKeyword.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") {
-                    this.handleSearch();
-                }
-            });
-        }
-        // 정렬 이벤트 추가
-        this.bindSortEvents();
-    }
-
-    bindSortEvents() {
-        document.querySelectorAll("th[data-sort]").forEach(th => {
-            th.addEventListener("click", () => {
-                const field = th.dataset.sort;
-                if (this.sortField === field) {
-                    this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
-                } else {
-                    this.sortField = field;
-                    this.sortDirection = "asc";
-                }
-                this.loadUsers(0, this.paginationManager?.getPageSize() || 5);
-            });
-        });
-    }
-
-    async loadUsers(page = 0, size = 5) {
-        if (this.isLoading) return;
-
-        this.isLoading = true;
-        this.showLoading();
-
-        try {
-            const params = new URLSearchParams({
-                page: page,
-                size: size,
-                ...this.currentFilters,
-            });
-            if (this.sortField) {
-                params.append("sort", `${this.sortField},${this.sortDirection}`);
-            }
-            const response = await fetch(`/api/team/users?${params.toString()}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            this.renderUsers(data.content);
-
-            this.updateSortIndicator();
-
-            if (this.paginationManager) {
-                this.paginationManager.updatePagination(data);
-                this.paginationManager.show();
-            }
-        } catch (error) {
-            console.error("사용자 목록 로드 실패:", error);
-            this.showError("사용자 목록을 불러오는데 실패했습니다.");
-        } finally {
-            this.isLoading = false;
-            this.hideLoading();
-        }
-    }
-
-    renderUsers(users) {
-        const tbody = document.getElementById("userTableBody");
-        const table = document.getElementById("userTable");
-
-        if (!tbody || !table) return;
-
-        if (users.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="empty-state">
-                        <h3>사용자가 없습니다</h3>
-                        <p>검색 조건을 변경하거나 새로운 사용자를 등록해보세요.</p>
-                    </td>
-                </tr>
-            `;
-            table.style.display = "table";
-            return;
-        }
-
-        tbody.innerHTML = users
-            .map(
-                (user) => `
-            <tr data-user-id="${user.uuid}">
-                <td>${this.escapeHtml(user.username)}</td>
-                <td>${this.escapeHtml(user.email)}</td>
-                <td>${this.getRoleDisplayName(user.role)}</td>
-                <td>${this.escapeHtml(user.teamName || "-")}</td>
-                <td>${this.formatDate(user.joinedDate)}</td>
-                <td>
-                    <span class="status-${user.status.toLowerCase()}">
-                        ${this.getStatusDisplayName(user.status)}
-                    </span>
-                </td>
-            </tr>
-        `
-            )
-            .join("");
-
-        table.style.display = "table";
-
-        this.bindUserRowEvents();
-    }
-
-    bindUserRowEvents() {
-        document.querySelectorAll("#userTableBody tr").forEach(row => {
-            row.addEventListener("click", async () => {
-                const userId = row.dataset.userId;
-                try {
-                    const path = `/team/users/${userId}`;
-                    history.pushState({path}, "", path);
-                    loadPageIntoMainContent(path);
-
-                } catch (err) {
-                    console.error("사용자 상세 페이지 로딩 에러:", err);
-                    alert("사용자 정보를 불러오는데 실패했습니다.");
-                }
-            });
-        });
-    }
-
-    handleSearch() {
-        this.currentFilters = {
-            keyword: document.getElementById("searchKeyword")?.value || "",
-            teamId: document.getElementById("filterTeamId")?.value || "",
-            role: document.getElementById("filterRole")?.value || "",
-            status: document.getElementById("filterStatus")?.value || "",
-        };
-
-        this.loadUsers(0, this.paginationManager?.getPageSize() || 5);
-    }
-
-    resetFilters() {
-        ["searchKeyword", "filterTeamId", "filterRole", "filterStatus"].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = "";
-        });
-
-        this.currentFilters = {keyword: "", teamId: "", role: "", status: ""};
-        this.loadUsers(0, this.paginationManager?.getPageSize() || 5);
-    }
-
-    updateSortIndicator() {
-        document.querySelectorAll("th[data-sort]").forEach(th => {
-            th.classList.remove("asc", "desc"); // 기존 정렬 표시 제거
-            if (th.dataset.sort === this.sortField) {
-                th.classList.add(this.sortDirection); // 현재 정렬 필드에 asc 또는 desc 클래스 추가
-            }
-        });
+        document.getElementById('searchBtn').addEventListener('click', () => this.handleSearch());
+        document.getElementById('resetFilterBtn').addEventListener('click', () => this.resetFilters());
+        document.getElementById('refreshUsersBtn').addEventListener('click', () => this.loadUsers());
+        document.querySelectorAll('.sortable').forEach(header =>
+            header.addEventListener('click', e => this.handleSort(e.currentTarget.dataset.sort))
+        );
     }
 
     async loadTeams() {
         try {
-            const response = await fetch("/api/teams", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+            const res = await fetch('/api/teams');
+            if (!res.ok) throw new Error();
+            const teams = await res.json();
+            const sel = document.getElementById('filterTeamId');
+            sel.innerHTML = '<option value="">전체 팀</option>';
+            teams.forEach(t => {
+                sel.insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.name}</option>`);
             });
-
-            if (response.ok) {
-                const teams = await response.json();
-                this.renderTeams(teams);
-            }
-        } catch (error) {
-            console.error("팀 목록 로드 실패:", error);
+        } catch {
+            // this.showMessage('팀 목록 로딩 실패', 'error');
+            // messageArea가 반드시 HTML fragment 안에 있으니, null 체크
+            const ma = document.getElementById('messageArea');
+            if (ma) ma.innerHTML = `<div class="message error">팀 목록을 불러오는 중 오류 발생</div>`;
         }
     }
 
-    renderTeams(teams) {
-        // 필터용 팀 선택
-        const filterTeamSelect = document.getElementById("filterTeamId");
-        if (filterTeamSelect) {
-            // 기존 옵션 유지 (전체 팀)
-            const allTeamsOption = filterTeamSelect.querySelector('option[value=""]');
-            filterTeamSelect.innerHTML = "";
-            if (allTeamsOption) {
-                filterTeamSelect.appendChild(allTeamsOption);
-            }
-
-            // 팀 옵션 추가
-            teams.forEach((team) => {
-                const option = document.createElement("option");
-                option.value = team.id;
-                option.textContent = team.name;
-                filterTeamSelect.appendChild(option);
-            });
-        }
-
-    }
-
-    showLoading() {
-        const loadingDiv = document.querySelector(".loading");
-        if (loadingDiv) {
-            loadingDiv.style.display = "block";
+    async loadUsers(page = 0) {
+        this.showLoading(true);
+        this.collectFilters();
+        const params = new URLSearchParams({
+            page, size: this.pagination.getPageSize(),
+            sort: `${this.sortField},${this.sortDir}`,
+            ...this.filters
+        });
+        try {
+            const res = await fetch(`/api/team/users?${params}`);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            this.renderUsers(data.content);
+            this.pagination.updatePagination(data);
+        } catch {
+            this.showMessage('사용자 목록 로딩 실패', 'error');
+        } finally {
+            this.showLoading(false);
         }
     }
 
-    hideLoading() {
-        const loadingDiv = document.querySelector(".loading");
-        if (loadingDiv) {
-            loadingDiv.style.display = "none";
-        }
+    collectFilters() {
+        this.filters.keyword = document.getElementById('searchKeyword').value;
+        this.filters.teamId = document.getElementById('filterTeamId').value;
+        this.filters.role = document.getElementById('filterRole').value;
+        this.filters.status = document.getElementById('filterStatus').value;
     }
 
-    showMessage(message, type = "success") {
-        const messageArea = document.getElementById("messageArea");
-        if (!messageArea) return;
+    renderUsers(users) {
+        const body = document.getElementById('userTableBody');
+        const table = document.getElementById('userTable');
+        if (!users.length) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color: #718096; font-weight: 500;">검색 결과가 없습니다.</td></tr>';
 
-        messageArea.innerHTML = `<div class="${type}">${message}</div>`;
-        messageArea.style.display = "block";
+        } else {
+            body.innerHTML = users.map(u => `
+                <tr class="user-row" data-user-id="${u.uuid}">
+                  <td>${u.username}</td><td>${u.email}</td>
+                  <td>${this.mapRole(u.role)}</td><td>${u.teamName || '-'}</td>
+                  <td>${u.joinedDate}</td>
+                  <td>
+                    <span class="status-badge ${this.mapStatusClass(u.status)}">
+                      ${this.mapStatus(u.status)}
+                    </span>
+                  </td>    
+                </tr>`
+            ).join('');
+            body.querySelectorAll('.user-row').forEach(row =>
+                row.addEventListener('click', () => this.onRowClick(row.dataset.userId))
+            );
+        }
+        table.style.display = 'table';
+    }
 
-        // 5초 후 자동 제거
+
+    handleSearch() {
+        this.pagination.reset();
+        this.loadUsers(0);
+    }
+
+    resetFilters() {
+        ['searchKeyword', 'filterTeamId', 'filterRole', 'filterStatus'].forEach(id =>
+            document.getElementById(id).value = ''
+        );
+        this.handleSearch();
+    }
+
+    handleSort(field) {
+        if (this.sortField === field) {
+            this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortField = field;
+            this.sortDir = 'asc';
+        }
+        // 정렬 아이콘 클래스 초기화
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+        });
+
+        // 현재 정렬 필드에 클래스 추가
+        const currentTh = document.querySelector(`th[data-sort="${field}"]`);
+        if (currentTh) {
+            currentTh.classList.add(this.sortDir);
+        }
+        this.loadUsers(0);
+    }
+
+    // navigateToDetail(userId) {
+    //     const path = `/team/users/${userId}`;
+    //     history.pushState({path}, '', path);
+    //     window.loadPageIntoMainContent(path);
+    // }
+
+    showLoading(flag) {
+        document.querySelector('.loading').style.display = flag ? 'block' : 'none';
+    }
+
+    showMessage(msg, type = 'info') {
+        const ma = document.getElementById('messageArea');
+        ma.innerHTML = `<div class="message ${type}">${msg}</div>`;
         setTimeout(() => {
-            messageArea.style.display = "none";
-        }, 5000);
+            ma.innerHTML = '';
+        }, 3000);
     }
 
-    showSuccess(message) {
-        this.showMessage(message, "success");
+    mapRole(r) {
+        return {SUPER_ADMIN: '최고관리자', TEAM_LEADER: '팀장', TEAM_MEMBER: '팀원'}[r] || r;
     }
 
-    showError(message) {
-        this.showMessage(message, "error");
+    mapStatusClass(status) {
+        return {
+            ACTIVE: 'status-active',
+            INACTIVE: 'status-inactive',
+            PENDING: 'status-pending',
+        }[status] || '';
     }
 
-    // 유틸리티 메서드들
-    escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
+    mapStatus(s) {
+        return {ACTIVE: '활성', INACTIVE: '비활성', PENDING: '승인대기'}[s] || s;
     }
 
-    getRoleDisplayName(role) {
-        const roleMap = {
-            TEAM_MEMBER: "팀원",
-            TEAM_LEADER: "팀장",
-            SUPER_ADMIN: "최고관리자",
-        };
-        return roleMap[role] || role;
-    }
-
-    getStatusDisplayName(status) {
-        const statusMap = {
-            ACTIVE: "활성",
-            INACTIVE: "비활성",
-        };
-        return statusMap[status] || status;
-    }
-
-    formatDate(dateString) {
-        if (!dateString) return "-";
-        const date = new Date(dateString);
-        return date.toLocaleDateString("ko-KR");
+    getCurrentPage() {
+        console.log("this currentpage " + this.pagination.getCurrentPage());
+        return this.pagination.getCurrentPage();
     }
 }
 
-// 전역 초기화 함수
-window.initUserListManager = async function () {
-    console.log("initUserListManager 호출됨");
-    const manager = new UserListManager();
-    await manager.init();
-};
+// 하위 호환: window에서 바로 호출 가능하도록
+// export function initUserListManager() {
+//     if (!window.__userList) {
+//         window.__userList = new UserListManager();
+//         window.__userList.init();
+//     }
+// }

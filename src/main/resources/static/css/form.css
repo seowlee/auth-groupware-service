@@ -5,20 +5,35 @@ body {
     padding: 0;
 }
 
-/* 🧩 팝업 폼 컨테이너 (중앙 정렬용) */
+/* 통일된 폼 컨테이너 스타일 */
 .form-container {
-    background: white;
-    border-radius: 16px;
-    padding: 30px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    margin: 40px auto;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    position: relative;
-    animation: slideUp 0.3s ease-out;
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
+
+.form-container h1 {
+    color: #2d3748;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, #4299e1, #667eea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    /*margin-top: 0;*/
+}
+
+.form-container h2 {
+    color: #2d3748;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    margin-top: 0;
+}
+
 
 @keyframes slideUp {
     from {
@@ -31,14 +46,6 @@ body {
     }
 }
 
-.form-container h3 {
-    color: #2d3748;
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 24px;
-    text-align: center;
-    margin-top: 0;
-}
 
 /* 📑 폼 요소 공통 */
 .form-group {

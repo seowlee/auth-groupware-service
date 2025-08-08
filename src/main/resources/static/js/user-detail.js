@@ -1,192 +1,181 @@
-class UserDetailManager {
+import {loadPageIntoMainContent} from './router.js';
+
+/**
+ * 사용자 상세 정보 관리자
+ */
+export class UserDetailManager {
     constructor(userId) {
         this.userId = userId;
         this.userData = null;
         this.editing = false;
+        this.apiPrefix = '/api';
     }
 
-    // 초기화: 사용자 로드 및 이벤트 바인딩
+    /**
+     * 초기화: 사용자/팀 데이터 로드 후 이벤트 바인딩
+     */
     async init() {
-        console.log("사용자 상세 정보 초기화");
-
         await this.loadUser();
         await this.loadTeams();
         this.bindEvents();
     }
 
-    // 사용자 API 호출 후 렌더링
+    /**
+     * 사용자 정보 조회 및 렌더링
+     */
     async loadUser() {
-        try {
-            const res = await fetch(`/api/team/users/${this.userId}`);
-            if (!res.ok) throw new Error("사용자 조회 실패");
-
-            this.userData = await res.json();
-            this.render(this.userData);
-        } catch (e) {
-            console.error(e);
-            alert("사용자 정보를 불러오는 데 실패했습니다.");
-        }
+        const res = await fetch(`${this.apiPrefix}/team/users/${this.userId}`);
+        if (!res.ok) throw new Error('사용자 조회 실패');
+        this.userData = await res.json();
+        this.render(this.userData);
     }
 
-    // 사용자 정보 화면에 반영
+    /**
+     * 화면에 사용자 정보 반영
+     */
     render(user) {
-        document.getElementById("detailUsername").textContent = user.username;
-        document.getElementById("detailEmail").textContent = user.email;
-        document.getElementById("detailFirstName").value = user.firstName;
-        document.getElementById("detailLastName").value = user.lastName;
-        document.getElementById("detailJoinedDate").textContent = user.joinedDate;
-        document.getElementById("detailTeam").value = user.teamId;
-        // document.getElementById("detailRole").value = user.role;
+        document.getElementById('detailUsername').textContent = user.username;
+        document.getElementById('detailEmail').textContent = user.email;
+        document.getElementById('detailJoinedDate').textContent = user.joinedDate;
+        document.getElementById('detailFirstName').value = user.firstName;
+        document.getElementById('detailLastName').value = user.lastName;
 
-        const roleSelect = document.getElementById("detailRole");
-        roleSelect.innerHTML = `
-            <option value="TEAM_MEMBER">팀원</option>
-            <option value="TEAM_LEADER">팀장</option>
-            <option value="SUPER_ADMIN">최고관리자</option>
-        `;
+        // 역할 셀렉트
+        const roleSelect = document.getElementById('detailRole');
+        roleSelect.innerHTML = [
+            {v: 'TEAM_MEMBER', t: '팀원'},
+            {v: 'TEAM_LEADER', t: '팀장'},
+            {v: 'SUPER_ADMIN', t: '최고관리자'}
+        ].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
         roleSelect.value = user.role;
-        document.getElementById("detailStatus").value = user.status;
-        // 연차 타입별 보유 연차 표시
-        const leaveList = user.leaveBalances || [];
-        const leaveListEl = document.getElementById("leaveStats");
-        leaveListEl.innerHTML = leaveList.map(leave =>
-            `<li>${leave.typeName} : ${leave.remainingDays}일</li>`
-        ).join("");
+
+        // 상태
+        document.getElementById('detailStatus').value = user.status;
+
+        // 연차 잔여 일수 목록
+        const leaveListEl = document.getElementById('leaveStats');
+        leaveListEl.innerHTML = (user.leaveBalances || [])
+            .map(l => `<li>${l.typeName} : ${l.remainingDays}일</li>`)
+            .join('');
     }
 
+    /**
+     * 팀 목록 조회 및 옵션 렌더링
+     */
     async loadTeams() {
-        try {
-            const response = await fetch("/api/teams", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (response.ok) {
-                const teams = await response.json();
-                this.renderTeamOptions(teams);
-            } else {
-                console.error("팀 목록 로딩 실패:", response.status);
-            }
-        } catch (error) {
-            console.error("팀 목록 로딩 중 에러:", error);
-        }
+        const res = await fetch(`${this.apiPrefix}/teams`);
+        if (!res.ok) throw new Error('팀 목록 로딩 실패');
+        const teams = await res.json();
+        this.renderTeamOptions(teams);
     }
 
     renderTeamOptions(teams) {
-        const teamSelect = document.getElementById("detailTeam");
-        teamSelect.innerHTML = ""; // 기존 옵션 제거
-
-        teams.forEach(team => {
-            const option = document.createElement("option");
-            option.value = team.id;
-            option.textContent = team.name;
-            teamSelect.appendChild(option);
-        });
-
-        // 현재 사용자 팀 선택
-        if (this.userData?.teamId) {
-            teamSelect.value = this.userData.teamId;
-        }
+        const sel = document.getElementById('detailTeam');
+        sel.innerHTML = teams
+            .map(t => `<option value="${t.id}">${t.name}</option>`)
+            .join('');
+        if (this.userData?.teamId) sel.value = this.userData.teamId;
     }
 
-    toggleEditMode(enable) {
-        const fields = ["detailFirstName", "detailLastName", "detailRole", "detailStatus", "detailTeam"];
-        fields.forEach(id => {
-            document.getElementById(id).disabled = !enable;
-        });
-    }
-
-    // 이벤트 바인딩 (저장/삭제)
+    /**
+     * 수정/삭제/뒤로 버튼 이벤트 바인딩
+     */
     bindEvents() {
-        // 수정
-        const editBtn = document.getElementById("toggleEditBtn");
-        if (editBtn) {
-            editBtn.addEventListener("click", async () => {
-                if (!this.editing) {
-                    this.editing = true;
-                    this.toggleEditMode(true);
-                    document.getElementById("toggleEditBtn").textContent = "저장";
-                } else {
-                    const updated = {
-                        role: document.getElementById("detailRole").value,
-                        teamId: document.getElementById("detailTeam").value,
-                        status: document.getElementById("detailStatus").value,
-                        firstName: document.getElementById("detailFirstName").value,
-                        lastName: document.getElementById("detailLastName").value,
-                    };
+        const editBtn = document.getElementById('toggleEditBtn');
+        const deleteBtn = document.getElementById('deleteUserBtn');
+        const backBtn = document.getElementById('backBtn');
 
-                    try {
-                        const res = await fetch(`/api/admin/users/${this.userId}/update`, {
-                            method: "POST",
-                            headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify(updated),
-                        });
-                        if (!res.ok) throw new Error("수정 실패");
-                        alert("사용자 정보가 저장되었습니다.");
-                        this.toggleEditMode(false);
-                        document.getElementById("toggleEditBtn").textContent = "수정";
-                        this.editing = false;
-                        const path = "/team/users";
-                        history.pushState({path}, "", path);
-                        loadPageIntoMainContent(path);
-                    } catch (err) {
-                        console.error(err);
-                        alert("수정 중 오류가 발생했습니다.");
-                    }
-                }
-            });
+        if (editBtn) editBtn.addEventListener('click', this.onEditBtnClick.bind(this));
+        if (deleteBtn) deleteBtn.addEventListener('click', this.onDeleteBtnClick.bind(this));
+        if (backBtn) backBtn.addEventListener('click', this.onBackBtnClick.bind(this));
+    }
+
+    /**
+     * [수정/저장] 토글
+     */
+    async onEditBtnClick() {
+        const btn = document.getElementById('toggleEditBtn');
+        if (!this.editing) {
+            this.editing = true;
+            this.toggleEditMode(true);
+            btn.textContent = '저장';
+            return;
         }
 
-        // 사용자 삭제
-        const deleteBtn = document.getElementById("deleteUserBtn");
-        if (deleteBtn) {
-            deleteBtn.addEventListener("click", async () => {
-                if (!confirm("정말 삭제하시겠습니까?")) return;
+        // 저장 로직
+        const payload = {
+            firstName: document.getElementById('detailFirstName').value,
+            lastName: document.getElementById('detailLastName').value,
+            role: document.getElementById('detailRole').value,
+            status: document.getElementById('detailStatus').value,
+            teamId: document.getElementById('detailTeam').value
+        };
 
-                try {
-                    const res = await fetch(`/api/team/users/${this.userId}`, {
-                        method: "DELETE",
-                    });
-                    if (!res.ok) throw new Error("삭제 실패");
+        const res = await fetch(`${this.apiPrefix}/admin/users/${this.userId}/update`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('수정 실패');
 
-                    alert("사용자가 삭제되었습니다.");
-                    const path = "/team/users";
-                    history.pushState({path}, "", path);
-                    loadPageIntoMainContent(path);
-                } catch (err) {
-                    console.error(err);
-                    alert("삭제 중 오류가 발생했습니다.");
-                }
-            });
-        }
-        const backBtn = document.getElementById("backBtn");
-        if (backBtn) {
-            backBtn.addEventListener("click", () => {
-                const path = "/team/users";
-                history.pushState({path}, "", path);
-                loadPageIntoMainContent(path);
-            });
-        }
+        alert('사용자 정보가 저장되었습니다.');
+        this.editing = false;
+        this.toggleEditMode(false);
+        btn.textContent = '수정';
+
+        // 상세→목록 복귀
+        history.pushState({path: '/team/users'}, '', '/team/users');
+        loadPageIntoMainContent('/team/users');
+    }
+
+    /**
+     * [삭제] 처리
+     */
+    async onDeleteBtnClick() {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        const res = await fetch(`${this.apiPrefix}/team/users/${this.userId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('삭제 실패');
+        alert('사용자가 삭제되었습니다.');
+        history.pushState({path: '/team/users'}, '', '/team/users');
+        loadPageIntoMainContent('/team/users');
+    }
+
+    /**
+     * [뒤로] 처리
+     */
+    onBackBtnClick() {
+        history.pushState({path: '/team/users'}, '', '/team/users');
+        loadPageIntoMainContent('/team/users');
+    }
+
+    /**
+     * 폼 필드 활성/비활성 제어
+     */
+    toggleEditMode(enable) {
+        ['detailFirstName', 'detailLastName', 'detailRole', 'detailStatus', 'detailTeam']
+            .forEach(id => document.getElementById(id).disabled = !enable);
     }
 }
 
-// URL에서 사용자 ID 추출 (예: /admin/users/abc-123)
+/**
+ * URL 에서 마지막 세그먼트를 ID로 추출
+ */
 function getUserIdFromUrl() {
-    const path = window.location.pathname;
-    const segments = path.split("/");
-    return segments[segments.length - 1] || null;
+    const segs = window.location.pathname.split('/');
+    return segs[segs.length - 1] || null;
 }
 
-// HTML 로딩 후 실행
-window.initUserDetail = async function () {
-    const userId = window.location.pathname.split("/").pop();
+/**
+ * 모듈 초기화 진입점
+ */
+export function initUserDetail() {
+    const userId = getUserIdFromUrl();
     if (!userId) {
-        alert("사용자 ID를 찾을 수 없습니다.");
+        alert('사용자 ID를 찾을 수 없습니다.');
         return;
     }
-
-    const manager = new UserDetailManager(userId);
-    await manager.init();
-};
+    const mgr = new UserDetailManager(userId);
+    return mgr.init();
+}

@@ -1,110 +1,90 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8"/>
-    <title>User List</title>
-    <link rel="stylesheet" th:href="@{/css/list.css}"/>
-</head>
-<body>
-<div class="list-container">
-    <h1>전체 사용자 목록</h1>
+<div data-fragment="content" th:fragment="content">
+    <div class="list-container">
+        <h1>전체 사용자 목록</h1>
 
-    <!-- 검색/필터 섹션 -->
-    <div class="search-filter-container">
-        <input
-                id="searchKeyword"
-                placeholder="사용자명 또는 이메일 검색"
-                type="text"
-        />
-        <select id="filterTeamId">
-            <option value="">전체 팀</option>
-        </select>
-        <select id="filterRole">
-            <option value="">전체 역할</option>
-            <option value="TEAM_MEMBER">팀원</option>
-            <option value="TEAM_LEADER">팀장</option>
-            <option value="SUPER_ADMIN">최고관리자</option>
-        </select>
-        <select id="filterStatus">
-            <option value="">전체 상태</option>
-            <option value="ACTIVE">활성</option>
-            <option value="INACTIVE">비활성</option>
-        </select>
-        <button class="btn" id="searchBtn">검색</button>
-        <button class="btn btn-secondary" id="resetFilterBtn">초기화</button>
-    </div>
-
-    <div class="action-buttons">
-        <!--        <button class="btn" id="toggleUserFormBtn">사용자 등록</button>-->
-        <button class="btn btn-secondary" id="refreshUsersBtn">
-            목록 새로고침
-        </button>
-    </div>
-
-    <!-- 사용자 등록 팝업 (동적으로 로드됨) -->
-    <!--    <div id="userFormContainer"></div>-->
-
-    <!-- 메시지 영역 -->
-    <div id="messageArea"></div>
-
-    <!-- 사용자 목록 -->
-    <div id="userListArea">
-        <div class="loading">사용자 목록을 불러오는 중...</div>
-        <table class="data-table" id="userTable" style="display: none">
-            <thead>
-            <tr>
-                <th class="sortable" data-sort="username">사용자명</th>
-                <th>이메일</th>
-                <th>역할</th>
-                <th>팀</th>
-                <th class="sortable" data-sort="joinedDate">입사일</th>
-                <th>상태</th>
-            </tr>
-            </thead>
-            <tbody id="userTableBody">
-            <!-- 사용자 데이터가 여기에 동적으로 추가됩니다 -->
-            </tbody>
-        </table>
-    </div>
-
-    <!-- 페이징 UI -->
-    <div
-            class="pagination-container"
-            id="paginationContainer"
-            style="display: none"
-    >
-        <div class="pagination-info">
-            <span id="paginationInfo">총 0개 항목</span>
-        </div>
-        <div class="pagination-controls">
-            <button class="btn btn-secondary" id="firstPageBtn">처음</button>
-            <button class="btn btn-secondary" id="prevPageBtn">이전</button>
-            <span id="currentPageInfo">1 / 1</span>
-            <button class="btn btn-secondary" id="nextPageBtn">다음</button>
-            <button class="btn btn-secondary" id="lastPageBtn">마지막</button>
-        </div>
-        <div class="page-size-selector">
-            <span>페이지 크기:</span>
-            <select id="pageSizeSelect">
-                <option value="5">5개</option>
-                <option value="10">10개</option>
-                <option value="20">20개</option>
-                <option value="50">50개</option>
+        <!-- 검색/필터 섹션 -->
+        <div class="search-filter-container">
+            <input
+                    id="searchKeyword"
+                    placeholder="사용자명 또는 이메일 검색"
+                    type="text"
+            />
+            <select id="filterTeamId">
+                <option value="">전체 팀</option>
             </select>
+            <select id="filterRole">
+                <option value="">전체 역할</option>
+                <option value="TEAM_MEMBER">팀원</option>
+                <option value="TEAM_LEADER">팀장</option>
+                <option value="SUPER_ADMIN">최고관리자</option>
+            </select>
+            <select id="filterStatus">
+                <option value="">전체 상태</option>
+                <option value="ACTIVE">활성</option>
+                <option value="INACTIVE">비활성</option>
+                <option value="PENDING">대기</option>
+            </select>
+            <button class="btn" id="searchBtn">검색</button>
+            <button class="btn btn-secondary" id="resetFilterBtn">초기화</button>
+        </div>
+
+        <div class="action-buttons">
+            <!--        <button class="btn" id="toggleUserFormBtn">사용자 등록</button>-->
+            <button class="btn btn-secondary" id="refreshUsersBtn">
+                목록 새로고침
+            </button>
+        </div>
+
+        <!-- 사용자 등록 팝업 (동적으로 로드됨) -->
+        <!--    <div id="userFormContainer"></div>-->
+
+        <!-- 메시지 영역 -->
+        <div id="messageArea"></div>
+
+        <!-- 사용자 목록 -->
+        <div id="userListArea">
+            <div class="loading">사용자 목록을 불러오는 중...</div>
+            <table class="data-table" id="userTable" style="display: none">
+                <thead>
+                <tr>
+                    <th class="sortable" data-sort="username">사용자명</th>
+                    <th>이메일</th>
+                    <th>역할</th>
+                    <th>팀</th>
+                    <th class="sortable" data-sort="joinedDate">입사일</th>
+                    <th>상태</th>
+                </tr>
+                </thead>
+                <tbody id="userTableBody">
+                <!-- 사용자 데이터가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이징 UI -->
+        <div
+                class="pagination-container hidden"
+                id="paginationContainer"
+        >
+            <div class="pagination-info">
+                <span id="paginationInfo">총 0개 항목</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="btn btn-secondary" id="firstPageBtn">처음</button>
+                <button class="btn btn-secondary" id="prevPageBtn">이전</button>
+                <span id="currentPageInfo">1 / 1</span>
+                <button class="btn btn-secondary" id="nextPageBtn">다음</button>
+                <button class="btn btn-secondary" id="lastPageBtn">마지막</button>
+            </div>
+            <div class="page-size-selector">
+                <span>페이지 크기:</span>
+                <select id="pageSizeSelect">
+                    <option value="5">5개</option>
+                    <option value="10">10개</option>
+                    <option value="20">20개</option>
+                    <option value="50">50개</option>
+                </select>
+            </div>
         </div>
     </div>
 </div>
-
-<!--<script th:src="@{/js/common/pagination.js}"></script>-->
-<!--<script th:src="@{/js/user-list.js}"></script>-->
-<script>
-    // 페이지 로드 시 초기화
-    document.addEventListener("DOMContentLoaded", () => {
-        if (!window.userListManagerInitialized && window.initUserListManager) {
-            window.initUserListManager();
-            window.userListManagerInitialized = true;
-        }
-    });
-</script>
-</body>
-</html>

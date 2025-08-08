@@ -1,6 +1,5 @@
 package pharos.groupware.service.view.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -21,8 +20,7 @@ public class AuthViewController {
 
 
     @GetMapping("/login")
-    public String login(HttpServletRequest request,
-                        HttpServletResponse response) throws IOException {
+    public String login(HttpServletResponse response) throws IOException {
         // 인증된 사용자는 홈화면으로.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken)) {

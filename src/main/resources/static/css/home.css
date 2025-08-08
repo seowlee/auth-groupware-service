@@ -9,9 +9,10 @@ body {
     padding: 0;
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e0 100%);
     color: #2d3748;
+    line-height: 1.6;
     display: flex;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* 사이드바 네비게이션 */
@@ -221,6 +222,24 @@ main p {
     transform: translateY(0);
 }
 
+.hamburger-btn {
+    display: none;
+    font-size: 1.3rem;
+    color: #ffffff;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin-right: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+}
+
+.hamburger-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
 /* 스크롤바 커스터마이징 */
 ::-webkit-scrollbar {
     width: 8px;
@@ -284,6 +303,11 @@ main > * {
 
 /* 모바일 반응형 - 상단 네비게이션으로 변경 */
 @media (max-width: 768px) {
+    /* 햄버거 버튼 보이기 */
+    .hamburger-btn {
+        display: block;
+    }
+
     body {
         flex-direction: column;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -398,60 +422,24 @@ main > * {
     }
 
     /* 메뉴 토글 버튼 */
-    nav::after {
-        content: '☰';
-        font-size: 1.3rem;
-        color: #ffffff;
-        cursor: pointer;
-        padding: 0.5rem;
-        border-radius: 6px;
-        transition: all 0.2s ease;
-        order: -1;
-        margin-right: 1rem;
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    nav:hover::after {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.1);
-    }
+    /*nav::after {*/
+    /*    content: '☰';*/
+    /*    font-size: 1.3rem;*/
+    /*    color: #ffffff;*/
+    /*    cursor: pointer;*/
+    /*    padding: 0.5rem;*/
+    /*    border-radius: 6px;*/
+    /*    transition: all 0.2s ease;*/
+    /*    order: -1;*/
+    /*    margin-right: 1rem;*/
+    /*    background: rgba(255, 255, 255, 0.1);*/
+    /*}*/
+    /*nav:hover::after {*/
+    /*    background: rgba(255, 255, 255, 0.2);*/
+    /*    transform: scale(1.1);*/
+    /*}*/
 }
 
-/* 작은 모바일 */
-@media (max-width: 480px) {
-    nav {
-        padding: 0.8rem;
-    }
-
-    nav h1 {
-        font-size: 0.9rem;
-    }
-
-    nav::after {
-        font-size: 1.1rem;
-        padding: 0.4rem;
-    }
-
-    .logout-btn {
-        padding: 0.5rem 0.8rem;
-        font-size: 0.8rem;
-        min-width: 70px;
-    }
-
-    main {
-        padding: 0.8rem;
-        margin: 0.3rem;
-    }
-
-    main h2 {
-        font-size: 1.3rem;
-    }
-
-    nav ul li a {
-        padding: 0.8rem 1rem;
-        font-size: 0.9rem;
-    }
-}
 
 /* 다크 모드 지원 */
 @media (prefers-color-scheme: dark) {
