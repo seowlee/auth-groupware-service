@@ -8,7 +8,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import pharos.groupware.service.team.domain.User;
+import pharos.groupware.service.domain.team.entity.User;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;

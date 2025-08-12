@@ -10,10 +10,10 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
-import pharos.groupware.service.team.domain.User;
-import pharos.groupware.service.team.domain.UserRepository;
-import pharos.groupware.service.team.dto.CreateIdpUserReqDto;
-import pharos.groupware.service.team.service.UserService;
+import pharos.groupware.service.domain.team.dto.CreateIdpUserReqDto;
+import pharos.groupware.service.domain.team.entity.User;
+import pharos.groupware.service.domain.team.entity.UserRepository;
+import pharos.groupware.service.domain.team.service.UserService;
 
 import java.io.IOException;
 import java.time.LocalDate;

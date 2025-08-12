@@ -1,307 +1,80 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Leave List</title>
-    <link rel="stylesheet" th:href="@{/css/list.css}">
-</head>
-<body>
-<div class="list-container">
-    <h1>연차 목록</h1>
+<div data-fragment="content" th:fragment="content">
+    <div class="list-container">
+        <h1>연차 목록</h1>
+        <!-- 검색/필터 -->
+        <div class="search-filter-container">
+            <input id="leaveKeyword" placeholder="신청자명 검색" type="text"/>
+            <select id="leaveTeamId">
+                <option value="">전체 팀</option>
+            </select>
+            <select id="leaveType">
+                <option value="">전체 유형</option>
+                <option value="ANNUAL">연차</option>
+                <option value="BIRTHDAY">생일</option>
+                <option value="SICK">병가</option>
+                <option value="CUSTOM">기타휴가</option>
+            </select>
+            <select id="leaveStatus">
+                <option value="">전체 상태</option>
+                <option value="APPROVED">승인</option>
+                <option value="CANCELED">취소</option>
+                <option value="REJECTED">반려</option>
+            </select>
 
-    <div class="action-buttons">
-        <button class="btn" id="toggleLeaveFormBtn">연차 신청</button>
-        <button class="btn btn-secondary" id="refreshLeavesBtn">목록 새로고침</button>
-    </div>
+            <button class="btn" id="leaveSearchBtn">검색</button>
+            <button class="btn btn-secondary" id="leaveResetBtn">초기화</button>
+        </div>
 
-    <!-- 연차 신청 폼 -->
-    <div class="form-container" id="leaveFormContainer">
-        <h3>연차 신청</h3>
-        <form id="createLeaveForm">
-            <div class="form-group">
-                <label for="leaveType">연차 유형:</label>
-                <select id="leaveType" name="leaveType" required>
-                    <option value="ANNUAL">연차</option>
-                    <option value="SICK">병가</option>
-                    <option value="PERSONAL">개인사유</option>
-                    <option value="MATERNITY">출산휴가</option>
-                    <option value="PATERNITY">육아휴직</option>
+        <div class="action-buttons">
+            <!--            <button class="btn" id="toggleLeaveFormBtn">연차 신청</button>-->
+            <button class="btn btn-secondary" id="refreshLeavesBtn">목록 새로고침</button>
+        </div>
+
+        <!-- 연차 신청 폼 -->
+
+
+        <!-- 메시지 영역 -->
+        <div id="messageArea"></div>
+
+        <!-- 연차 목록 -->
+        <div id="leaveListArea">
+            <div class="loading">연차 목록을 불러오는 중...</div>
+            <table class="data-table" id="leaveTable" style="display:none">
+                <thead>
+                <tr>
+                    <th class="sortable" data-sort="username">신청자</th>
+                    <th>유형</th>
+                    <th class="sortable" data-sort="startTime">시작일</th>
+                    <th class="sortable" data-sort="endTime">종료일</th>
+                    <th>일수</th>
+                    <th class="sortable" data-sort="status">상태</th>
+                    <th class="sortable" data-sort="appliedAt">신청일</th>
+                </tr>
+                </thead>
+                <tbody id="leaveTableBody"></tbody>
+            </table>
+        </div>
+        <!-- 페이징 UI -->
+        <div class="pagination-container hidden" id="paginationContainer">
+            <div class="pagination-info">
+                <span id="paginationInfo">총 0개 항목</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="btn btn-secondary" id="firstPageBtn">처음</button>
+                <button class="btn btn-secondary" id="prevPageBtn">이전</button>
+                <span id="currentPageInfo">1 / 1</span>
+                <button class="btn btn-secondary" id="nextPageBtn">다음</button>
+                <button class="btn btn-secondary" id="lastPageBtn">마지막</button>
+            </div>
+            <div class="page-size-selector">
+                <span>페이지 크기:</span>
+                <select id="pageSizeSelect">
+                    <option value="5">5개</option>
+                    <option value="10">10개</option>
+                    <option value="20">20개</option>
+                    <option value="50">50개</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>기간:</label>
-                <div class="date-range">
-                    <input id="startDate" name="startDate" required type="date">
-                    <span>~</span>
-                    <input id="endDate" name="endDate" required type="date">
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="reason">사유:</label>
-                <textarea id="reason" name="reason" placeholder="연차 사유를 입력하세요" required></textarea>
-            </div>
-            <div class="action-buttons">
-                <button class="btn" type="submit">신청</button>
-                <button class="btn btn-secondary" id="cancelLeaveFormBtn" type="button">취소</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- 메시지 영역 -->
-    <div id="messageArea"></div>
-
-    <!-- 연차 목록 -->
-    <div id="leaveListArea">
-        <div class="loading">연차 목록을 불러오는 중...</div>
+        </div>
     </div>
 </div>
-
-<script>
-    class LeaveListManager {
-        constructor() {
-            this.leaves = [];
-            this.init();
-        }
-
-        init() {
-            this.bindEvents();
-            this.loadLeaves();
-        }
-
-        bindEvents() {
-            // 폼 토글 버튼
-            document.getElementById('toggleLeaveFormBtn').addEventListener('click', () => {
-                this.toggleLeaveForm();
-            });
-
-            // 취소 버튼
-            document.getElementById('cancelLeaveFormBtn').addEventListener('click', () => {
-                this.hideLeaveForm();
-            });
-
-            // 새로고침 버튼
-            document.getElementById('refreshLeavesBtn').addEventListener('click', () => {
-                this.loadLeaves();
-            });
-
-            // 폼 제출
-            document.getElementById('createLeaveForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.submitLeaveForm();
-            });
-
-            // 종료일이 시작일보다 이전이 되지 않도록 검증
-            document.getElementById('startDate').addEventListener('change', () => {
-                this.validateDateRange();
-            });
-
-            document.getElementById('endDate').addEventListener('change', () => {
-                this.validateDateRange();
-            });
-        }
-
-        validateDateRange() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-
-            if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-                document.getElementById('endDate').value = startDate;
-            }
-        }
-
-        toggleLeaveForm() {
-            const container = document.getElementById('leaveFormContainer');
-            const btn = document.getElementById('toggleLeaveFormBtn');
-
-            if (container.classList.contains('show')) {
-                this.hideLeaveForm();
-            } else {
-                this.showLeaveForm();
-            }
-        }
-
-        showLeaveForm() {
-            const container = document.getElementById('leaveFormContainer');
-            const btn = document.getElementById('toggleLeaveFormBtn');
-
-            container.classList.add('show');
-            btn.textContent = '신청 취소';
-
-            // 폼 초기화
-            document.getElementById('createLeaveForm').reset();
-
-            // 오늘 날짜를 기본값으로 설정
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('startDate').value = today;
-            document.getElementById('endDate').value = today;
-        }
-
-        hideLeaveForm() {
-            const container = document.getElementById('leaveFormContainer');
-            const btn = document.getElementById('toggleLeaveFormBtn');
-
-            container.classList.remove('show');
-            btn.textContent = '연차 신청';
-        }
-
-        async loadLeaves() {
-            try {
-                this.showMessage('연차 목록을 불러오는 중...', 'loading');
-
-                const response = await fetch('/api/leaves');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                this.leaves = data.content || data || [];
-                this.renderLeaveList();
-                this.clearMessage();
-
-            } catch (error) {
-                console.error('연차 목록 로드 실패:', error);
-                this.showMessage('연차 목록을 불러오는데 실패했습니다: ' + error.message, 'error');
-            }
-        }
-
-        renderLeaveList() {
-            const container = document.getElementById('leaveListArea');
-
-            if (this.leaves.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <h3>등록된 연차가 없습니다</h3>
-                        <p>새로운 연차를 신청해보세요.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const table = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>신청자</th>
-                            <th>연차 유형</th>
-                            <th>시작일</th>
-                            <th>종료일</th>
-                            <th>일수</th>
-                            <th>사유</th>
-                            <th>상태</th>
-                            <th>신청일</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${this.leaves.map(leave => `
-                            <tr>
-                                <td>${this.escapeHtml(leave.username || leave.applicant || '알 수 없음')}</td>
-                                <td>${this.getLeaveTypeText(leave.leaveType || leave.type)}</td>
-                                <td>${leave.startDate}</td>
-                                <td>${leave.endDate}</td>
-                                <td>${this.calculateDays(leave.startDate, leave.endDate)}일</td>
-                                <td>${this.escapeHtml(leave.reason || '')}</td>
-                                <td class="status-${(leave.status || 'pending').toLowerCase()}">
-                                    ${this.getStatusText(leave.status || 'PENDING')}
-                                </td>
-                                <td>${this.formatDate(leave.createdDate || leave.applicationDate || '')}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-
-            container.innerHTML = table;
-        }
-
-        async submitLeaveForm() {
-            try {
-                const formData = new FormData(document.getElementById('createLeaveForm'));
-                const leaveData = Object.fromEntries(formData.entries());
-
-                this.showMessage('연차를 신청하는 중...', 'loading');
-
-                const response = await fetch('/api/leaves', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(leaveData)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.text();
-                    throw new Error(errorData || `HTTP error! status: ${response.status}`);
-                }
-
-                this.showMessage('연차가 성공적으로 신청되었습니다.', 'success');
-                this.hideLeaveForm();
-                this.loadLeaves(); // 목록 새로고침
-
-            } catch (error) {
-                console.error('연차 신청 실패:', error);
-                this.showMessage('연차 신청에 실패했습니다: ' + error.message, 'error');
-            }
-        }
-
-        calculateDays(startDate, endDate) {
-            if (!startDate || !endDate) return 0;
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            const diffTime = Math.abs(end - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            return diffDays;
-        }
-
-        formatDate(dateString) {
-            if (!dateString) return '';
-            try {
-                return new Date(dateString).toLocaleDateString('ko-KR');
-            } catch {
-                return dateString;
-            }
-        }
-
-        showMessage(message, type = 'info') {
-            const messageArea = document.getElementById('messageArea');
-            messageArea.innerHTML = `<div class="${type}">${message}</div>`;
-        }
-
-        clearMessage() {
-            document.getElementById('messageArea').innerHTML = '';
-        }
-
-        escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        getLeaveTypeText(type) {
-            const typeMap = {
-                'ANNUAL': '연차',
-                'SICK': '병가',
-                'PERSONAL': '개인사유',
-                'MATERNITY': '출산휴가',
-                'PATERNITY': '육아휴직'
-            };
-            return typeMap[type] || type;
-        }
-
-        getStatusText(status) {
-            const statusMap = {
-                'PENDING': '대기중',
-                'APPROVED': '승인',
-                'REJECTED': '거부'
-            };
-            return statusMap[status] || status;
-        }
-    }
-
-    // 페이지 로드 시 초기화
-    document.addEventListener('DOMContentLoaded', () => {
-        new LeaveListManager();
-    });
-</script>
-
-</body>
-</html>

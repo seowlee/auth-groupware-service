@@ -145,3 +145,12 @@ textarea:focus {
 .btn-secondary:hover {
     box-shadow: 0 4px 16px rgba(113, 128, 150, 0.4);
 }
+
+.btn-danger {
+    background: linear-gradient(135deg, #e53e3e, #c53030);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c53030, #9c2626);
+    box-shadow: 0 8px 25px rgba(229, 62, 62, 0.3);
+}

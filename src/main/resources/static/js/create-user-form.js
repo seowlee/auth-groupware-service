@@ -4,8 +4,6 @@ class CreateUserForm {
     }
 
     async init() {
-        console.log("사용자 등록 폼 초기화 시작");
-
         const form = document.getElementById("form-container");
         if (!form) {
             console.warn("form-container 이 존재하지 않음");

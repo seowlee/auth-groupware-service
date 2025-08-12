@@ -1,9 +1,9 @@
-import {loadPageIntoMainContent} from './router.js';
+import {navigateTo} from './router.js';
 
 /**
  * 사용자 상세 정보 관리자
  */
-export class UserDetailManager {
+class UserDetailManager {
     constructor(userId) {
         this.userId = userId;
         this.userData = null;
@@ -82,11 +82,11 @@ export class UserDetailManager {
      */
     bindEvents() {
         const editBtn = document.getElementById('toggleEditBtn');
-        const deleteBtn = document.getElementById('deleteUserBtn');
+        const deactivateUserBtn = document.getElementById('deactivateUserBtn');
         const backBtn = document.getElementById('backBtn');
 
         if (editBtn) editBtn.addEventListener('click', this.onEditBtnClick.bind(this));
-        if (deleteBtn) deleteBtn.addEventListener('click', this.onDeleteBtnClick.bind(this));
+        if (deactivateUserBtn) deactivateUserBtn.addEventListener('click', this.onInActiveBtnClick.bind(this));
         if (backBtn) backBtn.addEventListener('click', this.onBackBtnClick.bind(this));
     }
 
@@ -124,30 +124,28 @@ export class UserDetailManager {
         btn.textContent = '수정';
 
         // 상세→목록 복귀
-        history.pushState({path: '/team/users'}, '', '/team/users');
-        loadPageIntoMainContent('/team/users');
+        navigateTo('/team/users');
+
     }
 
     /**
-     * [삭제] 처리
+     * [비활성화] 처리
      */
-    async onDeleteBtnClick() {
-        if (!confirm('정말 삭제하시겠습니까?')) return;
-        const res = await fetch(`${this.apiPrefix}/team/users/${this.userId}`, {
-            method: 'DELETE'
+    async onInActiveBtnClick() {
+        if (!confirm('정말 비활성화하시겠습니까?')) return;
+        const res = await fetch(`${this.apiPrefix}/admin/users/${this.userId}/deactivate`, {
+            method: 'POST'
         });
-        if (!res.ok) throw new Error('삭제 실패');
-        alert('사용자가 삭제되었습니다.');
-        history.pushState({path: '/team/users'}, '', '/team/users');
-        loadPageIntoMainContent('/team/users');
+        if (!res.ok) throw new Error('비활성화 실패');
+        alert('사용자가 비활성화되었습니다.');
+        navigateTo('/team/users');
     }
 
     /**
      * [뒤로] 처리
      */
     onBackBtnClick() {
-        history.pushState({path: '/team/users'}, '', '/team/users');
-        loadPageIntoMainContent('/team/users');
+        navigateTo('/team/users');
     }
 
     /**

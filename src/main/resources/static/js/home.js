@@ -1,7 +1,11 @@
 // src/js/home.js
 import {initUserListManager} from './user-list.js';
 import {initUserDetail} from './user-detail.js';
+import {initLeaveListManager} from "./leave-list.js";
 import {loadPageIntoMainContent, navigateTo, replaceStateAndLoad} from './router.js';
+import {initLeaveEdit} from "./leave-form.js";
+import {initLeaveCreate} from "./create-leave-form.js";
+
 
 export function setupHomePage() {
     document.addEventListener('DOMContentLoaded', onInitialLoad);
@@ -74,14 +78,20 @@ export function loadFeatureScripts(path) {
         });
     } else if (path.startsWith('/team/users/')) {
         initUserDetail();
-    } else if (path === '/admin/users/create') {
+    } else if (path === '/admin/users/new') {
         import('./create-user-form.js').then(m => m.initCreateUserForm());
-    } else if (path === '/leave/apply') {
-        import('./leave/leave-form.js').then(m => m.initLeaveForm('create'));
-    } else if (path.startsWith('/leave/') && path !== '/leave/list') {
-        import('./leave/leave-form.js').then(m =>
-            fetch(`/api${path}`).then(r => r.json()).then(data => m.initLeaveForm('edit', data))
-        );
+    } else if (path === '/leaves') {
+        initLeaveListManager(leaveId => {
+            navigateTo(`/leaves/${leaveId}`);
+        });
+    } else if (path === '/leaves/calendar') {
+        initLeaveListManager(leaveId => {
+            navigateTo(`/leaves/${leaveId}`);
+        });
+    } else if (path === '/leaves/apply') {
+        initLeaveCreate();
+    } else if (path.startsWith('/leaves/') && path !== '/leaves') {
+        initLeaveEdit();
     }
 }
 

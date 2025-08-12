@@ -5,7 +5,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import pharos.groupware.service.admin.dto.CreateUserReqDto;
+import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
 import pharos.groupware.service.common.util.DateUtils;
 
 import java.time.LocalDateTime;

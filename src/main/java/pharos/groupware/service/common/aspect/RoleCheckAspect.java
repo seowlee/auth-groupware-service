@@ -9,8 +9,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.util.AuthUtils;
-import pharos.groupware.service.team.domain.User;
-import pharos.groupware.service.team.domain.UserRepository;
+import pharos.groupware.service.domain.team.entity.User;
+import pharos.groupware.service.domain.team.entity.UserRepository;
 
 import java.util.UUID;
 

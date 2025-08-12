@@ -18,9 +18,9 @@
         </div>
         <h3>연차 보유 현황</h3>
         <div id="leaveStats"></div>
-        <div class="action-buttons" th:if="${role} == 'SUPER_ADMIN'">
+        <div class="action-buttons" th:if="${isSuperAdmin}">
             <button class="btn" id="toggleEditBtn">수정</button>
-            <button class="btn btn-danger" id="deleteUserBtn">삭제</button>
+            <button class="btn btn-danger" id="deactivateUserBtn">비활성화</button>
         </div>
 
         <div class="action-buttons">
