@@ -10,17 +10,12 @@
         <div class="form-group"><label>소속 팀:</label><select disabled id="detailTeam"></select></div>
         <div class="form-group"><label>입사일:</label><span id="detailJoinedDate"></span></div>
 
-        <div class="form-group"><label>상태:</label>
-            <select disabled id="detailStatus">
-                <option value="ACTIVE">활성</option>
-                <option value="INACTIVE">비활성</option>
-            </select>
-        </div>
+        <div class="form-group"><label>상태:</label><select disabled id="detailStatus"></select></div>
         <h3>연차 보유 현황</h3>
         <div id="leaveStats"></div>
         <div class="action-buttons" th:if="${isSuperAdmin}">
             <button class="btn" id="toggleEditBtn">수정</button>
-            <button class="btn btn-danger" id="deactivateUserBtn">비활성화</button>
+            <!--            <button class="btn btn-danger" id="deactivateUserBtn">비활성화</button>-->
         </div>
 
         <div class="action-buttons">

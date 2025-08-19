@@ -5,9 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
 import pharos.groupware.service.common.util.DateUtils;
+import pharos.groupware.service.common.util.PhoneNumberUtils;
 import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
+import pharos.groupware.service.domain.admin.dto.PendingUserDto;
 import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.domain.leave.service.LeaveBalanceService;
 import pharos.groupware.service.domain.team.entity.User;
@@ -16,7 +20,13 @@ import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -58,8 +68,8 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     }
 
+    //    @Transactional
     @Override
-    @Transactional
     public void deleteUser(String keycloakUserId) {
         UUID uuid = UUID.fromString(keycloakUserId);
         User user = userRepository.findByUserUuid(uuid)
@@ -79,6 +89,48 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
+    public String updateUser(UUID uuid, UpdateUserByAdminReqDto reqDto) {
+        User user = userRepository.findByUserUuid(uuid)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+        UserStatusEnum before = user.getStatus();
+        UserStatusEnum after = reqDto.getStatus() != null
+                ? UserStatusEnum.valueOf(reqDto.getStatus())
+                : before;
+
+        // 1) 기본 정보 수정
+        localUserService.update(user, reqDto);
+
+
+        // 2) 상태 전이 오케스트레이션
+        if (before != after) {
+            if (before == UserStatusEnum.PENDING && after == UserStatusEnum.ACTIVE) {
+                approvePendingUser(uuid);
+                return user.getUserUuid().toString();
+            } else if (before == UserStatusEnum.ACTIVE && after == UserStatusEnum.INACTIVE) {
+                deactivateUser(user.getUserUuid().toString());
+            } else if (before == UserStatusEnum.INACTIVE && after == UserStatusEnum.ACTIVE) {
+                reactivateUser(user); // 새로 추가: Keycloak enable + user.activate()
+            } else {
+                throw new ResponseStatusException(BAD_REQUEST,
+                        "허용되지 않는 상태 전이: " + before + " → " + after);
+            }
+        }
+
+        // Keycloak에도 반영할 필드가 있을 경우
+        try {
+            if (needToSyncWithKeycloak(reqDto)) {
+                String keycloakUserId = user.getUserUuid().toString();
+                keycloakUserService.updateUserProfile(keycloakUserId, reqDto);
+            }
+        } catch (Exception e) {
+            log.error("Keycloak 업데이트 실패", e);
+            throw new RuntimeException("사용자 정보는 저장되었으나 Keycloak 동기화 실패", e);
+        }
+        return user.getUserUuid().toString();
+    }
+
+    //    @Transactional
+    @Override
     public String deactivateUser(String keycloakUserId) {
         UUID uuid = UUID.fromString(keycloakUserId);
 
@@ -103,26 +155,11 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    @Transactional
-    public String updateUser(UUID uuid, UpdateUserByAdminReqDto reqDto) {
-        User user = userRepository.findByUserUuid(uuid)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        String currentUsername = AuthUtils.getCurrentUsername();
+    public void reactivateUser(User user) {
         String keycloakUserId = user.getUserUuid().toString();
-        user.updateByAdmin(reqDto, currentUsername);
-
-        // Keycloak에도 반영할 필드가 있을 경우
-        try {
-            if (needToSyncWithKeycloak(reqDto)) {
-                keycloakUserService.updateUserProfile(keycloakUserId, reqDto);
-            }
-        } catch (Exception e) {
-            log.error("Keycloak 업데이트 실패", e);
-            throw new RuntimeException("사용자 정보는 저장되었으나 Keycloak 동기화 실패", e);
-        }
-        return keycloakUserId;
+        keycloakUserService.reactivateUser(keycloakUserId);
+        localUserService.activate(user);
     }
-
 
     /**
      * 로컬 DB의 PENDING 사용자 승인 처리
@@ -131,8 +168,8 @@ public class UserManagementServiceImpl implements UserManagementService {
      * 3) Kakao IdP 연동
      * 4) 로컬 User 엔티티 approve(...) 호출 및 저장
      */
+//    @Transactional
     @Override
-    @Transactional
     public void approvePendingUser(UUID localUserUuid) {
         // 1. 로컬 사용자 조회
         User localUser = userRepository.findByUserUuid(localUserUuid)
@@ -166,6 +203,65 @@ public class UserManagementServiceImpl implements UserManagementService {
         log.info("User {} approved with temp password {}", localUser.getEmail(), tempPlain);
     }
 
+    @Override
+    @Transactional
+    public void registerOrLinkSocialUser(PendingUserDto reqDto) {
+        String normalizedPhone = PhoneNumberUtils.normalize(reqDto.getPhoneNumber());
+        String kakaoSub = reqDto.getProviderUserId();
+
+//        if (normalizedPhone == null || normalizedPhone.isBlank()) {
+//            throw new IllegalArgumentException("휴대전화 번호가 필요합니다.");
+//        }
+        if (kakaoSub == null || kakaoSub.isBlank()) {
+            throw new IllegalArgumentException("Kakao sub가 필요합니다.");
+        }
+
+        // 0) sub가 이미 다른 사용자에 등록되어 있으면 막기
+//        Optional<User> existingBySub = userRepository.findByKakaoSub(kakaoSub);
+//        if (existingBySub.isPresent()) {
+//            return; // 이미 등록되어 있으면 조용히 성공 처리하거나, 예외로 알림(정책)
+//        }
+
+        // 1) 휴대폰으로 기존 사용자 찾기
+        Optional<User> existingUserOpt = userRepository.findByPhoneNumber(normalizedPhone);
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+
+            // 1-a) 해당 사용자가 Keycloak 계정을 이미 가지고 있으면 → 그 계정에 Kakao 연동
+            String keycloakUserId = String.valueOf(existingUser.getUserUuid());
+            String kakaoUsername = reqDto.getEmail();
+            keycloakUserService.linkKakaoFederatedIdentity(
+                    keycloakUserId,
+                    kakaoSub,
+                    kakaoUsername
+            );
+            // 로컬에도 반영
+            localUserService.linkKakaoLocally(existingUser, kakaoSub);
+            return;
+
+        }
+        localUserService.registerPendingUser(reqDto);
+    }
+
+    @Override
+    public void deleteUsersOlderThanDays(int days) {
+        OffsetDateTime cutoff = OffsetDateTime.now(ZoneId.of("Asia/Seoul")).minusDays(days);
+        List<UUID> targets = userRepository.findInactiveUserIdsOlderThan(cutoff);
+
+        int ok = 0, fail = 0;
+        for (UUID id : targets) {
+            try {
+                // 개별 트랜잭션으로 묶고 싶으면 deleteUser에 @Transactional(REQUIRES_NEW) 고려
+                deleteUser(id.toString());
+                ok++;
+            } catch (Exception e) {
+                fail++;
+            }
+        }
+        log.info("Purge INACTIVE users finished. days={}, ok={}, fail={}, cutoff={}", days, ok, fail, cutoff);
+
+
+    }
 
     private boolean needToSyncWithKeycloak(UpdateUserByAdminReqDto reqDto) {
         return reqDto.getEmail() != null

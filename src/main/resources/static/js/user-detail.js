@@ -4,6 +4,12 @@ import {navigateTo} from './router.js';
  * 사용자 상세 정보 관리자
  */
 class UserDetailManager {
+    static STATUS_LABELS = {
+        ACTIVE: '활성',
+        INACTIVE: '비활성',
+        PENDING: '승인대기',
+    };
+
     constructor(userId) {
         this.userId = userId;
         this.userData = null;
@@ -36,10 +42,17 @@ class UserDetailManager {
     render(user) {
         document.getElementById('detailUsername').textContent = user.username;
         document.getElementById('detailEmail').textContent = user.email;
-        document.getElementById('detailJoinedDate').textContent = user.joinedDate;
         document.getElementById('detailFirstName').value = user.firstName;
         document.getElementById('detailLastName').value = user.lastName;
-
+        document.getElementById('detailJoinedDate').textContent = user.joinedDate;
+        // 상태
+        const userStatus = document.getElementById('detailStatus');
+        userStatus.innerHTML = [
+            {v: 'ACTIVE', t: '활성'},
+            {v: 'INACTIVE', t: '비활성'},
+            {v: 'PENDING', t: '승인대기'}
+        ].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+        userStatus.value = user.status;
         // 역할 셀렉트
         const roleSelect = document.getElementById('detailRole');
         roleSelect.innerHTML = [
@@ -48,9 +61,6 @@ class UserDetailManager {
             {v: 'SUPER_ADMIN', t: '최고관리자'}
         ].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
         roleSelect.value = user.role;
-
-        // 상태
-        document.getElementById('detailStatus').value = user.status;
 
         // 연차 잔여 일수 목록
         const leaveListEl = document.getElementById('leaveStats');
@@ -77,6 +87,7 @@ class UserDetailManager {
         if (this.userData?.teamId) sel.value = this.userData.teamId;
     }
 
+
     /**
      * 수정/삭제/뒤로 버튼 이벤트 바인딩
      */
@@ -86,7 +97,7 @@ class UserDetailManager {
         const backBtn = document.getElementById('backBtn');
 
         if (editBtn) editBtn.addEventListener('click', this.onEditBtnClick.bind(this));
-        if (deactivateUserBtn) deactivateUserBtn.addEventListener('click', this.onInActiveBtnClick.bind(this));
+        // if (deactivateUserBtn) deactivateUserBtn.addEventListener('click', this.onInActiveBtnClick.bind(this));
         if (backBtn) backBtn.addEventListener('click', this.onBackBtnClick.bind(this));
     }
 
@@ -110,36 +121,42 @@ class UserDetailManager {
             status: document.getElementById('detailStatus').value,
             teamId: document.getElementById('detailTeam').value
         };
+        try {
+            const res = await fetch(`${this.apiPrefix}/admin/users/${this.userId}/update`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+                const msg = await res.text(); // 서버가 JSON이면 res.json()
+                throw new Error(msg || '수정 실패');
+            }
 
-        const res = await fetch(`${this.apiPrefix}/admin/users/${this.userId}/update`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error('수정 실패');
+            alert('사용자 정보가 저장되었습니다.');
+            this.editing = false;
+            this.toggleEditMode(false);
+            btn.textContent = '수정';
 
-        alert('사용자 정보가 저장되었습니다.');
-        this.editing = false;
-        this.toggleEditMode(false);
-        btn.textContent = '수정';
-
-        // 상세→목록 복귀
-        navigateTo('/team/users');
-
+            // 상세→목록 복귀
+            navigateTo('/team/users');
+        } catch (error) {
+            console.error(error);
+            alert("수정 중 오류: " + (error.message || error));
+        }
     }
 
-    /**
-     * [비활성화] 처리
-     */
-    async onInActiveBtnClick() {
-        if (!confirm('정말 비활성화하시겠습니까?')) return;
-        const res = await fetch(`${this.apiPrefix}/admin/users/${this.userId}/deactivate`, {
-            method: 'POST'
-        });
-        if (!res.ok) throw new Error('비활성화 실패');
-        alert('사용자가 비활성화되었습니다.');
-        navigateTo('/team/users');
-    }
+    // /**
+    //  * [비활성화] 처리
+    //  */
+    // async onInActiveBtnClick() {
+    //     if (!confirm('정말 비활성화하시겠습니까?')) return;
+    //     const res = await fetch(`${this.apiPrefix}/admin/users/${this.userId}/deactivate`, {
+    //         method: 'POST'
+    //     });
+    //     if (!res.ok) throw new Error('비활성화 실패');
+    //     alert('사용자가 비활성화되었습니다.');
+    //     navigateTo('/team/users');
+    // }
 
     /**
      * [뒤로] 처리
