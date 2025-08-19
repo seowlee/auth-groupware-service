@@ -2,6 +2,7 @@ package pharos.groupware.service.infrastructure.keycloak;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -132,4 +134,42 @@ public class KeycloakUserService {
                 .toBodilessEntity();
     }
 
+    public boolean isLinked(String keycloakUserId, String idpAlias) {
+        List<Map<String, Object>> list = withAuth().get()
+                .uri("/users/{id}/federated-identity", keycloakUserId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<
+                        List<Map<String, Object>>>() {
+                });
+
+        return list != null && list.stream()
+                .anyMatch(m -> idpAlias.equals(m.get("identityProvider")));
+    }
+
+    public Optional<FederatedIdentityLink> findFederatedIdentity(String keycloakUserId, String idpAlias) {
+        List<Map<String, Object>> list = withAuth().get()
+                .uri("/users/{id}/federated-identity", keycloakUserId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                });
+
+        if (list == null) return Optional.empty();
+
+        return list.stream()
+                .filter(m -> idpAlias.equals(m.get("identityProvider")))
+                .findFirst()
+                .map(m -> new FederatedIdentityLink(
+                        (String) m.get("identityProvider"),
+                        (String) m.get("userId"),     // ← Kakao 'sub'
+                        (String) m.get("userName")    // ← Kakao 닉네임
+                ));
+    }
+
+    // 필요하면 편의 메서드
+    public Optional<FederatedIdentityLink> findKakaoIdentity(String keycloakUserId) {
+        return findFederatedIdentity(keycloakUserId, "kakao");
+    }
+
+    public record FederatedIdentityLink(String identityProvider, String userId, String userName) {
+    }
 }

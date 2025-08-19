@@ -1,67 +1,66 @@
 <div data-fragment="content" th:fragment="content">
     <div class="form-container" id="leaveFormContainer"
-         th:data-is-super-admin="${isSuperAdmin}"
-         th:data-username="${username}">
-        <h2 th:text="${mode} == 'edit' ? '연차 상세 / 수정' : '연차 등록'">연차 등록</h2>
-        <form id="leaveApplyForm">
-            <div class="form-row">
-                <div class="form-group full-width">
-                    <label for="username">신청자</label>
-                    <input id="username" name="username"
-                           required th:readonly="${!isSuperAdmin}" th:value="${username}" type="text"/>
-                </div>
-                <div class="form-group full-width">
-                    <label for="leaveType">연차 유형</label>
-                    <select id="leaveType" required>
-                        <option value="ANNUAL">연차</option>
-                        <option value="BIRTHDAY">생일연차</option>
-                        <option value="SICK">병가</option>
-                        <option value="CUSTOM">기타</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-row two-col">
-                <div class="form-group">
-                    <label for="startDate">시작 날짜</label>
-                    <input id="startDate" required type="date"/>
-                </div>
-                <div class="form-group">
-                    <label for="startTime">시작 시간</label>
-                    <select id="startTime" required>
-                        <option value="09:00">09:00</option>
-                        <option value="13:00">13:00</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-row two-col">
-                <div class="form-group">
-                    <label for="endDate">종료 날짜</label>
-                    <input id="endDate" required type="date"/>
-                </div>
-                <div class="form-group">
-                    <label for="endTime">종료 시간</label>
-                    <select id="endTime" required>
-                        <option value="13:00">13:00</option>
-                        <option value="17:00">17:00</option>
-                    </select>
-                </div>
-            </div>
-
+         th:data-current-uuid="${userUuid}"
+         th:data-is-super-admin="${isSuperAdmin}">
+        <h2>연차 상세 정보</h2>
+        <div class="form-row">
             <div class="form-group full-width">
-                <label for="reason">사유</label>
-                <textarea id="reason" rows="3"></textarea>
+                <label for="username">신청자</label>
+                <input id="username" name="username"
+                       readonly required
+                       th:value="${username}"
+                       type="text"/>
             </div>
+            <div class="form-group full-width">
+                <label for="leaveType">연차 유형</label>
+                <select disabled id="leaveType" required>
+                    <option value="ANNUAL">연차</option>
+                    <option value="BIRTHDAY">생일연차</option>
+                    <option value="SICK">병가</option>
+                    <option value="CUSTOM">기타</option>
+                </select>
+            </div>
+        </div>
 
-            <div class="action-buttons">
-                <button class="btn btn-primary" id="submitBtn" type="submit">신청</button>
-                <button class="btn btn-warning" id="updateBtn" style="display:none;" type="button">수정</button>
-                <button class="btn btn-danger" id="cancelBtn" style="display:none;" type="button">취소</button>
+        <div class="form-row two-col">
+            <div class="form-group">
+                <label for="startDate">시작 날짜</label>
+                <input disabled id="startDate" required type="date"/>
             </div>
-            <div class="action-buttons">
-                <button class="btn btn-secondary" id="backBtn">목록으로</button>
+            <div class="form-group">
+                <label for="startTime">시작 시간</label>
+                <select disabled id="startTime" required>
+                    <option value="09:00">09:00</option>
+                    <option value="13:00">13:00</option>
+                </select>
             </div>
-        </form>
+        </div>
+
+        <div class="form-row two-col">
+            <div class="form-group">
+                <label for="endDate">종료 날짜</label>
+                <input disabled id="endDate" required type="date"/>
+            </div>
+            <div class="form-group">
+                <label for="endTime">종료 시간</label>
+                <select disabled id="endTime" required>
+                    <option value="13:00">13:00</option>
+                    <option value="17:00">17:00</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group full-width">
+            <label for="reason">사유</label>
+            <textarea disabled id="reason" rows="3"></textarea>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-warning" id="toggleEditBtn" style="display:none;" type="button">수정</button>
+            <button class="btn btn-danger" id="deleteBtn" style="display:none;" type="button">삭제</button>
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-secondary" id="backBtn">목록으로</button>
+        </div>
     </div>
 </div>

@@ -9,15 +9,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import pharos.groupware.service.domain.admin.dto.LinkKakaoIdpReqDto;
 import pharos.groupware.service.common.page.PagedResponse;
-import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
-import pharos.groupware.service.domain.team.dto.UpdateUserProfileReqDto;
-import pharos.groupware.service.domain.team.dto.UserDetailResDto;
-import pharos.groupware.service.domain.team.dto.UserResDto;
-import pharos.groupware.service.domain.team.dto.UserSearchReqDto;
+import pharos.groupware.service.domain.admin.dto.LinkKakaoIdpReqDto;
+import pharos.groupware.service.domain.team.dto.*;
 import pharos.groupware.service.domain.team.service.UserService;
+import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "05. 사용자 기능", description = "사용자 목록, 개별 정보 관련 API")
@@ -88,6 +86,13 @@ public class UserController {
         return ResponseEntity.ok("알림 목록");
     }
 
+    @Operation(summary = "신청자 선택용 전체 목록", description = "연차 신청 시 선택 가능한 사용자 목록. SUPER_ADMIN 전용")
+    @GetMapping("/users/applicants")
+    public ResponseEntity<List<UserApplicantResDto>> getApplicants(
+            @RequestParam(required = false) String q
+    ) {
+        return ResponseEntity.ok(userService.findAllApplicants(q));
+    }
 
     static class UserDetailResDto2 {
         private UUID uuid;

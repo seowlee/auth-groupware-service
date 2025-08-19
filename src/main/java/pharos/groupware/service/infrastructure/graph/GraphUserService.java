@@ -1,12 +1,13 @@
 package pharos.groupware.service.infrastructure.graph;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
 import pharos.groupware.service.common.util.DateUtils;
+import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-
+@Slf4j
 @Service
 public class GraphUserService {
     private final GraphTokenProvider graphTokenProvider;
@@ -132,7 +133,7 @@ public class GraphUserService {
                 "location", Map.of("displayName", "휴가")
         );
         Map<String, Object> response = withAuth().post()
-                .uri("/users/{userId}/events", graphUserId)
+                .uri("/users/{userId}/events", this.graphUserId)
                 .body(eventData)
                 .retrieve()
                 .body(new ParameterizedTypeReference<Map<String, Object>>() {
@@ -141,11 +142,32 @@ public class GraphUserService {
         return Objects.toString(response.get("id"), null);
     }
 
+    public void updateEvent(String calendarEventId, String subject, String body, LocalDateTime startDt, LocalDateTime endDt) {
+        Map<String, Object> eventData = Map.of(
+                "subject", subject,
+                "body", Map.of("contentType", "Text", "content", body),
+                "start", Map.of("dateTime", startDt.format(DateUtils.LOCAL_FORMATTER), "timeZone", timezone),
+                "end", Map.of("dateTime", endDt.format(DateUtils.LOCAL_FORMATTER), "timeZone", timezone),
+                "location", Map.of("displayName", "휴가")
+        );
+        withAuth().patch()
+                .uri("/users/{userId}/events/{id}", this.graphUserId, calendarEventId)
+                .body(eventData)
+                .retrieve()
+                .toBodilessEntity();
+
+        log.info("Graph event updated. id={}", calendarEventId);
+
+
+    }
+
     public void deleteEvent(String userId, String eventId) {
         withAuth().delete()
                 .uri("/users/{userId}/calendar/events/{eventId}", userId, eventId)
                 .retrieve()
                 .toBodilessEntity();
     }
+
+
 }
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -82,4 +83,24 @@ public interface UserRepository extends JpaRepository<User, Long> {
     );
 
     Optional<User> findByEmail(String email);
+
+    @Query("""
+                SELECT u
+                  FROM User u
+                 WHERE u.status = 'ACTIVE'
+                   AND ( LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%'))
+                        OR LOWER(u.email)    LIKE LOWER(CONCAT('%', :q, '%')) 
+                        OR :q IS NULL)
+                 ORDER BY u.username ASC 
+            """)
+    List<User> findActiveUsersForSelect(@Param("q") String q);
+
+    Optional<User> findByKakaoSub(String kakaoSub);
+
+    Optional<User> findByPhoneNumber(String phoneNumber);
+
+    @Query("select u.userUuid from User u " +
+            "where u.status = 'INACTIVE' " +
+            "and u.updatedAt < :cutoff")
+    List<UUID> findInactiveUserIdsOlderThan(OffsetDateTime cutoff);
 }

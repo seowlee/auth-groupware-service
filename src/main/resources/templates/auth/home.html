@@ -26,14 +26,21 @@
         <li><a class="menu-link" data-url="/leaves/apply" href="#">연차 등록</a></li>
         <li><a class="menu-link" data-url="/admin/logs" href="#">로그 보기</a></li>
     </ul>
-    <form class="logout-form" method="post" th:action="@{/logout}">
-        <button class="logout-btn" type="submit">로그아웃</button>
+    <!-- Keycloak 브로커를 통한 Kakao 연동 버튼 -->
+    <form class="nav-action-form link-form" method="get" th:action="@{/link/kakao/start}">
+        <button class="nav-btn link-kakao-btn" type="submit">카카오 로그인 연동</button>
+    </form>
+    <!-- 로그아웃 -->
+    <form class="nav-action-form logout-form" method="post" th:action="@{/logout}">
+        <button class="nav-btn logout-btn" type="submit">로그아웃</button>
     </form>
 </nav>
 <main id="main-content">
     <!--    <h2 th:text="| ${roleDisplayName} 홈|"></h2>-->
     <!--    <p>왼쪽 메뉴를 선택하여 기능을 이용하세요.</p>-->
 </main>
+<meta name="toast-msg" th:content="${toastMsg}">
+<meta name="toast-type" th:content="${toastType}">
 <script th:src="@{/js/home.js}" type="module"></script>
 </body>
 </html>

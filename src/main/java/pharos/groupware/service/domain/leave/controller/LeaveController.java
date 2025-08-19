@@ -13,6 +13,7 @@ import pharos.groupware.service.common.page.PagedResponse;
 import pharos.groupware.service.domain.leave.dto.CreateLeaveReqDto;
 import pharos.groupware.service.domain.leave.dto.LeaveDetailResDto;
 import pharos.groupware.service.domain.leave.dto.LeaveSearchReqDto;
+import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
 import pharos.groupware.service.domain.leave.service.LeaveService;
 
 @Tag(name = "03. 연차 기능", description = "연차 신청, 조회, 수정, 취소 등 연차 관련 API")
@@ -50,13 +51,13 @@ public class LeaveController {
     @Operation(summary = "연차 신청", description = "새로운 연차를 신청합니다.")
     @PostMapping
     public ResponseEntity<String> applyLeave(@RequestBody CreateLeaveReqDto reqDto) {
-        leaveService.applyLeave(reqDto);
+        Long leaveId = leaveService.applyLeave(reqDto);
         return ResponseEntity.ok("연차 신청 완료");
     }
 
     @Operation(summary = "연차 수정", description = "기존 연차 정보를 수정합니다.")
-    @PatchMapping("/{id}")
-    public ResponseEntity<String> updateLeave(@PathVariable Long id, @RequestBody CreateLeaveReqDto reqDto) {
+    @PostMapping("/{id}")
+    public ResponseEntity<String> updateLeave(@PathVariable Long id, @RequestBody UpdateLeaveReqDto reqDto) {
         leaveService.updateLeave(id, reqDto);
         return ResponseEntity.ok("연차 수정 완료");
     }

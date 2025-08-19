@@ -6,8 +6,7 @@ import lombok.Data;
 import pharos.groupware.service.domain.leave.entity.Leave;
 import pharos.groupware.service.domain.team.entity.User;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import static pharos.groupware.service.common.util.DateUtils.KST_DATETIME_FORMATTER;
 
 @Data
 @Builder
@@ -47,15 +46,14 @@ public class LeaveDetailResDto {
 
     // leave detail
     public static LeaveDetailResDto fromEntity(Leave leave, User user) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(ZoneId.of("Asia/Seoul"));
 
         return LeaveDetailResDto.builder()
                 .id(leave.getId())
                 .userUuid(user.getUserUuid().toString())
                 .userName(user.getUsername())
                 .userEmail(user.getEmail())
-                .startTime(formatter.format(leave.getStartTime()))
-                .endTime(formatter.format(leave.getEndTime()))
+                .startTime(KST_DATETIME_FORMATTER.format(leave.getStartDt()))
+                .endTime(KST_DATETIME_FORMATTER.format(leave.getEndDt()))
                 .leaveType(leave.getLeaveType().name())
                 .status(leave.getStatus().name())
                 .reason(leave.getReason())
@@ -74,7 +72,6 @@ public class LeaveDetailResDto {
             throw new IllegalStateException("Leave.user is null – fetch join 안 되었을 가능성 있음");
         }
 
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(ZoneId.of("Asia/Seoul"));
 //        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.of("Asia/Seoul"));
 
         return LeaveDetailResDto.builder()
@@ -82,13 +79,13 @@ public class LeaveDetailResDto {
                 .userUuid(user.getUserUuid().toString())
                 .userName(user.getUsername())
                 .userEmail(user.getEmail())
-                .startTime(dateTimeFormatter.format(leave.getStartTime()))
-                .endTime(dateTimeFormatter.format(leave.getEndTime()))
+                .startTime(KST_DATETIME_FORMATTER.format(leave.getStartDt()))
+                .endTime(KST_DATETIME_FORMATTER.format(leave.getEndDt()))
                 .leaveType(leave.getLeaveType().name())
                 .status(leave.getStatus().name())
                 .reason(leave.getReason())
                 .calendarEventId(leave.getCalendarEventId())
-                .appliedAt(dateTimeFormatter.format(leave.getAppliedAt()))
+                .appliedAt(KST_DATETIME_FORMATTER.format(leave.getAppliedAt()))
                 .build();
     }
 

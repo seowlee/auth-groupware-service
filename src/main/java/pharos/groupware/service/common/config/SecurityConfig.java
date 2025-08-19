@@ -37,7 +37,7 @@ public class SecurityConfig {
 //                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers("/login", "/api/admin/login", "/oauth2/**").permitAll()
+                        .requestMatchers("/login", "/api/admin/login", "/oauth2/**", "/link/kakao/callback").permitAll()
                         .requestMatchers("/realms/**", "/api/admin/users/pending", "/error/pending-approval").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()

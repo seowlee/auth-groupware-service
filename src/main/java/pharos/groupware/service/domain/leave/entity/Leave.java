@@ -7,11 +7,16 @@ import lombok.Getter;
 import org.hibernate.annotations.ColumnDefault;
 import pharos.groupware.service.common.enums.LeaveStatusEnum;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
+import pharos.groupware.service.common.util.DateUtils;
 import pharos.groupware.service.domain.leave.dto.CreateLeaveReqDto;
+import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
 import pharos.groupware.service.domain.team.entity.User;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.util.Objects;
+import java.util.Set;
 
 @Getter
 @Entity
@@ -31,11 +36,11 @@ public class Leave {
 
     @NotNull
     @Column(name = "start_time", nullable = false)
-    private OffsetDateTime startTime;
+    private OffsetDateTime startDt;
 
     @NotNull
     @Column(name = "end_time", nullable = false)
-    private OffsetDateTime endTime;
+    private OffsetDateTime endDt;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -81,12 +86,8 @@ public class Leave {
         Leave leave = new Leave();
 
         // String → LocalDateTime → OffsetDateTime(+09:00)
-        ZoneId seoulZone = ZoneId.of("Asia/Seoul");
-        leave.startTime = dto.getStartDt().atZone(seoulZone).toOffsetDateTime();
-        leave.endTime = dto.getEndDt().atZone(seoulZone).toOffsetDateTime();
-
-//        leave.startTime = OffsetDateTime.parse(dto.getStartTime());
-//        leave.endTime = OffsetDateTime.parse(dto.getEndTime());
+        leave.startDt = DateUtils.toSeoulOffsetDateTime(dto.getStartDt());
+        leave.endDt = DateUtils.toSeoulOffsetDateTime(dto.getEndDt());
         leave.leaveType = LeaveTypeEnum.valueOf(dto.getLeaveType());
         leave.status = LeaveStatusEnum.APPROVED;
         leave.reason = dto.getReason();
@@ -98,5 +99,66 @@ public class Leave {
         leave.updatedAt = OffsetDateTime.now();
         leave.updatedBy = currentUsername;
         return leave;
+    }
+
+    public void validateUpdatable(LocalDateTime newStart, LocalDateTime newEnd, String newLeaveTypeStr) {
+        // 1) 상태 체크
+        if (status == LeaveStatusEnum.CANCELED || status == LeaveStatusEnum.REJECTED) {
+            throw new IllegalStateException("취소/반려된 연차는 수정할 수 없습니다.");
+        }
+        if (this.endDt != null && this.endDt.isBefore(OffsetDateTime.now())) {
+            throw new IllegalStateException("이미 종료된 연차는 수정할 수 없습니다.");
+        }
+
+        // 2) 파라미터 널/순서 검증
+        if (newStart == null || newEnd == null) {
+            throw new IllegalArgumentException("시작/종료 일시는 필수입니다.");
+        }
+        if (!newEnd.isAfter(newStart)) {
+            throw new IllegalArgumentException("종료 일시는 시작 일시보다 이후여야 합니다.");
+        }
+
+        // 3) 타입 파싱
+        LeaveTypeEnum newType;
+        try {
+            newType = LeaveTypeEnum.valueOf(Objects.requireNonNull(newLeaveTypeStr, "연차 유형은 필수입니다."));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("연차 유형 값이 올바르지 않습니다: " + newLeaveTypeStr);
+        }
+
+        // 4) 근무 슬롯 제약 (09:00/13:00/17:00만 허용)
+        //    - 시작은 09:00 또는 13:00
+        //    - 종료는 13:00 또는 17:00
+        //    - 같은 날이면 (09→13), (09→17), (13→17)만 허용
+        Set<LocalTime> okStarts = Set.of(LocalTime.of(9, 0), LocalTime.of(13, 0));
+        Set<LocalTime> okEnds = Set.of(LocalTime.of(13, 0), LocalTime.of(17, 0));
+
+        LocalTime sTime = newStart.toLocalTime();
+        LocalTime eTime = newEnd.toLocalTime();
+        if (!okStarts.contains(sTime) || !okEnds.contains(eTime)) {
+            throw new IllegalArgumentException("시작/종료 시간은 09:00/13:00/17:00 슬롯만 허용됩니다.");
+        }
+        if (newStart.toLocalDate().equals(newEnd.toLocalDate())) {
+            boolean okSameDay =
+                    (sTime.equals(LocalTime.of(9, 0)) && (eTime.equals(LocalTime.of(13, 0)) || eTime.equals(LocalTime.of(17, 0)))) ||
+                            (sTime.equals(LocalTime.of(13, 0)) && eTime.equals(LocalTime.of(17, 0)));
+            if (!okSameDay) {
+                throw new IllegalArgumentException("같은 날짜에서는 (09→13), (09→17), (13→17) 조합만 허용됩니다.");
+            }
+        }
+
+        // 5) (선택) 영업일/공휴일 규칙 검증
+        //    BusinessCalendarService 등을 주입해 쓰지 말고(도메인 순수성),
+        //    서비스 계층에서 먼저 검증 후 이곳에서는 '형식/상태' 위주 검증만 하는 것을 권장.
+        //    필요하면 도메인 서비스(인터페이스)로 추상화하세요.
+
+    }
+
+    public void updateFrom(UpdateLeaveReqDto reqDto, String currentUsername) {
+        this.leaveType = LeaveTypeEnum.valueOf(reqDto.getLeaveType());
+        this.startDt = DateUtils.toSeoulOffsetDateTime(reqDto.getStartDt());
+        this.endDt = DateUtils.toSeoulOffsetDateTime(reqDto.getEndDt());
+        this.updatedAt = OffsetDateTime.now();
+        this.updatedBy = currentUsername;
     }
 }

@@ -43,7 +43,7 @@ public class User {
     @Column(name = "username", nullable = false, length = 100)
     private String username;
 
-    @Column(name = "kakaosub", length = 100)
+    @Column(name = "kakao_sub", length = 100)
     private String kakaoSub;
 
     @NotNull
@@ -52,6 +52,9 @@ public class User {
 
     @Column(name = "password", length = Integer.MAX_VALUE)
     private String password;
+
+    @Column(name = "phone_number", length = 32)
+    private String phoneNumber;
 
     @Column(name = "first_name", length = 50)
     private String firstName;
@@ -194,5 +197,15 @@ public class User {
         this.status = UserStatusEnum.ACTIVE;
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = "system";
+    }
+
+    public void linkKakao(String kakaoSub) {
+        this.kakaoSub = kakaoSub;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void activate() {
+        this.status = UserStatusEnum.ACTIVE;
+        this.updatedAt = OffsetDateTime.now();
     }
 }

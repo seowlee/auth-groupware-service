@@ -135,6 +135,87 @@ nav ul li a.active {
     transform: translateX(3px);
 }
 
+/* 공통: 두 액션 폼을 하단에 세트로 */
+nav .nav-action-form {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+nav .nav-action-form:first-of-type { /* 리스트 아래로 밀기 */
+    margin-top: auto;
+}
+
+nav .nav-action-form + .nav-action-form {
+    padding-top: 0.5rem;
+    border-top: none;
+}
+
+/* 공통 버튼 스타일 */
+.nav-btn {
+    width: 100%;
+    padding: 0.9rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border: none;
+}
+
+/* 로그아웃 폼 */
+.logout-form {
+    margin-top: auto;
+    padding: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 로그아웃 버튼 */
+.logout-btn {
+    background: linear-gradient(135deg, #718096, #4a5568);
+    color: #fff;
+    cursor: pointer;
+}
+
+.logout-btn::before {
+    content: '🚪';
+    margin-right: 0.5rem;
+}
+
+.logout-btn:hover {
+    background: linear-gradient(135deg, #4a5568, #2d3748);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(113, 128, 150, 0.3);
+}
+
+.logout-btn:active {
+    transform: translateY(0);
+}
+
+/* Kakao 스타일 버튼 */
+.link-kakao-btn {
+    background: #FEE500; /* Kakao Yellow */
+    color: #3c1e1e;;
+    border: 1px solid #e0c100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.link-kakao-btn:hover {
+    background: #DAB400;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.link-kakao-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.link-kakao-btn:focus-visible {
+    outline: 2px solid #333;
+    box-shadow: 0 0 0 3px rgba(230, 194, 0, 0.45);
+}
+
 /* 메인 콘텐츠 영역 */
 main {
     flex: 1;
@@ -184,42 +265,39 @@ main p {
     line-height: 1.6;
 }
 
-/* 로그아웃 폼 */
-.logout-form {
-    margin-top: auto;
-    padding: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* 로그아웃 버튼 */
-.logout-btn {
-    width: 100%;
-    padding: 0.9rem 1.2rem;
-    background: linear-gradient(135deg, #718096, #4a5568);
-    border: none;
-    color: white;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* 메인 패널 내부 오버레이 토스트 */
+#main-content {
     position: relative;
-    overflow: hidden;
 }
 
-.logout-btn::before {
-    content: '🚪';
-    margin-right: 0.5rem;
+.main-float-toast {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 5;
+    pointer-events: none;
 }
 
-.logout-btn:hover {
-    background: linear-gradient(135deg, #4a5568, #2d3748);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(113, 128, 150, 0.3);
+.main-float-toast .toast-card {
+    pointer-events: auto;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    color: #fff;
+    background: #10B981; /* success */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .25s ease, transform .25s ease;
 }
 
-.logout-btn:active {
-    transform: translateY(0);
+.main-float-toast .toast-card.error {
+    background: #EF4444;
+}
+
+.main-float-toast .toast-card.show {
+    opacity: 1;
+    transform: none;
 }
 
 .hamburger-btn {
@@ -387,20 +465,34 @@ main > * {
         background: linear-gradient(135deg, #667eea, #764ba2);
     }
 
-    .logout-form {
+    nav .nav-action-form {
         margin: 0;
         padding: 0;
         border: none;
+    }
+
+    nav .nav-action-form:first-of-type {
+        margin-left: auto;
+    }
+
+    nav .nav-action-form + .nav-action-form {
+        margin-left: 8px;
+    }
+
+    .nav-btn {
+        width: auto;
+        min-width: 110px;
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .logout-form {
         flex-shrink: 0;
     }
 
     .logout-btn {
-        width: auto;
-        padding: 0.6rem 1rem;
         background: linear-gradient(135deg, #718096, #4a5568);
-        font-size: 0.85rem;
-        min-width: 80px;
-        border-radius: 8px;
     }
 
     .logout-btn:hover {
@@ -454,5 +546,9 @@ main > * {
 
     main p {
         color: #a0aec0;
+    }
+
+    .link-kakao-btn {
+        border-color: #CDB400;
     }
 }

@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.policy.domain;
+package pharos.groupware.service.domain.policy.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

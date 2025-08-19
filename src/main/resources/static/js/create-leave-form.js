@@ -3,24 +3,60 @@ import {navigateTo} from "./router.js";
 class CreateLeaveFormManager {
     constructor() {
         this.apiPrefix = "/api/leaves";
-        this.permissions = {
-            isSuperAdmin: false, isOwner: false, get canEditCancel() {
-                return this.isSuperAdmin || this.isOwner;
-            }
-        };
+        this.form = null;
+        this.applicantSel = null;
+        this.isSuperAdmin = false;
+
     }
 
     async init() {
-        const form = document.getElementById("form-container");
-        if (!form) {
+        this.form = document.getElementById("form-container");
+        if (!this.form) {
             console.warn("form-container 이 존재하지 않음");
             return;
         }
-        this.bindEvents(form);
+        this.isSuperAdmin = (this.form.dataset.isSuperAdmin || "").toLowerCase() === "true";
+        this.applicantSel = document.getElementById("applicantUuid");
+        if (!this.applicantSel) {
+            console.warn("applicantUuid 요소가 없음");
+            return;
+        }
+        // 관리자만 전체 사용자 목록 fetch
+        if (this.isSuperAdmin) {
+            await this.loadApplicants(); // 필요 시 defaultUuid를 인자로 넘기기
+        }
+        this.bindEvents();
     }
 
-    bindEvents(form) {
-        form.addEventListener("submit", this.handleSubmit.bind(this));
+    /**
+     * 신청자 목록 로드 (SUPER_ADMIN만 전체 유저 로드, 일반사용자는 본인으로 고정)
+     */
+    async loadApplicants(defaultUuid = "") {
+        try {
+            // SUPER_ADMIN: 전체 또는 검색 결과 로드
+            const res = await fetch('/api/team/users/applicants');
+            if (!res.ok) throw new Error("사용자 목록 로딩 실패");
+            const users = await res.json(); // [{userUuid, username, email}, ...]
+            this.renderApplicantOptions(users, defaultUuid);
+        } catch (err) {
+            console.error(err);
+        }
+
+    }
+
+    renderApplicantOptions(users, defaultUuid = '') {
+        this.applicantSel.innerHTML = [
+            '<option value="">신청자를 선택하세요</option>',
+            ...users.map(u =>
+                `<option value="${u.userUuid}">${u.username}${u.email ? ` (${u.email})` : ''}</option>`
+            )
+        ].join("");
+        // 기본값(원하면 자기자신) 설정 가능
+        if (defaultUuid) this.applicantSel.value = defaultUuid;
+    }
+
+    bindEvents() {
+        this.form.addEventListener("submit", this.handleSubmit.bind(this));
         const cancelBtn = document.getElementById("cancelFormBtn");
         if (cancelBtn) cancelBtn.addEventListener("click", this.onCancelBtnClick.bind(this));
     }
@@ -30,7 +66,8 @@ class CreateLeaveFormManager {
         const startDateTime = `${document.getElementById("startDate")?.value}T${document.getElementById("startTime")?.value}`;
         const endDateTime = `${document.getElementById("endDate")?.value}T${document.getElementById("endTime")?.value}`;
         return {
-            username: document.getElementById("username")?.value.trim(),
+            // username: document.getElementById("username")?.value.trim(),
+            userUuid: this.applicantSel.value,
             leaveType: document.getElementById("leaveType")?.value,
             startDt: startDateTime,
             endDt: endDateTime,
@@ -43,6 +80,7 @@ class CreateLeaveFormManager {
 
         const data = this.collectFormData();
         if (!this.validateFormData(data)) return;
+
         try {
             const res = await fetch(this.apiPrefix, {
                 method: "POST",
@@ -72,7 +110,7 @@ class CreateLeaveFormManager {
 
         // 1) 필수값
         const required = [
-            ["username", data.username],
+            ["userUuid", data.userUuid],
             ["leaveType", data.leaveType],
             ["startDate", startDate],
             ["startTime", startHHmm],
@@ -135,11 +173,12 @@ class CreateLeaveFormManager {
                 return false;
             }
         }
+        return true;
     }
 
     getFieldDisplayName(field) {
         const map = {
-            username: "신청자",
+            userUuid: "신청자",
             leaveType: "연차 유형",
             startDate: "시작 날짜",
             startTime: "시작 시간",

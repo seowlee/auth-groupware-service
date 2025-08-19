@@ -4,12 +4,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
 import pharos.groupware.service.domain.admin.dto.PendingUserDto;
-import pharos.groupware.service.domain.team.dto.CreateIdpUserReqDto;
-import pharos.groupware.service.domain.team.dto.UserDetailResDto;
-import pharos.groupware.service.domain.team.dto.UserResDto;
-import pharos.groupware.service.domain.team.dto.UserSearchReqDto;
+import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
+import pharos.groupware.service.domain.team.dto.*;
 import pharos.groupware.service.domain.team.entity.User;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UserService {
@@ -27,4 +26,16 @@ public interface UserService {
     UserDetailResDto getUserDetail(UUID uuid);
 
     Long createUser(CreateUserReqDto createDto, String currentUsername);
+
+    List<UserApplicantResDto> findAllApplicants(String q);
+
+    User getCurrentUser();
+
+    boolean isCurrentUserSuperAdmin();
+
+    void linkKakaoLocally(User existingUser, String kakaoSub);
+
+    void activate(User user);
+
+    void update(User user, UpdateUserByAdminReqDto reqDto);
 }

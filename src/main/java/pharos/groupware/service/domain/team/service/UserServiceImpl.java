@@ -1,5 +1,6 @@
 package pharos.groupware.service.domain.team.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,17 +13,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
+import pharos.groupware.service.common.util.AuthUtils;
 import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
 import pharos.groupware.service.domain.admin.dto.PendingUserDto;
-import pharos.groupware.service.domain.team.dto.CreateIdpUserReqDto;
-import pharos.groupware.service.domain.team.dto.UserDetailResDto;
-import pharos.groupware.service.domain.team.dto.UserResDto;
-import pharos.groupware.service.domain.team.dto.UserSearchReqDto;
+import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
+import pharos.groupware.service.domain.team.dto.*;
 import pharos.groupware.service.domain.team.entity.Team;
 import pharos.groupware.service.domain.team.entity.TeamRepository;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -72,6 +74,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void activate(User user) {
+        user.activate();
+    }
+
+    @Override
+    public void update(User user, UpdateUserByAdminReqDto reqDto) {
+        String currentUsername = AuthUtils.getCurrentUsername();
+        user.updateByAdmin(reqDto, currentUsername);
+    }
+
+    @Override
     public Page<UserResDto> findAllUsers(UserSearchReqDto reqDto, Pageable pageable) {
 
         // 정렬 조건 없으면 입사일 내림차순
@@ -102,20 +115,38 @@ public class UserServiceImpl implements UserService {
     public UserDetailResDto getUserDetail(UUID uuid) {
         User user = userRepository.findByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
-        UserDetailResDto dto = new UserDetailResDto();
-        dto.setUuid(user.getUserUuid());
-        dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setJoinedDate(user.getJoinedDate().toString());
-        dto.setRole(user.getRole().name());
-        dto.setStatus(user.getStatus().name());
-        dto.setTeamId(user.getTeam().getId());
-        dto.setTeamName(user.getTeam().getName());
-        // 연차 정보는 제외
-        return dto;
-//        return null;
+        return UserDetailResDto.fromEntity(user);
+    }
+
+    @Override
+    public List<UserApplicantResDto> findAllApplicants(String q) {
+        return userRepository.findActiveUsersForSelect(q)
+                .stream()
+                .map(UserApplicantResDto::toApplicantDto)
+                .toList();
+    }
+
+    @Override
+    public User getCurrentUser() {
+        String uuid = AuthUtils.extractUserUUID();
+        return userRepository.findByUserUuid(UUID.fromString(uuid))
+                .orElseThrow(() -> new EntityNotFoundException("현재 사용자를 찾을 수 없습니다."));
+    }
+
+    @Override
+    public boolean isCurrentUserSuperAdmin() {
+        return getCurrentUser().getRole().isSuperAdmin();
+    }
+
+    @Override
+    @Transactional
+    public void linkKakaoLocally(User user, String kakaoSub) {
+        // sub 충돌 검사
+        Optional<User> conflict = userRepository.findByKakaoSub(kakaoSub);
+        if (conflict.isPresent() && !conflict.get().getUserUuid().equals(user.getUserUuid())) {
+            throw new IllegalStateException("이미 다른 계정에 연동된 Kakao 계정입니다.");
+        }
+        user.linkKakao(kakaoSub);
     }
 
 

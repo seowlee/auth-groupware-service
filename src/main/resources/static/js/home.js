@@ -17,6 +17,7 @@ export function setupHomePage() {
     if (ham) ham.addEventListener('click', toggleMobileMenu);
     window.addEventListener('popstate', onPopState);
     window.addEventListener('resize', onWindowResize);
+    showFlashToastIfAny();
 }
 
 function onInitialLoad() {
@@ -50,6 +51,57 @@ function onWindowResize() {
     }
 }
 
+function showMainFloatToast(msg, type = 'success') {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+
+    // 래퍼가 없으면 생성해서 main에 부착
+    let wrap = main.querySelector('.main-float-toast');
+    if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'main-float-toast';
+        main.appendChild(wrap);
+    }
+    // 토스트 카드 생성
+    const card = document.createElement('div');
+    card.className = `toast-card ${type}`;
+    card.textContent = msg;
+    wrap.appendChild(card);
+    // 등장 애니메이션 + 자동 제거
+    requestAnimationFrame(() => card.classList.add('show'));
+    setTimeout(() => card.classList.remove('show'), 2800);
+    setTimeout(() => card.remove(), 3500);
+}
+
+function showFlashToastIfAny() {
+    const msgMeta = document.querySelector('meta[name="toast-msg"]');
+    const typeMeta = document.querySelector('meta[name="toast-type"]');
+    const msg = msgMeta?.content;
+    const type = (typeMeta?.content) || 'success';
+    if (!msg) return;
+
+    const main = document.getElementById('main-content');
+
+    const run = () => {
+        showMainFloatToast(msg, type);
+        // 한 번만 뜨도록 비워둔다
+        msgMeta.content = '';
+        if (typeMeta) typeMeta.content = '';
+    };
+
+    // SPA로 프래그먼트가 비동기로 들어오니, 채워진 뒤에 실행
+    if (main && main.children.length > 0) {
+        run();
+    } else {
+        const mo = new MutationObserver(() => {
+            if (main.children.length > 0) {
+                mo.disconnect();
+                run();
+            }
+        });
+        mo.observe(main, {childList: true});
+    }
+}
 
 function highlightActiveMenu(path) {
     document.querySelectorAll('.menu-link').forEach(l => {

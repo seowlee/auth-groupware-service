@@ -7,7 +7,8 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 public class AuthUtils {
-    public static String extractUserUUID(Authentication authentication) {
+    public static String extractUserUUID() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtAuth) {
             return jwtAuth.getToken().getSubject(); // JWT 로그인 (fallback)
         } else if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
