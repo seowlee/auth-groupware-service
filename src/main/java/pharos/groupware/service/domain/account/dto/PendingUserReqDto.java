@@ -4,7 +4,7 @@ package pharos.groupware.service.domain.account.dto;
 import lombok.Data;
 
 @Data
-public class PendingUserDto {
+public class PendingUserReqDto {
     private String email;
     private String username;
     private String phoneNumber;

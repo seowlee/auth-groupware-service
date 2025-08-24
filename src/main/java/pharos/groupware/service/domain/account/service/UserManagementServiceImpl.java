@@ -1,27 +1,30 @@
-package pharos.groupware.service.domain.account;
+package pharos.groupware.service.domain.account.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
 import pharos.groupware.service.common.util.DateUtils;
+import pharos.groupware.service.common.util.PartitionUtils;
 import pharos.groupware.service.common.util.PhoneNumberUtils;
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.admin.dto.PendingUserDto;
-import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
+import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
+import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
+import pharos.groupware.service.domain.account.dto.UserApplicantResDto;
 import pharos.groupware.service.domain.leave.service.LeaveBalanceService;
+import pharos.groupware.service.domain.team.UserService;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
-import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,9 +39,11 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final KeycloakUserService keycloakUserService;
     private final GraphUserService graphUserService;
     private final UserService localUserService;
+    private final UserDeletionTxService userDeletionTxService;
     private final LeaveBalanceService leaveBalanceService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
 
     @Override
     @Transactional
@@ -67,8 +72,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         return null;
     }
 
-    //    @Transactional
     @Override
+    @Transactional
     public void deleteUser(String keycloakUserId) {
         UUID uuid = UUID.fromString(keycloakUserId);
         User user = userRepository.findByUserUuid(uuid)
@@ -155,7 +160,6 @@ public class UserManagementServiceImpl implements UserManagementService {
         } catch (Exception e) {
             log.error("사용자 활성화 중 DB 오류 발생. ", e);
         }
-
     }
 
     /**
@@ -197,7 +201,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    public void registerOrLinkSocialUser(PendingUserDto reqDto) {
+    public void registerOrLinkSocialUser(PendingUserReqDto reqDto) {
         String normalizedPhone = PhoneNumberUtils.normalize(reqDto.getPhoneNumber());
         String kakaoSub = reqDto.getProviderUserId();
 
@@ -236,23 +240,33 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @Transactional
     public void deleteUsersOlderThanDays(int days) {
         OffsetDateTime cutoff = OffsetDateTime.now(ZoneId.of("Asia/Seoul")).minusDays(days);
         List<UUID> targets = userRepository.findInactiveUserIdsOlderThan(cutoff);
-
-        int ok = 0, fail = 0;
+        List<UUID> ok = new ArrayList<>();
+        int fail = 0;
         for (UUID id : targets) {
             try {
-                // 개별 트랜잭션으로 묶고 싶으면 deleteUser에 @Transactional(REQUIRES_NEW) 고려
-                deleteUser(id.toString());
-                ok++;
+                userDeletionTxService.deleteKeycloakOnly(id.toString());
+                ok.add(id);
             } catch (Exception e) {
                 fail++;
+                log.error("keycloak delete failed: {}", id, e);
             }
         }
-        log.info("Purge INACTIVE users finished. days={}, ok={}, fail={}, cutoff={}", days, ok, fail, cutoff);
+        for (List<UUID> chunk : PartitionUtils.batchesOf(ok, 1000)) {
+            userRepository.deleteByUserUuidIn(chunk);
+        }
+        log.info("Purge INACTIVE users finished. days={}, ok={}, fail={}, cutoff={}", days, ok.size(), fail, cutoff);
+    }
 
-
+    @Override
+    public List<UserApplicantResDto> findAllApplicants(String q) {
+        return userRepository.findActiveUsersForSelect(q)
+                .stream()
+                .map(UserApplicantResDto::toApplicantDto)
+                .toList();
     }
 
     private boolean needToSyncWithKeycloak(UpdateUserByAdminReqDto reqDto) {
@@ -260,5 +274,4 @@ public class UserManagementServiceImpl implements UserManagementService {
                 || reqDto.getFirstName() != null
                 || reqDto.getLastName() != null;
     }
-
 }

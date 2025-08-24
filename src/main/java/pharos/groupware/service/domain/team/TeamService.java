@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team.service;
+package pharos.groupware.service.domain.team;
 
 import pharos.groupware.service.domain.team.dto.TeamDto;
 

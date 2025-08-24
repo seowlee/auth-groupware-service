@@ -1,10 +1,12 @@
-package pharos.groupware.service.domain.account;
+package pharos.groupware.service.domain.account.service;
 
 
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.admin.dto.PendingUserDto;
-import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
+import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
+import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
+import pharos.groupware.service.domain.account.dto.UserApplicantResDto;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UserManagementService {
@@ -20,7 +22,9 @@ public interface UserManagementService {
 
 //    void approvePendingUser(java.util.UUID userUuid);
 
-    void registerOrLinkSocialUser(PendingUserDto dto);
+    void registerOrLinkSocialUser(PendingUserReqDto dto);
 
     void deleteUsersOlderThanDays(int i);
+
+    List<UserApplicantResDto> findAllApplicants(String q);
 }

@@ -1,6 +1,9 @@
-package pharos.groupware.service.domain.admin.dto;
+package pharos.groupware.service.domain.account.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 public class UpdateUserByAdminReqDto {
@@ -10,6 +13,7 @@ public class UpdateUserByAdminReqDto {
     private String lastName;
     private String role;
     private String status;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate joinedDate;
     private Long teamId;
-//    private Map<String, BigDecimal> leaveTypeToCountMap;
 }

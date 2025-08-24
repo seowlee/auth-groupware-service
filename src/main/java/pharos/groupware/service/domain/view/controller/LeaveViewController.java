@@ -17,7 +17,7 @@ public class LeaveViewController {
         if ("XMLHttpRequest".equalsIgnoreCase(xhr)) {
             return "leave/leave-list :: content";
         }
-        return "auth/home";
+        return "account/home";
     }
 
     // 연차 캘린더
@@ -33,7 +33,7 @@ public class LeaveViewController {
         if ("XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))) {
             return "leave/create-leave-form :: content";
         }
-        return "auth/home";
+        return "account/home";
     }
 
     // 연차 상세 정보
@@ -44,6 +44,6 @@ public class LeaveViewController {
         if ("XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))) {
             return "leave/leave-form :: content";
         }
-        return "auth/home";
+        return "account/home";
     }
 }

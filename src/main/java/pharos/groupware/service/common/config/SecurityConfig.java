@@ -23,11 +23,6 @@ import java.util.List;
 public class SecurityConfig {
     private static final List<String> CLIENTS_TO_EXTRACT = List.of("groupware-app");
 
-//    private final CustomOAuth2SuccessHandler successHandler;
-
-//    public SecurityConfig(CustomOAuth2SuccessHandler successHandler) {
-//        this.successHandler = successHandler;
-//    }
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {

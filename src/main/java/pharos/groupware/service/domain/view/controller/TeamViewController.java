@@ -25,7 +25,7 @@ public class TeamViewController {
             return "team/user-list :: content";
         }
         // 전체 페이지 (최초 진입 시)
-        return "auth/home";
+        return "account/home";
     }
 
     // 사용자 상세 정보
@@ -39,6 +39,6 @@ public class TeamViewController {
             return "team/user-detail :: content";
         }
         // 직접 주소 접근이면 home 전체 + fragment
-        return "auth/home";
+        return "account/home";
     }
 }

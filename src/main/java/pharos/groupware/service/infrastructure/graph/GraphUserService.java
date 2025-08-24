@@ -7,7 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import pharos.groupware.service.common.util.DateUtils;
-import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
+import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -161,9 +161,9 @@ public class GraphUserService {
 
     }
 
-    public void deleteEvent(String userId, String eventId) {
+    public void deleteEvent(String eventId) {
         withAuth().delete()
-                .uri("/users/{userId}/calendar/events/{eventId}", userId, eventId)
+                .uri("/users/{userId}/calendar/events/{eventId}", this.graphUserId, eventId)
                 .retrieve()
                 .toBodilessEntity();
     }

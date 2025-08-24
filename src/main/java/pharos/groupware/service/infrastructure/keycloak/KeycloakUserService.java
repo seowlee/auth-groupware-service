@@ -8,8 +8,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
+import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
+import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
 
 import java.net.URI;
 import java.util.HashMap;

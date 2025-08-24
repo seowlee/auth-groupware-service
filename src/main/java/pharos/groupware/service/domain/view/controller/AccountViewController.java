@@ -15,7 +15,7 @@ import java.io.IOException;
 
 @Controller
 @RequiredArgsConstructor
-public class AuthViewController {
+public class AccountViewController {
     private final UserRepository userRepository;
 
 
@@ -27,12 +27,12 @@ public class AuthViewController {
             response.sendRedirect("/home");
             return null;
         }
-        return "auth/login";
+        return "account/login";
     }
 
     @GetMapping("/home")
     public String home() {
-        return "auth/home";
+        return "account/home";
     }
 
     //    @GetMapping("/home")
@@ -59,14 +59,14 @@ public class AuthViewController {
 //        ;
 //        boolean isSuperAdmin = user.getRole().isSuperAdmin();
 //        model.addAttribute("isSuperAdmin", isSuperAdmin);
-//        return "auth/home";
+//        return "account/home";
 //
 //    }
 //
     @GetMapping("/error/pending-approval")
     public String pendingApproval(Model model, @RequestParam(name = "email", required = false, defaultValue = "—") String email) {
         model.addAttribute("email", email);
-        return "auth/pending-approval";
+        return "account/pending-approval";
     }
 
 //    @GetMapping("/home")

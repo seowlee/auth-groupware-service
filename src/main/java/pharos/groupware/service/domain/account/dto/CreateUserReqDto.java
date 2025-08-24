@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.admin.dto;
+package pharos.groupware.service.domain.account.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;

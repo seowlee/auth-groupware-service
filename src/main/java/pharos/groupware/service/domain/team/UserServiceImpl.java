@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.account.service;
+package pharos.groupware.service.domain.team;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -14,9 +14,14 @@ import org.springframework.util.StringUtils;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
-import pharos.groupware.service.domain.account.dto.*;
+import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
+import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
+import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.domain.leave.entity.LeaveBalance;
 import pharos.groupware.service.domain.leave.entity.LeaveBalanceRepository;
+import pharos.groupware.service.domain.team.dto.UserDetailResDto;
+import pharos.groupware.service.domain.team.dto.UserResDto;
+import pharos.groupware.service.domain.team.dto.UserSearchReqDto;
 import pharos.groupware.service.domain.team.entity.Team;
 import pharos.groupware.service.domain.team.entity.TeamRepository;
 import pharos.groupware.service.domain.team.entity.User;
@@ -137,15 +142,7 @@ public class UserServiceImpl implements UserService {
         }
         return userDetailResDto;
     }
-
-    @Override
-    public List<UserApplicantResDto> findAllApplicants(String q) {
-        return userRepository.findActiveUsersForSelect(q)
-                .stream()
-                .map(UserApplicantResDto::toApplicantDto)
-                .toList();
-    }
-
+    
     @Override
     public User getCurrentUser() {
         String uuid = AuthUtils.extractUserUUID();

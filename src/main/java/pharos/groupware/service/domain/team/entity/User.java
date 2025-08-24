@@ -10,10 +10,9 @@ import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
-import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.admin.dto.PendingUserDto;
-import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
-import pharos.groupware.service.domain.team.dto.CreateIdpUserReqDto;
+import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
+import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
+import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -109,11 +108,12 @@ public class User {
         user.username = reqDTO.getUsername();
         user.email = reqDTO.getEmail();
         user.password = passwordEncoder.encode(reqDTO.getRawPassword());
+        user.phoneNumber = reqDTO.getPhoneNumber();
         user.firstName = reqDTO.getFirstName();
         user.lastName = reqDTO.getLastName();
         user.joinedDate = reqDTO.getJoinedDate();
         user.yearNumber = reqDTO.getYearNumber();
-        user.role = reqDTO.getRole();
+        user.role = UserRoleEnum.valueOf(reqDTO.getRole());
         user.status = UserStatusEnum.ACTIVE;
         user.team = team;
         user.createdAt = OffsetDateTime.now();
@@ -124,7 +124,7 @@ public class User {
     }
 
     public static User fromPendingDto(
-            PendingUserDto dto,
+            PendingUserReqDto dto,
             Team defaultTeam,
             PasswordEncoder passwordEncoder
     ) {
@@ -148,24 +148,6 @@ public class User {
         return u;
     }
 
-    public static User create(CreateIdpUserReqDto reqDTO, PasswordEncoder passwordEncoder) {
-        User user = new User();
-        user.userUuid = reqDTO.getUserUUID() != null ? UUID.fromString(reqDTO.getUserUUID()) : UUID.randomUUID();
-        user.username = reqDTO.getUsername();
-        user.email = reqDTO.getEmail();
-        user.password = passwordEncoder.encode(reqDTO.getRawPassword());
-        user.firstName = reqDTO.getFirstName();
-        user.lastName = reqDTO.getLastName();
-        user.joinedDate = reqDTO.getJoinedDate();
-        user.yearNumber = 1;
-        user.role = reqDTO.getRole();
-        user.status = reqDTO.getStatus(); // PENDING
-        user.createdAt = OffsetDateTime.now();
-        user.createdBy = reqDTO.getUsername(); // 보통 nickname 사용
-        user.updatedAt = OffsetDateTime.now();
-        user.updatedBy = reqDTO.getUsername();
-        return user;
-    }
 
     public void deactivate() {
         this.status = UserStatusEnum.INACTIVE;
@@ -173,9 +155,11 @@ public class User {
     }
 
     public void updateByAdmin(UpdateUserByAdminReqDto reqDto, String currentUsername) {
+        if (reqDto.getPhoneNumber() != null) this.phoneNumber = reqDto.getPhoneNumber();
         if (reqDto.getEmail() != null) this.email = reqDto.getEmail();
         if (reqDto.getFirstName() != null) this.firstName = reqDto.getFirstName();
         if (reqDto.getLastName() != null) this.lastName = reqDto.getLastName();
+        if (reqDto.getJoinedDate() != null) this.joinedDate = reqDto.getJoinedDate();
         if (reqDto.getRole() != null) this.role = UserRoleEnum.valueOf(reqDto.getRole());
         if (reqDto.getStatus() != null) this.status = UserStatusEnum.valueOf(reqDto.getStatus());
         if (reqDto.getTeamId() != null) this.team = new Team(reqDto.getTeamId());

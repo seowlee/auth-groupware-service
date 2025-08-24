@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team.service;
+package pharos.groupware.service.domain.team;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

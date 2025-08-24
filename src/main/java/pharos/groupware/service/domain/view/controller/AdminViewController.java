@@ -15,7 +15,7 @@ public class AdminViewController {
         if ("XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))) {
             return "admin/create-user-form :: content";  // src/main/resources/templates/admin/create-user-form.html
         }
-        return "auth/home";
+        return "account/home";
     }
 
     // 로그 목록 페이지

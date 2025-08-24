@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.account.service;
+package pharos.groupware.service.domain.admin;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

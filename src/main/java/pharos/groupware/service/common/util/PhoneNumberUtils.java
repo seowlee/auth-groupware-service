@@ -1,6 +1,6 @@
 package pharos.groupware.service.common.util;
 
-public class PhoneNumberUtils {
+public final class PhoneNumberUtils {
     private PhoneNumberUtils() {
     }
 

@@ -34,7 +34,7 @@ class CreateLeaveFormManager {
     async loadApplicants(defaultUuid = "") {
         try {
             // SUPER_ADMIN: 전체 또는 검색 결과 로드
-            const res = await fetch('/api/team/users/applicants');
+            const res = await fetch('/api/admin/users/applicants');
             if (!res.ok) throw new Error("사용자 목록 로딩 실패");
             const users = await res.json(); // [{userUuid, username, email}, ...]
             this.renderApplicantOptions(users, defaultUuid);

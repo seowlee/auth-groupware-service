@@ -103,4 +103,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "where u.status = 'INACTIVE' " +
             "and u.updatedAt < :cutoff")
     List<UUID> findInactiveUserIdsOlderThan(OffsetDateTime cutoff);
+
+    long deleteByUserUuidIn(List<UUID> chunk);
 }

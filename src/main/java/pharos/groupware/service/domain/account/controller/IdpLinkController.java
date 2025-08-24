@@ -1,7 +1,9 @@
-package pharos.groupware.service.domain.account;
+package pharos.groupware.service.domain.account.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pharos.groupware.service.common.util.AuthUtils;
+import pharos.groupware.service.domain.account.service.IdpLinkService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
 import java.net.URLEncoder;
@@ -21,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
 
+@Tag(name = "03. 사용자 계정 정보", description = "사용자 계정 IdP 연동 관련 API")
 @Controller
 @RequiredArgsConstructor
 public class IdpLinkController {
@@ -35,6 +39,7 @@ public class IdpLinkController {
     @Value("${keycloak.client-id}")
     private String clientId;
 
+    @Operation(summary = "사용자: Kakao 연동 시작(리다이렉트)", description = "Kakao 인증 페이지로 이동 후 현재 계정에 IdP 연결합니다")
     @GetMapping("/link/kakao/start")
     public void start(HttpServletResponse res, Authentication authentication, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client
     ) throws Exception {

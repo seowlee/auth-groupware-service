@@ -1,9 +1,9 @@
-package pharos.groupware.service.domain.account;
+package pharos.groupware.service.domain.account.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
