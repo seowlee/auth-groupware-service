@@ -1,4 +1,5 @@
 import {navigateTo} from "./router.js";
+import {readErrorMessage} from "./list-form-common.js";
 
 class LeaveFormManager {
     constructor(id) {
@@ -77,8 +78,8 @@ class LeaveFormManager {
         this.$leaveType.value = data.leaveType ?? "ANNUAL";
 
         // "yyyy-MM-ddTHH:mm:ss" → 날짜/시간 분리
-        const [sd, st] = (data.startTime ?? "").split("T");
-        const [ed, et] = (data.endTime ?? "").split("T");
+        const [sd, st] = (data.startDt ?? "").split("T");
+        const [ed, et] = (data.endDt ?? "").split("T");
         this.$startDate.value = sd ?? "";
         this.$startTime.value = st ? st.slice(0, 5) : "09:00";
         this.$endDate.value = ed ?? "";
@@ -154,8 +155,8 @@ class LeaveFormManager {
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(data)
             });
-            if (!res.ok) throw new Error(await res.text() || "연차 수정 실패");
-            alert("연차가 저장되었습니다.");
+            if (!res.ok) throw new Error(await readErrorMessage(res) || "연차 수정 실패");
+            alert("연차가 수정되었습니다.");
             this.editing = false;
             this.toggleEditMode(false);
             this.$editBtn.textContent = '수정';

@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "04. 일정 기능", description = "조직 및 팀 일정 캘린더 조회 API")
+@Tag(name = "05. 일정 기능", description = "조직 및 팀 일정 캘린더 조회 API")
 @RestController
 @RequestMapping("/schedules")
 public class ScheduleController {

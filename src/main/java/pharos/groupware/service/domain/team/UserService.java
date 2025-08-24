@@ -1,11 +1,8 @@
-package pharos.groupware.service.domain.team.service;
+package pharos.groupware.service.domain.account.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.admin.dto.PendingUserDto;
-import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
-import pharos.groupware.service.domain.team.dto.*;
+import pharos.groupware.service.domain.account.dto.*;
 import pharos.groupware.service.domain.team.entity.User;
 
 import java.util.List;
@@ -13,9 +10,7 @@ import java.util.UUID;
 
 public interface UserService {
 
-    User createIdpUser(CreateIdpUserReqDto dto);
-
-    void registerPendingUser(PendingUserDto createDto);
+    void registerPendingUser(PendingUserReqDto createDto);
 
     void deleteUser(User user);
 
@@ -23,7 +18,7 @@ public interface UserService {
 
     Page<UserResDto> findAllUsers(UserSearchReqDto userSearchReqDto, Pageable pageable);
 
-    UserDetailResDto getUserDetail(UUID uuid);
+    UserDetailResDto getUserDetail(UUID uuid, boolean includeBalances);
 
     Long createUser(CreateUserReqDto createDto, String currentUsername);
 

@@ -1,6 +1,7 @@
 // src/js/user-list.js
 import {PaginationManager} from './pagination.js';
 import {navigateTo} from './router.js';
+import {showLoading, showMessage} from "./list-form-common.js";
 
 let _userListManager = null;
 
@@ -54,15 +55,12 @@ class UserListManager {
                 sel.insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.name}</option>`);
             });
         } catch {
-            // this.showMessage('팀 목록 로딩 실패', 'error');
-            // messageArea가 반드시 HTML fragment 안에 있으니, null 체크
-            const ma = document.getElementById('messageArea');
-            if (ma) ma.innerHTML = `<div class="message error">팀 목록을 불러오는 중 오류 발생</div>`;
+            showMessage('팀 목록 로딩 실패', 'error');
         }
     }
 
     async loadUsers(page = 0) {
-        this.showLoading(true);
+        showLoading(true);
         this.collectFilters();
         const params = new URLSearchParams({
             page, size: this.pagination.getPageSize(),
@@ -76,9 +74,9 @@ class UserListManager {
             this.renderUsers(data.content);
             this.pagination.updatePagination(data);
         } catch {
-            this.showMessage('사용자 목록 로딩 실패', 'error');
+            showMessage('사용자 목록 로딩 실패', 'error');
         } finally {
-            this.showLoading(false);
+            showLoading(false);
         }
     }
 
@@ -98,7 +96,7 @@ class UserListManager {
         } else {
             body.innerHTML = users.map(u => `
                 <tr class="user-row" data-user-id="${u.uuid}">
-                  <td>${u.username}</td><td>${u.email}</td>
+                  <td>${u.username}</td>
                   <td>${this.mapRole(u.role)}</td><td>${u.teamName || '-'}</td>
                   <td>${u.joinedDate}</td>
                   <td>
@@ -154,17 +152,6 @@ class UserListManager {
     //     window.loadPageIntoMainContent(path);
     // }
 
-    showLoading(flag) {
-        document.querySelector('.loading').style.display = flag ? 'block' : 'none';
-    }
-
-    showMessage(msg, type = 'info') {
-        const ma = document.getElementById('messageArea');
-        ma.innerHTML = `<div class="message ${type}">${msg}</div>`;
-        setTimeout(() => {
-            ma.innerHTML = '';
-        }, 3000);
-    }
 
     mapRole(r) {
         return {SUPER_ADMIN: '최고관리자', TEAM_LEADER: '팀장', TEAM_MEMBER: '팀원'}[r] || r;
@@ -188,10 +175,3 @@ class UserListManager {
     }
 }
 
-// 하위 호환: window에서 바로 호출 가능하도록
-// export function initUserListManager() {
-//     if (!window.__userList) {
-//         window.__userList = new UserListManager();
-//         window.__userList.init();
-//     }
-// }

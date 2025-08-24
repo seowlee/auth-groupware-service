@@ -16,7 +16,7 @@ import pharos.groupware.service.domain.leave.dto.LeaveSearchReqDto;
 import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
 import pharos.groupware.service.domain.leave.service.LeaveService;
 
-@Tag(name = "03. 연차 기능", description = "연차 신청, 조회, 수정, 취소 등 연차 관련 API")
+@Tag(name = "05. 연차 기능", description = "연차 신청, 조회, 수정, 취소 등 연차 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/leaves")
@@ -67,5 +67,19 @@ public class LeaveController {
     public ResponseEntity<String> cancelLeave(@PathVariable("id") Long id) {
         leaveService.cancelLeave(id);
         return ResponseEntity.ok("연차 취소 완료");
+    }
+
+    //    @Operation(summary = "사용자 연차 승인", description = "특정 연차 신청을 승인 처리합니다.")
+//    @PostMapping("/leaves/{id}/approve")
+//    public ResponseEntity<?> approveLeave(@PathVariable("id") Long id) {
+//        // TODO: UPDATE leaves SET status = 'APPROVED' WHERE id = ...
+//        return ResponseEntity.ok("연차 승인 완료");
+//    }
+
+    @Operation(summary = "사용자 연차 거절", description = "특정 연차 신청을 거절 처리합니다.")
+    @PostMapping("/leaves/{id}/reject")
+    public ResponseEntity<?> rejectLeave(@PathVariable("id") Long id) {
+        // TODO: UPDATE leaves SET status = 'REJECTED' WHERE id = ...
+        return ResponseEntity.ok("연차 거절 완료");
     }
 }

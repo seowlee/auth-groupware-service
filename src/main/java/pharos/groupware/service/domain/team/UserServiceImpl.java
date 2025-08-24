@@ -1,7 +1,6 @@
-package pharos.groupware.service.domain.team.service;
+package pharos.groupware.service.domain.account.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -10,19 +9,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
-import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.admin.dto.PendingUserDto;
-import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
-import pharos.groupware.service.domain.team.dto.*;
+import pharos.groupware.service.domain.account.dto.*;
+import pharos.groupware.service.domain.leave.entity.LeaveBalance;
+import pharos.groupware.service.domain.leave.entity.LeaveBalanceRepository;
 import pharos.groupware.service.domain.team.entity.Team;
 import pharos.groupware.service.domain.team.entity.TeamRepository;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,8 +33,27 @@ import java.util.UUID;
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final LeaveBalanceRepository leaveBalanceRepository;
     private final TeamRepository teamRepository;
     private final PasswordEncoder passwordEncoder;
+
+    private static List<UserDetailResDto.LeaveBalanceDto> mapToDtos(List<LeaveBalance> balances, Integer yearNumber) {
+        return balances.stream().map(lb -> {
+            UserDetailResDto.LeaveBalanceDto dto = new UserDetailResDto.LeaveBalanceDto();
+            // enum이면 name(), 문자열이면 그대로
+            dto.setLeaveType(lb.getLeaveType().toString());
+
+            BigDecimal total = Optional.ofNullable(lb.getTotalAllocated()).orElse(BigDecimal.ZERO);
+            BigDecimal used = Optional.ofNullable(lb.getUsed()).orElse(BigDecimal.ZERO);
+//            BigDecimal remain = total.subtract(used);
+//            if (remain.signum() < 0) remain = BigDecimal.ZERO;
+
+            dto.setTotalAllocated(total);
+            dto.setUsed(used);
+            dto.setYearNumber(yearNumber);
+            return dto;
+        }).toList();
+    }
 
     @Override
     public Long createUser(CreateUserReqDto reqDTO, String currentUsername) {
@@ -48,14 +67,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User createIdpUser(CreateIdpUserReqDto dto) {
-        User user = User.create(dto, passwordEncoder);
-        return userRepository.save(user);
-    }
-
-    @Override
     @Transactional
-    public void registerPendingUser(PendingUserDto reqDto) {
+    public void registerPendingUser(PendingUserReqDto reqDto) {
         Team defaultTeam = teamRepository.findTopByOrderByIdAsc()
                 .orElseThrow(() -> new IllegalStateException("등록된 팀이 없습니다"));
         User user = User.fromPendingDto(reqDto, defaultTeam, passwordEncoder);
@@ -112,10 +125,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDetailResDto getUserDetail(UUID uuid) {
+    public UserDetailResDto getUserDetail(UUID uuid, boolean includeBalances) {
         User user = userRepository.findByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
-        return UserDetailResDto.fromEntity(user);
+        UserDetailResDto userDetailResDto = UserDetailResDto.fromEntity(user);
+
+        if (includeBalances) {
+            Integer yearNumber = user.getYearNumber();
+            List<LeaveBalance> balances = leaveBalanceRepository.findByUserIdAndYearNumber(user.getId(), yearNumber);
+            userDetailResDto.setLeaveBalances(mapToDtos(balances, yearNumber)); // 앞서 만든 매핑 사용
+        }
+        return userDetailResDto;
     }
 
     @Override

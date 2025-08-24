@@ -22,9 +22,9 @@ import pharos.groupware.service.domain.leave.dto.LeaveSearchReqDto;
 import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
 import pharos.groupware.service.domain.leave.entity.Leave;
 import pharos.groupware.service.domain.leave.entity.LeaveRepository;
+import pharos.groupware.service.domain.team.UserService;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
-import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 
 import java.math.BigDecimal;
@@ -136,7 +136,7 @@ public class LeaveServiceImpl implements LeaveService {
                     reqDto.getStartDt(),
                     reqDto.getEndDt()
             );
-            String currentUsername = AuthUtils.getCurrentUsername();
+            String currentUsername = AuthUtils.getCurrentUsername();//TODO: currentUser.getUsername()?
 
             // 도메인 업데이트
             leave.updateFrom(reqDto, currentUsername);
@@ -151,6 +151,20 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Override
     public void cancelLeave(Long id) {
+        Leave leave = leaveRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("연차를 찾을 수 없습니다."));
+        User applicantUser = leave.getUser();
+        User currentUser = userService.getCurrentUser();
+        // 권한 체크
+        if (!currentUser.getRole().isSuperAdmin()) {
+            if (!applicantUser.getUserUuid().equals(currentUser.getUserUuid())) {
+                throw new AccessDeniedException("수정 권한이 없습니다.");
+            }
+        }
+        //TODO:offsetDatetime localdatetime
+        // 비즈니스 룰 검증 (기간/슬롯/영업일 등)
+//        leave.validateUpdatable(leave.getStartDt()., leave.getEndDt(), leave.getLeaveType());
+        graphUserService.deleteEvent(leave.getCalendarEventId());
 
     }
 }

@@ -1,8 +1,9 @@
-package pharos.groupware.service.domain.team.dto;
+package pharos.groupware.service.domain.account.dto;
 
 import lombok.Data;
 import pharos.groupware.service.domain.team.entity.User;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,9 +12,11 @@ public class UserDetailResDto {
     private UUID uuid;
     private String username;
     private String email;
+    private String phoneNumber;
     private String firstName;
     private String lastName;
     private String joinedDate;
+    private Integer yearNumber;
     private String role;
     private String status;
     private Long teamId;
@@ -25,9 +28,11 @@ public class UserDetailResDto {
         dto.setUuid(user.getUserUuid());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
+        dto.setPhoneNumber(user.getPhoneNumber());
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setJoinedDate(user.getJoinedDate().toString());
+        dto.setYearNumber(user.getYearNumber());
         dto.setRole(user.getRole().name());
         dto.setStatus(user.getStatus().name());
         dto.setTeamId(user.getTeam().getId());
@@ -37,7 +42,10 @@ public class UserDetailResDto {
 
     @Data
     public static class LeaveBalanceDto {
-        private String typeName;
-        private int remainingDays;
+        private String leaveType;
+        private BigDecimal totalAllocated;
+        private BigDecimal used;
+        private Integer yearNumber;
+
     }
 }

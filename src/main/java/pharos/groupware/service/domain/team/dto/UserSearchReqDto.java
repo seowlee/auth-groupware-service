@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team.dto;
+package pharos.groupware.service.domain.account.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

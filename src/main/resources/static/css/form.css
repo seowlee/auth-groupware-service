@@ -154,3 +154,115 @@ textarea:focus {
     background: linear-gradient(135deg, #c53030, #9c2626);
     box-shadow: 0 8px 25px rgba(229, 62, 62, 0.3);
 }
+
+/* 연차 관리 전용 버튼(보조) */
+.btn-balance {
+    background: linear-gradient(135deg, #38b2ac, #2c7a7b); /* teal 계열 */
+    box-shadow: 0 2px 8px rgba(56, 178, 172, 0.30);
+}
+
+.btn-balance:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(56, 178, 172, 0.40);
+}
+
+/* 연차 표 공통 */
+.lb-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+.lb-table th, .lb-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lb-table thead th {
+    font-weight: 700;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.lb-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.lb-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-dim {
+    opacity: .75;
+}
+
+.lb-unit::after {
+    content: "일";
+    margin-left: 4px;
+    opacity: .8;
+}
+
+/* 타입 배지 */
+.lb-type-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a202c;
+    background: #e2e8f0;
+}
+
+.lb-type-annual {
+    background: #bee3f8;
+}
+
+/* 연차 */
+.lb-type-birthday {
+    background: #fed7e2;
+}
+
+/* 생일 */
+.lb-type-sick {
+    background: #c6f6d5;
+}
+
+/* 병가 */
+.lb-type-custom {
+    background: #e2e8f0;
+}
+
+/* 기타 */
+
+/* 사용/잔여 progress bar */
+.lb-bar {
+    position: relative;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.lb-bar > span {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, #4299e1, #38b2ac);
+}
+
+.lb-small {
+    font-size: 12px;
+    opacity: .8;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+/* 합계 행 */
+.lb-total-row td {
+    font-weight: 700;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+}

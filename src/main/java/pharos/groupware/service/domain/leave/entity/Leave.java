@@ -150,7 +150,7 @@ public class Leave {
         // 5) (선택) 영업일/공휴일 규칙 검증
         //    BusinessCalendarService 등을 주입해 쓰지 말고(도메인 순수성),
         //    서비스 계층에서 먼저 검증 후 이곳에서는 '형식/상태' 위주 검증만 하는 것을 권장.
-        //    필요하면 도메인 서비스(인터페이스)로 추상화하세요.
+        //    필요하면 도메인 서비스(인터페이스)로 추상화.
 
     }
 
@@ -158,6 +158,7 @@ public class Leave {
         this.leaveType = LeaveTypeEnum.valueOf(reqDto.getLeaveType());
         this.startDt = DateUtils.toSeoulOffsetDateTime(reqDto.getStartDt());
         this.endDt = DateUtils.toSeoulOffsetDateTime(reqDto.getEndDt());
+        this.reason = reqDto.getReason();
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = currentUsername;
     }

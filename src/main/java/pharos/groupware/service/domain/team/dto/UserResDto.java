@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team.dto;
+package pharos.groupware.service.domain.account.dto;
 
 import lombok.Data;
 import pharos.groupware.service.domain.team.entity.User;

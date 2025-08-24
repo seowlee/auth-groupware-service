@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.admin;
+package pharos.groupware.service.domain.account;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +10,7 @@ import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
 import pharos.groupware.service.common.util.DateUtils;
 import pharos.groupware.service.common.util.PhoneNumberUtils;
-import pharos.groupware.service.domain.admin.dto.CreateUserReqDto;
+import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
 import pharos.groupware.service.domain.admin.dto.PendingUserDto;
 import pharos.groupware.service.domain.admin.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.domain.leave.service.LeaveBalanceService;
@@ -65,7 +65,6 @@ public class UserManagementServiceImpl implements UserManagementService {
             }
         }
         return null;
-
     }
 
     //    @Transactional
@@ -104,10 +103,10 @@ public class UserManagementServiceImpl implements UserManagementService {
         // 2) 상태 전이 오케스트레이션
         if (before != after) {
             if (before == UserStatusEnum.PENDING && after == UserStatusEnum.ACTIVE) {
-                approvePendingUser(uuid);
+                approvePendingUser(user);
                 return user.getUserUuid().toString();
             } else if (before == UserStatusEnum.ACTIVE && after == UserStatusEnum.INACTIVE) {
-                deactivateUser(user.getUserUuid().toString());
+                deactivateUser(user);
             } else if (before == UserStatusEnum.INACTIVE && after == UserStatusEnum.ACTIVE) {
                 reactivateUser(user); // 새로 추가: Keycloak enable + user.activate()
             } else {
@@ -129,19 +128,13 @@ public class UserManagementServiceImpl implements UserManagementService {
         return user.getUserUuid().toString();
     }
 
-    //    @Transactional
-    @Override
-    public String deactivateUser(String keycloakUserId) {
-        UUID uuid = UUID.fromString(keycloakUserId);
+    public void deactivateUser(User user) {
 
-        User user = userRepository.findByUserUuid(uuid)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-
+        String keycloakUserId = user.getUserUuid().toString();
         try {
             keycloakUserService.deactivateUser(keycloakUserId);
             localUserService.deactivateUser(user);
             log.info("Deactivated user. userUUID={}", keycloakUserId);
-            return keycloakUserId;
         } catch (Exception e) {
             log.error("사용자 비활성화 중 DB 오류 발생. Keycloak 사용자 복원 시도", e);
             // 복구 시도
@@ -154,11 +147,15 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
     }
 
-    @Override
     public void reactivateUser(User user) {
         String keycloakUserId = user.getUserUuid().toString();
-        keycloakUserService.reactivateUser(keycloakUserId);
-        localUserService.activate(user);
+        try {
+            keycloakUserService.reactivateUser(keycloakUserId);
+            localUserService.activate(user);
+        } catch (Exception e) {
+            log.error("사용자 활성화 중 DB 오류 발생. ", e);
+        }
+
     }
 
     /**
@@ -168,12 +165,7 @@ public class UserManagementServiceImpl implements UserManagementService {
      * 3) Kakao IdP 연동
      * 4) 로컬 User 엔티티 approve(...) 호출 및 저장
      */
-//    @Transactional
-    @Override
-    public void approvePendingUser(UUID localUserUuid) {
-        // 1. 로컬 사용자 조회
-        User localUser = userRepository.findByUserUuid(localUserUuid)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자: " + localUserUuid));
+    public void approvePendingUser(User localUser) {
 
         // 2. 임시 비밀번호 생성 (8자리)
         String tempPlain = "1234";

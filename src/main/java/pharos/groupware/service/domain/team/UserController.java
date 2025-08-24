@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team.controller;
+package pharos.groupware.service.domain.account.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,15 +10,14 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.common.page.PagedResponse;
-import pharos.groupware.service.domain.admin.dto.LinkKakaoIdpReqDto;
-import pharos.groupware.service.domain.team.dto.*;
-import pharos.groupware.service.domain.team.service.UserService;
+import pharos.groupware.service.domain.account.dto.*;
+import pharos.groupware.service.domain.account.service.UserService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "05. 사용자 기능", description = "사용자 목록, 개별 정보 관련 API")
+@Tag(name = "03. 사용자 계정 정보", description = "사용자 목록, 개별 정보 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/team")
@@ -46,11 +45,13 @@ public class UserController {
 
     @Operation(summary = "단일 사용자 조회")
     @GetMapping("/users/{uuid}")
-    public ResponseEntity<UserDetailResDto> getUserDetail(@PathVariable UUID uuid) {
-        return ResponseEntity.ok(userService.getUserDetail(uuid));
+    public ResponseEntity<UserDetailResDto> getUserDetail(
+            @PathVariable UUID uuid, @RequestParam(defaultValue = "false") boolean includeBalances) {
+        UserDetailResDto resDto = userService.getUserDetail(uuid, includeBalances);
+        return ResponseEntity.ok(resDto);
     }
 
-    @Operation(summary = "사용자 수정")
+    @Operation(summary = "사용자 내 정보 수정")
     @PutMapping("/users/{uuid}")
     public ResponseEntity<Void> updateUser(@PathVariable UUID uuid,
                                            @RequestBody UpdateUserProfileReqDto reqDto) {
@@ -58,7 +59,7 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "카카오 로그인 연동", description = "기존 계정의 카카오로그인 연동을 수행합니다")
+    @Operation(summary = "사용자 Kakao IdP 연결", description = "지정 Keycloak userId에 Kakao를 federated identity로 등록합니다")
     @PostMapping("/{userId}/link-kakao")
     public ResponseEntity<Void> linkKakaoFederatedIdentity(
             @PathVariable String userId,
@@ -94,16 +95,5 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllApplicants(q));
     }
 
-    static class UserDetailResDto2 {
-        private UUID uuid;
-        private String username;
-        private String email;
 
-        public UserDetailResDto2(UserDetailResDto userDetailResDto) {
-            this.uuid = userDetailResDto.getUuid();
-            this.username = userDetailResDto.getUsername();
-            this.email = userDetailResDto.getEmail();
-        }
-
-    }
 }

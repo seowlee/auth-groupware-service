@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.admin;
+package pharos.groupware.service.domain.account.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,6 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.jwt.JwtTokenProvider;
 import pharos.groupware.service.domain.admin.dto.LoginReqDto;
@@ -55,6 +56,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional
     public LoginResDto login(LoginReqDto reqDto, HttpServletRequest request, HttpServletResponse response) {
         User user = userRepository.findByUsername(reqDto.getUsername())
                 .orElseThrow(() -> new RuntimeException("사용자 없음"));

@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team.service;
+package pharos.groupware.service.domain.account;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;

@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team.controller;
+package pharos.groupware.service.domain.account;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +14,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pharos.groupware.service.common.util.AuthUtils;
-import pharos.groupware.service.domain.team.service.IdpLinkService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
 import java.net.URLEncoder;
