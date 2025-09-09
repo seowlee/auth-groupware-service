@@ -16,18 +16,20 @@ import pharos.groupware.service.common.enums.LeaveStatusEnum;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import pharos.groupware.service.common.util.AuthUtils;
 import pharos.groupware.service.common.util.DateUtils;
-import pharos.groupware.service.domain.leave.dto.CreateLeaveReqDto;
-import pharos.groupware.service.domain.leave.dto.LeaveDetailResDto;
-import pharos.groupware.service.domain.leave.dto.LeaveSearchReqDto;
-import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
+import pharos.groupware.service.domain.calendar.entity.PublicHoliday;
+import pharos.groupware.service.domain.calendar.entity.PublicHolidayRepository;
+import pharos.groupware.service.domain.leave.dto.*;
 import pharos.groupware.service.domain.leave.entity.Leave;
 import pharos.groupware.service.domain.leave.entity.LeaveRepository;
-import pharos.groupware.service.domain.team.UserService;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
+import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -35,9 +37,11 @@ import java.util.UUID;
 @Service
 public class LeaveServiceImpl implements LeaveService {
     private final GraphUserService graphUserService;
-    private final LeaveRepository leaveRepository;
-    private final UserRepository userRepository;
     private final UserService userService;
+    private final LeaveBalanceService leaveBalanceService;
+    private final LeaveRepository leaveRepository;
+    private final PublicHolidayRepository publicHolidayRepository;
+    private final UserRepository userRepository;
 
 
     @Override
@@ -77,16 +81,24 @@ public class LeaveServiceImpl implements LeaveService {
 
 
     @Override
+    @Transactional
     public Long applyLeave(CreateLeaveReqDto dto) {
         User user = userRepository.findByUserUuid(UUID.fromString(dto.getUserUuid()))
                 .orElseThrow(() -> new EntityNotFoundException("해당 사용자를 찾을 수 없습니다."));
+
+        Set<LocalDate> holidays = new HashSet<>(publicHolidayRepository.findAllByYear(2025)
+                .stream().map(PublicHoliday::getHolidayDate).toList());
+
         String currentUsername = AuthUtils.getCurrentUsername();
         dto.setUserName(user.getUsername());
         dto.setUserEmail(user.getEmail());
         LeaveTypeEnum leaveType = LeaveTypeEnum.valueOf(dto.getLeaveType());
+        BigDecimal usedDays = DateUtils.countLeaveDays(dto.getStartDt(), dto.getEndDt(), holidays);
+        dto.setUsedDays(usedDays);
 
         String subject = leaveType.getDescription() + " 신청 (" + dto.getUserName() + ")";
         String body = "연차 유형: " + leaveType.getDescription() + "\n"
+                + "사용 일: " + dto.getUsedDays() + "\n"
                 + "신청자: " + dto.getUserName() + " (" + dto.getUserEmail() + ")\n"
                 + "사유: " + (dto.getReason() != null ? dto.getReason() : "없음");
 
@@ -96,10 +108,17 @@ public class LeaveServiceImpl implements LeaveService {
                 dto.getStartDt(),
                 dto.getEndDt()
         );
-        BigDecimal usedDays = DateUtils.calculateLeaveDays(dto.getStartDt(), dto.getEndDt());
 
         Leave leave = Leave.create(dto, user, eventId, currentUsername);
         Leave savedLeave = leaveRepository.save(leave);
+
+        ApplyLeaveUsageReqDto useReq = new ApplyLeaveUsageReqDto();
+        useReq.setUserId(user.getId());
+        useReq.setLeaveType(leaveType);
+        useReq.setYearNumber(user.getYearNumber());
+        useReq.setUsedDays(usedDays);
+
+        leaveBalanceService.applyUsage(useReq);
         return savedLeave.getId();
     }
 

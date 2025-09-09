@@ -7,8 +7,7 @@ public enum LeaveStatusEnum {
     APPROVED("승인완료"),
     CANCELED("취소"),
     REJECTED("반려"),
-    PENDING("대기"),
-    ;
+    PENDING("대기");
 
     private final String description;
 

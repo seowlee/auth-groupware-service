@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team;
+package pharos.groupware.service.domain.team.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pharos.groupware.service.domain.team.dto.TeamDto;
+import pharos.groupware.service.domain.team.service.TeamService;
 
 import java.util.List;
 

@@ -16,4 +16,6 @@ public interface LeaveBalanceRepository extends JpaRepository<LeaveBalance, Long
 
     Optional<LeaveBalance> findByUserIdAndLeaveTypeAndYearNumber(
             Long userId, LeaveTypeEnum leaveType, Integer yearNumber);
+
+
 }

@@ -14,10 +14,7 @@
             <div class="form-group full-width">
                 <label for="leaveType">연차 유형</label>
                 <select disabled id="leaveType" required>
-                    <option value="ANNUAL">연차</option>
-                    <option value="BIRTHDAY">생일연차</option>
-                    <option value="SICK">병가</option>
-                    <option value="CUSTOM">기타</option>
+                    <option th:each="t : ${leaveTypes}" th:text="${t.description}" th:value="${t.name()}"></option>
                 </select>
             </div>
         </div>

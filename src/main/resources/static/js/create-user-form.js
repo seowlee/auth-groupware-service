@@ -63,7 +63,7 @@ class CreateUserForm {
             username: document.getElementById("username")?.value.trim(),
             rawPassword: document.getElementById("rawPassword")?.value,
             email: document.getElementById("email")?.value.trim(),
-            phoneNumber: document.getElementById('detailPhoneNumber')?.value,
+            phoneNumber: document.getElementById('phoneNumber')?.value,
             firstName: document.getElementById("firstName")?.value.trim(),
             lastName: document.getElementById("lastName")?.value.trim(),
             joinedDate: document.getElementById("joinedDate")?.value,
@@ -98,7 +98,12 @@ class CreateUserForm {
             alert(" 유효한 이메일 주소를 입력해주세요.");
             return false;
         }
-
+        // 휴대폰번호 형식 검사
+        const phoneRegex = /^01[0-9]-?\d{3,4}-?\d{4}$/;
+        if (!phoneRegex.test(data.phoneNumber)) {
+            alert("유효한 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)");
+            return false;
+        }
         return true;
     }
 

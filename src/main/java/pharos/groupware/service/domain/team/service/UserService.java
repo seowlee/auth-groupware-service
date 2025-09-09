@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team;
+package pharos.groupware.service.domain.team.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

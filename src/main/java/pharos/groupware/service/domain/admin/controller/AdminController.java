@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.admin;
+package pharos.groupware.service.domain.admin.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pharos.groupware.service.domain.admin.dto.LoginReqDto;
 import pharos.groupware.service.domain.admin.dto.LoginResDto;
+import pharos.groupware.service.domain.admin.service.AdminService;
 
 import java.util.Map;
 

@@ -55,7 +55,11 @@ graph:
   base-url: https://graph.microsoft.com/v1.0
   calendar-user-id: 9950969b-933c-4860-aece-c7396e2c16cc
   timezone: Asia/Seoul
-
+external:
+  holiday:
+    base-url: https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService
+    # data.go.kr 에서 받은 서비스키 (이미 URL 인코딩된 값 사용 권장)
+    service-key: ENC(u5URnJm/ZUKyv1KfSDb2l05dfONvdSKZOZ74OM9OUkvQUDv++NfXYrv/ijiE33FNOorhRBrEp8JZYQpvxPb2oRq06pWnhvBfuh9+dG5m2liRTonEmnMiiuR5NBdH1rGdODvSh9rtn2w769WFTxmKJfcSu8KIQuwFSuB3KTc4TQo8KvlEdcK4Tci3a5K+Rw4o)
 # 3) JWT 토큰 설정 (Fallback 로그인용)
 jwt:
   secret-key: "VW5saWtlbHlMb25nU2VjdXJlU2VjcmV0S2V5U3RyaW5nQ2hhbmdlVGhpcyEhMTIz"  # Base64-encoded 256bit

@@ -7,6 +7,8 @@ import pharos.groupware.service.common.util.DateUtils;
 import pharos.groupware.service.domain.leave.entity.Leave;
 import pharos.groupware.service.domain.team.entity.User;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @Schema(description = "연차 상세 응답 DTO")
@@ -26,6 +28,9 @@ public class LeaveDetailResDto {
 
     @Schema(description = "연차 종료 시각 (ISO 8601)", example = "2025-08-21T18:00:00+09:00")
     private String endDt;
+
+    @Schema(description = "연차 신청 사용 일수", example = "2.500")
+    private BigDecimal usedDays;
 
     @Schema(description = "연차 유형", example = "ANNUAL")
     private String leaveType;
@@ -53,6 +58,7 @@ public class LeaveDetailResDto {
                 .userEmail(user.getEmail())
                 .startDt(DateUtils.formatKst(leave.getStartDt()))
                 .endDt(DateUtils.formatKst(leave.getEndDt()))
+                .usedDays(leave.getUsedDays())
                 .leaveType(leave.getLeaveType().name())
                 .status(leave.getStatus().name())
                 .reason(leave.getReason())
@@ -79,6 +85,7 @@ public class LeaveDetailResDto {
                 .userEmail(user.getEmail())
                 .startDt(DateUtils.formatKst(leave.getStartDt()))
                 .endDt(DateUtils.formatKst(leave.getEndDt()))
+                .usedDays(leave.getUsedDays())
                 .leaveType(leave.getLeaveType().name())
                 .status(leave.getStatus().name())
                 .reason(leave.getReason())

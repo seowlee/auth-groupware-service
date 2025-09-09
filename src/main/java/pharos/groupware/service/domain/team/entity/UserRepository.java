@@ -23,14 +23,29 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByUserUuid(UUID userUuid);
 
-    void deleteByUserUuid(UUID userUuid);
+    @Query("""
+            SELECT u FROM User u
+            WHERE u.status = 'ACTIVE'
+            AND EXTRACT(MONTH FROM u.joinedDate) = :month
+            """)
+    List<User> findAllActiveByHiredMonth(@Param("month") int month);
 
     @Query("""
             SELECT u FROM User u
-            WHERE EXTRACT(MONTH FROM u.joinedDate) = :month
-            AND EXTRACT(DAY FROM u.joinedDate) = :day
+            WHERE u.status = 'ACTIVE'
+              AND EXTRACT(MONTH FROM u.joinedDate) = :month
+              AND EXTRACT(DAY FROM u.joinedDate) = :day
             """)
-    List<User> findAllWithJoinDateMonthDay(@Param("month") int month, @Param("day") int day);
+    List<User> findAllActiveByHiredDate(@Param("month") int month, @Param("day") int day);
+
+    @Query("""
+            SELECT u FROM User u
+            WHERE u.status = 'ACTIVE'
+            AND u.yearNumber = 1
+            """)
+    List<User> findAllActiveOfFirstYearNumber();
+
+    void deleteByUserUuid(UUID userUuid);
 
     Page<User> findAll(Specification<User> spec, Pageable pageable);
 
@@ -89,9 +104,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
                   FROM User u
                  WHERE u.status = 'ACTIVE'
                    AND ( LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%'))
-                        OR LOWER(u.email)    LIKE LOWER(CONCAT('%', :q, '%')) 
+                        OR LOWER(u.email)    LIKE LOWER(CONCAT('%', :q, '%'))
                         OR :q IS NULL)
-                 ORDER BY u.username ASC 
+                 ORDER BY u.username ASC
             """)
     List<User> findActiveUsersForSelect(@Param("q") String q);
 

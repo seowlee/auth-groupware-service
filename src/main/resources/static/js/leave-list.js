@@ -103,7 +103,7 @@ class LeaveListManager {
         body.innerHTML = rows.map(r => {
             const start = this.formatDate(r.startDt);
             const end = this.formatDate(r.endDt);
-            const days = this.calculateDays(r.startDt, r.endDt);
+            const days = r.usedDays;
             return `
         <tr class="leave-row" data-id="${r.id}">
           <td>${this.escape(r.userName || '-')}</td>
@@ -166,7 +166,7 @@ class LeaveListManager {
     calculateDays(startIso, endIso) {
         if (!startIso || !endIso) return 0;
         const s = new Date(startIso), e = new Date(endIso);
-        return Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1);
+        return Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)));
         // (종료 포함 계산: +1)
     }
 
@@ -204,5 +204,5 @@ class LeaveListManager {
     clearMessage() {
         document.getElementById('messageArea').innerHTML = '';
     }
-    
+
 }

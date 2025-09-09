@@ -5,11 +5,6 @@ import {fmt3, leaveTypeOptionsHtml, mapLeaveClass, mapLeaveType, yearNumberLabel
  * 사용자 상세 정보 관리자
  */
 class UserDetailManager {
-    static STATUS_LABELS = {
-        ACTIVE: '활성',
-        INACTIVE: '비활성',
-        PENDING: '승인대기',
-    };
 
     constructor(userId) {
         this.userId = userId;
@@ -17,6 +12,7 @@ class UserDetailManager {
         this.editing = false;
         this.balEditing = false;
         this.apiPrefix = '/api';
+        this.activeTab = 'profile'; // 'profile' | 'leave'
     }
 
     /**
@@ -26,6 +22,8 @@ class UserDetailManager {
         await this.loadUser();
         await this.loadTeams();
         this.bindEvents();
+        this.bindTabEvents();
+        this.showTab('profile');
     }
 
     /**
@@ -201,6 +199,53 @@ class UserDetailManager {
         if (backBtn) backBtn.addEventListener('click', this.onBackBtnClick.bind(this));
     }
 
+    // 탭 이벤트 바인딩
+    bindTabEvents() {
+        const tabs = document.querySelectorAll('.tab-nav li');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.tab; // 'profile' | 'leave'
+                this.showTab(target);
+            });
+        });
+    }
+
+    // 탭 전환 로직
+    showTab(target) {
+        if (target === this.activeTab) return;
+
+        // 편집 중이면 안전 처리 (자동 저장 X, 토글 종료)
+        if (this.editing) {
+            // 프로필 편집 중 탭 이동 시 편집 모드 해제
+            this.editing = false;
+            this.toggleProfileEditMode(false);
+            const editBtn = document.getElementById('editProfileBtn');
+            if (editBtn) editBtn.textContent = '프로필 수정';
+        }
+        if (this.balEditing) {
+            // 연차 편집 중 탭 이동 시 편집 모드 해제(보기 모드로 렌더)
+            this.balEditing = false;
+            const editLeaveBtn = document.getElementById('editLeaveBtn');
+            if (editLeaveBtn) editLeaveBtn.textContent = '연차 수정';
+            this.renderLeaveBalances(this.userData?.leaveBalances || [], false, this.userData?.yearNumber);
+        }
+
+        // 섹션 토글
+        document.getElementById('profileSection')?.classList.remove('active');
+        document.getElementById('leaveSection')?.classList.remove('active');
+        document.querySelectorAll('.tab-nav li').forEach(li => li.classList.remove('active'));
+
+        if (target === 'profile') {
+            document.getElementById('profileSection')?.classList.add('active');
+            document.querySelector('.tab-nav li[data-tab="profile"]')?.classList.add('active');
+        } else {
+            document.getElementById('leaveSection')?.classList.add('active');
+            document.querySelector('.tab-nav li[data-tab="leave"]')?.classList.add('active');
+        }
+
+        this.activeTab = target;
+    }
+
     /**
      * [프로필 수정/저장] 토글
      */
@@ -260,6 +305,7 @@ class UserDetailManager {
         const items = this.collectLeaveBalancesFromForm();
         await this.saveLeaveBalances(items);
         btn.textContent = '연차 수정';
+        this.balEditing = false;
         await this.loadUser();
     }
 
@@ -311,7 +357,7 @@ class UserDetailManager {
      * 폼 필드 활성/비활성 제어
      */
     toggleProfileEditMode(enable) {
-        ['detailFirstName', 'detailLastName', 'detailRole', 'detailStatus', 'detailJoinedDate', 'detailTeam']
+        ['detailPhoneNumber', 'detailFirstName', 'detailLastName', 'detailRole', 'detailStatus', 'detailJoinedDate', 'detailTeam']
             .forEach(id => document.getElementById(id).disabled = !enable);
     }
 

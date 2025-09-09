@@ -26,7 +26,7 @@ public class CreateUserReqDto {
     private LocalDate joinedDate;
 
     @Schema(hidden = true)
-    private int yearNumber;
+    private Integer yearNumber;
 
     private String role;
 

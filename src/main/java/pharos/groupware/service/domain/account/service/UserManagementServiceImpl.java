@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
-import pharos.groupware.service.common.util.DateUtils;
+import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.common.util.PartitionUtils;
 import pharos.groupware.service.common.util.PhoneNumberUtils;
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
@@ -16,20 +16,20 @@ import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
 import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.domain.account.dto.UserApplicantResDto;
 import pharos.groupware.service.domain.leave.service.LeaveBalanceService;
-import pharos.groupware.service.domain.team.UserService;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
+import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static pharos.groupware.service.common.util.DateUtils.KST;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -55,7 +55,7 @@ public class UserManagementServiceImpl implements UserManagementService {
             reqDto.setUserUUID(keycloakId);
 //        String graphUserId = graphUserService.createUser(reqDto);
 //        graphUserService.assignLicenseToUser(graphUserId);
-            int yearNumber = DateUtils.getYearsOfService(reqDto.getJoinedDate());
+            Integer yearNumber = LeaveUtils.getCurrentYearNumber(reqDto.getJoinedDate());
             reqDto.setYearNumber(yearNumber);
             Long userId = localUserService.createUser(reqDto, currentUsername);
             log.info("사용자 생성 완료 | userUUID: {}", keycloakId);
@@ -194,6 +194,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         // 5. 로컬 User 엔티티에 승인 처리
         localUser.approve(encodedPwd, keycloakUserId);
         // JPA가 트랜잭션 커밋 시점에 자동으로 변경 감지 후 저장해 줌
+        leaveBalanceService.initializeLeaveBalancesForUser(localUser.getId(), localUser.getYearNumber());
+
 
         // 6. (선택) 임시 비밀번호 로그에 기록 또는 알림 전송
         log.info("User {} approved with temp password {}", localUser.getEmail(), tempPlain);
@@ -242,7 +244,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Override
     @Transactional
     public void deleteUsersOlderThanDays(int days) {
-        OffsetDateTime cutoff = OffsetDateTime.now(ZoneId.of("Asia/Seoul")).minusDays(days);
+        OffsetDateTime cutoff = OffsetDateTime.now(KST).minusDays(days);
         List<UUID> targets = userRepository.findInactiveUserIdsOlderThan(cutoff);
         List<UUID> ok = new ArrayList<>();
         int fail = 0;

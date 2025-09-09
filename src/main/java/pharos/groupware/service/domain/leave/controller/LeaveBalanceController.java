@@ -33,6 +33,7 @@ public class LeaveBalanceController {
         return ResponseEntity.noContent().build();
     }
 
+
     @Operation(summary = "부서별 연차 통계 조회", description = "부서별 연차 사용 통계를 확인합니다.")
     @GetMapping("/stats/team/{teamId}")
     public String getLeaveStatsByTeam(@PathVariable("teamId") Long teamId) {

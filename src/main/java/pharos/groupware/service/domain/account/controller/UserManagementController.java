@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.common.annotation.RequireSuperAdmin;
@@ -66,12 +65,6 @@ public class UserManagementController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "사용자 삭제 배치", description = "비활성 기준일 초과 사용자를 Keycloak/local에서 삭제합니다.")
-    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
-    public ResponseEntity<Void> deleteUser() {
-        userManagementService.deleteUsersOlderThanDays(90);
-        return ResponseEntity.noContent().build();
-    }
 
     @RequireSuperAdmin
     @Operation(summary = "관리자에 의한 사용자 정보 수정", description = "사용자 정보 수정/비활성화/대기 사용자 승인")

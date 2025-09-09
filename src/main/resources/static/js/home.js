@@ -5,6 +5,7 @@ import {initLeaveListManager} from "./leave-list.js";
 import {loadPageIntoMainContent, navigateTo, replaceStateAndLoad} from './router.js';
 import {initLeaveEdit} from "./leave-form.js";
 import {initLeaveCreate} from "./create-leave-form.js";
+import {initLeaveCalendarManager} from "./leave-calendar.js";
 
 
 export function setupHomePage() {
@@ -137,7 +138,7 @@ export function loadFeatureScripts(path) {
             navigateTo(`/leaves/${leaveId}`);
         });
     } else if (path === '/leaves/calendar') {
-        initLeaveListManager(leaveId => {
+        initLeaveCalendarManager(leaveId => {
             navigateTo(`/leaves/${leaveId}`);
         });
     } else if (path === '/leaves/apply') {

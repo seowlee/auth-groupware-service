@@ -1,6 +1,7 @@
 package pharos.groupware.service.domain.leave.service;
 
 import jakarta.validation.Valid;
+import pharos.groupware.service.domain.leave.dto.ApplyLeaveUsageReqDto;
 import pharos.groupware.service.domain.leave.dto.LeaveBalanceResDto;
 import pharos.groupware.service.domain.leave.dto.UpdateLeaveBalanceReqDto;
 
@@ -12,7 +13,11 @@ public interface LeaveBalanceService {
 
     void renewAnnualLeaveForToday();
 
+    void grantForLastMonth();
+
     List<LeaveBalanceResDto> getLeaveBalances(UUID uuid);
 
     void update(UUID uuid, @Valid List<UpdateLeaveBalanceReqDto> reqDto);
+
+    void applyUsage(ApplyLeaveUsageReqDto reqDto);
 }

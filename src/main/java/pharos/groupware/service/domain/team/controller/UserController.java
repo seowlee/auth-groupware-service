@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team;
+package pharos.groupware.service.domain.team.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +14,7 @@ import pharos.groupware.service.domain.account.dto.UpdateUserProfileReqDto;
 import pharos.groupware.service.domain.team.dto.UserDetailResDto;
 import pharos.groupware.service.domain.team.dto.UserResDto;
 import pharos.groupware.service.domain.team.dto.UserSearchReqDto;
+import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
 import java.util.UUID;

@@ -160,6 +160,7 @@ public class User {
         if (reqDto.getFirstName() != null) this.firstName = reqDto.getFirstName();
         if (reqDto.getLastName() != null) this.lastName = reqDto.getLastName();
         if (reqDto.getJoinedDate() != null) this.joinedDate = reqDto.getJoinedDate();
+        if (reqDto.getYearNumber() != null) this.yearNumber = reqDto.getYearNumber();
         if (reqDto.getRole() != null) this.role = UserRoleEnum.valueOf(reqDto.getRole());
         if (reqDto.getStatus() != null) this.status = UserStatusEnum.valueOf(reqDto.getStatus());
         if (reqDto.getTeamId() != null) this.team = new Team(reqDto.getTeamId());
@@ -191,5 +192,9 @@ public class User {
     public void activate() {
         this.status = UserStatusEnum.ACTIVE;
         this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void updateYearNumber(Integer newYearNumber) {
+        this.yearNumber = newYearNumber;
     }
 }

@@ -12,6 +12,7 @@ import pharos.groupware.service.domain.leave.dto.CreateLeaveReqDto;
 import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
 import pharos.groupware.service.domain.team.entity.User;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -41,6 +42,9 @@ public class Leave {
     @NotNull
     @Column(name = "end_time", nullable = false)
     private OffsetDateTime endDt;
+
+    @Column(name = "used_days", precision = 6, scale = 3, nullable = false)
+    private BigDecimal usedDays;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -88,6 +92,7 @@ public class Leave {
         // String → LocalDateTime → OffsetDateTime(+09:00)
         leave.startDt = DateUtils.toSeoulOffsetDateTime(dto.getStartDt());
         leave.endDt = DateUtils.toSeoulOffsetDateTime(dto.getEndDt());
+        leave.usedDays = dto.getUsedDays();
         leave.leaveType = LeaveTypeEnum.valueOf(dto.getLeaveType());
         leave.status = LeaveStatusEnum.APPROVED;
         leave.reason = dto.getReason();
@@ -119,9 +124,8 @@ public class Leave {
         }
 
         // 3) 타입 파싱
-        LeaveTypeEnum newType;
         try {
-            newType = LeaveTypeEnum.valueOf(Objects.requireNonNull(newLeaveTypeStr, "연차 유형은 필수입니다."));
+            LeaveTypeEnum.valueOf(Objects.requireNonNull(newLeaveTypeStr, "연차 유형은 필수입니다."));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("연차 유형 값이 올바르지 않습니다: " + newLeaveTypeStr);
         }

@@ -9,10 +9,7 @@
             </select>
             <select id="leaveType">
                 <option value="">전체 유형</option>
-                <option value="ANNUAL">연차</option>
-                <option value="BIRTHDAY">생일</option>
-                <option value="SICK">병가</option>
-                <option value="CUSTOM">기타휴가</option>
+                <option th:each="t : ${leaveTypes}" th:text="${t.description}" th:value="${t.name()}"></option>
             </select>
             <select id="leaveStatus">
                 <option value="">전체 상태</option>

@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.team;
+package pharos.groupware.service.domain.team.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
+import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
 import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
 import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
@@ -99,6 +100,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public void update(User user, UpdateUserByAdminReqDto reqDto) {
         String currentUsername = AuthUtils.getCurrentUsername();
+        Integer yearNumber = LeaveUtils.getCurrentYearNumber(reqDto.getJoinedDate());
+        reqDto.setYearNumber(yearNumber);
         user.updateByAdmin(reqDto, currentUsername);
     }
 
@@ -138,11 +141,11 @@ public class UserServiceImpl implements UserService {
         if (includeBalances) {
             Integer yearNumber = user.getYearNumber();
             List<LeaveBalance> balances = leaveBalanceRepository.findByUserIdAndYearNumber(user.getId(), yearNumber);
-            userDetailResDto.setLeaveBalances(mapToDtos(balances, yearNumber)); // 앞서 만든 매핑 사용
+            userDetailResDto.setLeaveBalances(mapToDtos(balances, yearNumber));
         }
         return userDetailResDto;
     }
-    
+
     @Override
     public User getCurrentUser() {
         String uuid = AuthUtils.extractUserUUID();

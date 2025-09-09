@@ -15,5 +15,6 @@ public class UpdateUserByAdminReqDto {
     private String status;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate joinedDate;
+    private Integer yearNumber;
     private Long teamId;
 }
