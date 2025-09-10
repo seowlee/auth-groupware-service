@@ -4,11 +4,13 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
+import pharos.groupware.service.common.excel.LeaveBalanceExcelExporter;
 import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.domain.leave.dto.*;
 import pharos.groupware.service.domain.leave.entity.LeaveBalance;
@@ -18,11 +20,10 @@ import pharos.groupware.service.domain.team.entity.UserRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +32,9 @@ import java.util.stream.Collectors;
 public class LeaveBalanceServiceImpl implements LeaveBalanceService {
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final UserRepository userRepository;
+    private final LeaveBalanceExcelExporter exporter;
+    @Value("${export.leave-balance.dir:./exports}")
+    private String exportDir;
 
     @Override
     @Transactional
@@ -254,6 +258,22 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
 
         // 신규면 저장
         if (lb.getId() == null) leaveBalanceRepository.save(lb);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Path exportLatestBalances(LeaveTypeEnum filter) {
+        // 유저별 최신 yearNumber의 모든 타입
+        List<LeaveBalance> rows = leaveBalanceRepository.findLatestYearBalances(filter);
+
+        // 또는: 유저×타입별 최신 1행씩
+        // List<LeaveBalance> rows = leaveBalanceRepository.findLatestPerUserAndType();
+
+        Map<Long, String> userNameMap = userRepository.findAllById(
+                rows.stream().map(LeaveBalance::getUserId).collect(Collectors.toSet())
+        ).stream().collect(Collectors.toMap(User::getId, User::getUsername));
+
+        return exporter.export(rows, userNameMap, Paths.get(exportDir));
     }
 
     /**

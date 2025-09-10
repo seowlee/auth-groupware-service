@@ -17,7 +17,7 @@ import pharos.groupware.service.domain.admin.service.AdminService;
 import java.util.Map;
 
 
-@Tag(name = "02. 최고 관리자", description = "Fallback 로그인 관련 API")
+@Tag(name = "03. 최고 관리자", description = "Fallback 로그인 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin")

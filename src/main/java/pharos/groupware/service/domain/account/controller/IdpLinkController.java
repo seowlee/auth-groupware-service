@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
 
-@Tag(name = "03. 사용자 계정 정보", description = "사용자 계정 IdP 연동 관련 API")
+@Tag(name = "02. 사용자 계정 정보", description = "사용자 계정 IdP 연동 관련 API")
 @Controller
 @RequiredArgsConstructor
 public class IdpLinkController {

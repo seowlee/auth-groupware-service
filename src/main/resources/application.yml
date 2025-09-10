@@ -72,6 +72,11 @@ logging:
     org.springframework.security: DEBUG     # 스프링 시큐리티 디버그
     sun.rmi.transport.tcp: WARN             # RMI/JMX 잡음 억제
 
+export:
+  leave-balance:
+    dir: /Users/yourname/exports   # Mac/Linux
+    # dir: C:/exports               # Windows
+
 springdoc:
   swagger-ui:
     tagsSorter: alpha
