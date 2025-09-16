@@ -21,7 +21,7 @@ public class CreateLeaveReqDto {
     @NotNull
     private LocalDateTime endDt;
 
-    @Schema(description = "연차 신청 사용 일수", example = "2.500")
+    @Schema(hidden = true, description = "연차 신청 사용 일수", example = "2.500")
     private BigDecimal usedDays;
 
     @Schema(description = "연차 유형", example = "ANNUAL", allowableValues = {"ANNUAL", "BIRTHDAY", "SICK", "CUSTOM"})

@@ -1,7 +1,6 @@
 package pharos.groupware.service.domain.leave.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -10,15 +9,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientResponseException;
+import pharos.groupware.service.common.enums.AuditActionEnum;
+import pharos.groupware.service.common.enums.AuditStatusEnum;
 import pharos.groupware.service.common.enums.LeaveStatusEnum;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
-import pharos.groupware.service.common.util.AuthUtils;
-import pharos.groupware.service.common.util.DateUtils;
-import pharos.groupware.service.domain.calendar.entity.PublicHoliday;
-import pharos.groupware.service.domain.calendar.entity.PublicHolidayRepository;
-import pharos.groupware.service.domain.leave.dto.*;
+import pharos.groupware.service.domain.audit.service.AuditLogService;
+import pharos.groupware.service.domain.holiday.entity.PublicHolidayRepository;
+import pharos.groupware.service.domain.holiday.service.WorkDayService;
+import pharos.groupware.service.domain.leave.dto.CreateLeaveReqDto;
+import pharos.groupware.service.domain.leave.dto.LeaveDetailResDto;
+import pharos.groupware.service.domain.leave.dto.LeaveSearchReqDto;
+import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
 import pharos.groupware.service.domain.leave.entity.Leave;
 import pharos.groupware.service.domain.leave.entity.LeaveRepository;
 import pharos.groupware.service.domain.team.entity.User;
@@ -27,10 +31,9 @@ import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
+
+import static pharos.groupware.service.common.util.AuditLogUtils.details;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -39,6 +42,8 @@ public class LeaveServiceImpl implements LeaveService {
     private final GraphUserService graphUserService;
     private final UserService userService;
     private final LeaveBalanceService leaveBalanceService;
+    private final WorkDayService workDayService;
+    private final AuditLogService auditLogService;
     private final LeaveRepository leaveRepository;
     private final PublicHolidayRepository publicHolidayRepository;
     private final UserRepository userRepository;
@@ -85,41 +90,65 @@ public class LeaveServiceImpl implements LeaveService {
     public Long applyLeave(CreateLeaveReqDto dto) {
         User user = userRepository.findByUserUuid(UUID.fromString(dto.getUserUuid()))
                 .orElseThrow(() -> new EntityNotFoundException("해당 사용자를 찾을 수 없습니다."));
-
-        Set<LocalDate> holidays = new HashSet<>(publicHolidayRepository.findAllByYear(2025)
-                .stream().map(PublicHoliday::getHolidayDate).toList());
-
-        String currentUsername = AuthUtils.getCurrentUsername();
+        User actor = userService.getAuthenticatedUser();
+        // 권한 체크
+        if (!actor.getRole().isSuperAdmin()) {
+            if (!user.getUserUuid().equals(actor.getUserUuid())) {
+                throw new AccessDeniedException("신청 권한이 없습니다.");
+            }
+        }
         dto.setUserName(user.getUsername());
         dto.setUserEmail(user.getEmail());
         LeaveTypeEnum leaveType = LeaveTypeEnum.valueOf(dto.getLeaveType());
-        BigDecimal usedDays = DateUtils.countLeaveDays(dto.getStartDt(), dto.getEndDt(), holidays);
+        BigDecimal usedDays = workDayService.countLeaveDays(dto.getStartDt(), dto.getEndDt());
         dto.setUsedDays(usedDays);
 
         String subject = leaveType.getDescription() + " 신청 (" + dto.getUserName() + ")";
-        String body = "연차 유형: " + leaveType.getDescription() + "\n"
-                + "사용 일: " + dto.getUsedDays() + "\n"
+        String body = "연차 유형: " + leaveType.getKrName() + "\n"
+                + "사용일수: " + usedDays.stripTrailingZeros().toPlainString() + "일\n"
                 + "신청자: " + dto.getUserName() + " (" + dto.getUserEmail() + ")\n"
                 + "사유: " + (dto.getReason() != null ? dto.getReason() : "없음");
+        try {
+            String eventId = graphUserService.createEvent(
+                    subject,
+                    body,
+                    dto.getStartDt(),
+                    dto.getEndDt()
+            );
 
-        String eventId = graphUserService.createEvent(
-                subject,
-                body,
-                dto.getStartDt(),
-                dto.getEndDt()
-        );
+            Leave leave = Leave.create(dto, user, eventId, actor.getUsername());
+            Leave savedLeave = leaveRepository.save(leave);
 
-        Leave leave = Leave.create(dto, user, eventId, currentUsername);
-        Leave savedLeave = leaveRepository.save(leave);
 
-        ApplyLeaveUsageReqDto useReq = new ApplyLeaveUsageReqDto();
-        useReq.setUserId(user.getId());
-        useReq.setLeaveType(leaveType);
-        useReq.setYearNumber(user.getYearNumber());
-        useReq.setUsedDays(usedDays);
+            leaveBalanceService.applyUsage(user, leaveType, user.getYearNumber(), usedDays);
+            auditLogService.saveLog(actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_APPLY_GRAPH_CREATE, AuditStatusEnum.SUCCESS,
+                    details("applyDto", dto, "subject", subject, "body", body,
+                            "eventId", eventId, "leaveId", savedLeave.getId()));
+            return savedLeave.getId();
+        } catch (RestClientResponseException e) {
+            // Graph API 오류
+            log.error("Graph API 오류 발생: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(), e);
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_APPLY_GRAPH_CREATE, AuditStatusEnum.FAILED,
+                    details("applyDto", dto, "subject", subject, "body", body,
+                            "httpStatus", e.getStatusCode().value(),
+                            "responseBody", e.getResponseBodyAsString())
+            );
+            throw new IllegalArgumentException("연차 신청에 실패했습니다. (외부 캘린더 오류)");
 
-        leaveBalanceService.applyUsage(useReq);
-        return savedLeave.getId();
+        } catch (Exception e) {
+            // 내부 로직 오류
+            log.error("연차 신청 처리 중 내부 오류", e);
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_APPLY_GRAPH_CREATE, AuditStatusEnum.FAILED,
+                    details("applyDto", dto, "subject", subject, "body", body,
+                            "error", e.getMessage())
+            );
+            throw new IllegalArgumentException("연차 신청에 실패했습니다.");
+        }
     }
 
     @Override
@@ -128,62 +157,132 @@ public class LeaveServiceImpl implements LeaveService {
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("연차를 찾을 수 없습니다."));
         User applicantUser = leave.getUser();
-        User currentUser = userService.getCurrentUser();
+        User actor = userService.getAuthenticatedUser();
 
         // 권한 체크
-        if (!currentUser.getRole().isSuperAdmin()) {
-            if (!applicantUser.getUserUuid().equals(currentUser.getUserUuid())) {
+        if (!actor.getRole().isSuperAdmin()) {
+            if (!applicantUser.getUserUuid().equals(actor.getUserUuid())) {
                 throw new AccessDeniedException("수정 권한이 없습니다.");
             }
         }
         // 비즈니스 룰 검증 (기간/슬롯/영업일 등)
         leave.validateUpdatable(reqDto.getStartDt(), reqDto.getEndDt(), reqDto.getLeaveType());
-        // 3) (선택) 영업일/공휴일 검증 등은 BusinessCalendarService로 사전에 계산/검증
-        // businessCalendarService.assertBusinessRange(dto.getStartDt(), dto.getEndDt());
+
+        // 공휴일만 선택 한 케이스 검증
+        workDayService.assertBusinessRange(reqDto.getStartDt(), reqDto.getEndDt());
+
+        BigDecimal usedDays = workDayService.countLeaveDays(reqDto.getStartDt(), reqDto.getEndDt());
+        reqDto.setUsedDays(usedDays);
+        String calendarEventId = leave.getCalendarEventId();
+
+        String subject = LeaveTypeEnum.valueOf(reqDto.getLeaveType()).getKrName() + " 신청 (" + applicantUser.getUsername() + ")";
+        String body = "연차 유형: " + LeaveTypeEnum.valueOf(reqDto.getLeaveType()).getKrName() + "\n"
+                + "사용일수: " + usedDays.stripTrailingZeros().toPlainString() + "일\n"
+                + "신청자: " + applicantUser.getUsername() + " (" + applicantUser.getEmail() + ")\n"
+                + "사유: " + (reqDto.getReason() != null ? reqDto.getReason() : "없음");
         try {
-
-            String subject = LeaveTypeEnum.valueOf(reqDto.getLeaveType()).getDescription() + " 신청 (" + applicantUser.getUsername() + ")";
-            String body = "연차 유형: " + LeaveTypeEnum.valueOf(reqDto.getLeaveType()).getDescription() + "\n"
-                    + "신청자: " + applicantUser.getUsername() + " (" + applicantUser.getEmail() + ")\n"
-                    + "사유: " + (reqDto.getReason() != null ? reqDto.getReason() : "없음");
-
             // 캘린더 이벤트도 update
             graphUserService.updateEvent(
-                    leave.getCalendarEventId(),
+                    calendarEventId,
                     subject,
                     body,
                     reqDto.getStartDt(),
                     reqDto.getEndDt()
             );
-            String currentUsername = AuthUtils.getCurrentUsername();//TODO: currentUser.getUsername()?
 
             // 도메인 업데이트
-            leave.updateFrom(reqDto, currentUsername);
+            leave.updateFrom(reqDto, actor.getUsername());
             log.info("Updating leave with id {}", id);
+            auditLogService.saveLog(actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_UPDATE_GRAPH_UPDATE, AuditStatusEnum.SUCCESS,
+                    details("reqDto", reqDto, "subject", subject, "body", body,
+                            "eventId", calendarEventId, "leaveId", id));
+
             return leave.getId();
         } catch (RestClientResponseException e) {
-            log.error("Failed to update Leave id={}, Graph event id={}, status={}, body={}",
-                    leave.getId(), leave.getCalendarEventId(), e.getStatusCode(), e.getResponseBodyAsString(), e);
-            throw e;
+            // Graph API 오류
+            log.error("Graph API 오류(연차 수정): leaveId={}, eventId={}, status={}, body={}",
+                    leave.getId(), calendarEventId, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_UPDATE_GRAPH_UPDATE, AuditStatusEnum.FAILED,
+                    details("reqDto", reqDto, "subject", subject, "body", body,
+                            "eventId", calendarEventId,
+                            "httpStatus", e.getStatusCode().value(),
+                            "responseBody", e.getResponseBodyAsString())
+            );
+            throw new IllegalArgumentException("연차 수정에 실패했습니다. (외부 캘린더 오류)");
+        } catch (Exception e) {
+            // 내부 오류
+            log.error("연차 수정 내부 오류", e);
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_UPDATE_GRAPH_UPDATE, AuditStatusEnum.FAILED,
+                    details("reqDto", reqDto, "subject", subject, "body", body,
+                            "eventId", calendarEventId, "error", e.getMessage())
+            );
+            throw new IllegalArgumentException("연차 수정에 실패했습니다.");
         }
     }
 
     @Override
+    @Transactional
     public void cancelLeave(Long id) {
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("연차를 찾을 수 없습니다."));
         User applicantUser = leave.getUser();
-        User currentUser = userService.getCurrentUser();
+        User actor = userService.getAuthenticatedUser();
         // 권한 체크
-        if (!currentUser.getRole().isSuperAdmin()) {
-            if (!applicantUser.getUserUuid().equals(currentUser.getUserUuid())) {
+        if (!actor.getRole().isSuperAdmin()) {
+            if (!applicantUser.getUserUuid().equals(actor.getUserUuid())) {
                 throw new AccessDeniedException("수정 권한이 없습니다.");
             }
         }
-        //TODO:offsetDatetime localdatetime
-        // 비즈니스 룰 검증 (기간/슬롯/영업일 등)
-//        leave.validateUpdatable(leave.getStartDt()., leave.getEndDt(), leave.getLeaveType());
-        graphUserService.deleteEvent(leave.getCalendarEventId());
+        // 상태/시점 검증
+        leave.validateCancelable();
 
+        String calendarEventId = leave.getCalendarEventId();
+
+        // LeaveBalance used 복구
+        BigDecimal usedDays = leave.getUsedDays() == null ? BigDecimal.ZERO : leave.getUsedDays();
+        try {
+            if (usedDays.signum() > 0) {
+                leaveBalanceService.revertUsage(
+                        applicantUser,
+                        leave.getLeaveType(),
+                        applicantUser.getYearNumber(),
+                        usedDays
+                );
+            }
+
+            // Leave 상태 전이
+            leave.cancel(actor.getUsername());
+            // 그래프 이벤트 삭제(실패해도 취소는 계속)
+
+            graphUserService.deleteEvent(leave.getCalendarEventId());
+        } catch (RestClientResponseException e) {
+            log.warn("Graph API 오류(연차 취소) - 이벤트 삭제 실패: leaveId={}, eventId={}, status={}, body={}",
+                    id, calendarEventId, e.getStatusCode(), e.getResponseBodyAsString(), e);
+
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_CANCEL_GRAPH_DELETE, AuditStatusEnum.FAILED,
+                    details("leaveId", id, "eventId", calendarEventId,
+                            "httpStatus", e.getStatusCode().value(),
+                            "responseBody", e.getResponseBodyAsString())
+            );
+            throw new IllegalArgumentException("연차 취소에 실패했습니다. (외부 캘린더 오류)");
+        } catch (Exception e) {
+            log.warn("연차 취소 중 Graph 이벤트 삭제 일반 오류: leaveId={}, eventId={}, err={}",
+                    id, calendarEventId, e.getMessage(), e);
+
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.LEAVE_CANCEL_GRAPH_DELETE, AuditStatusEnum.FAILED,
+                    details("leaveId", id, "eventId", calendarEventId, "error", e.getMessage())
+            );
+            throw new IllegalArgumentException("연차 취소에 실패했습니다.");
+        }
+        log.info("Canceled leave id={} (userId={}, usedDays={})", leave.getId(), applicantUser.getId(), usedDays);
     }
 }

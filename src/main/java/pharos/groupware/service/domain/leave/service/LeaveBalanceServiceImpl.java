@@ -7,12 +7,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import pharos.groupware.service.common.excel.LeaveBalanceExcelExporter;
 import pharos.groupware.service.common.util.LeaveUtils;
-import pharos.groupware.service.domain.leave.dto.*;
+import pharos.groupware.service.domain.leave.dto.CarryOverLeaveBalanceReqDto;
+import pharos.groupware.service.domain.leave.dto.CreateLeaveBalanceReqDto;
+import pharos.groupware.service.domain.leave.dto.LeaveBalanceResDto;
+import pharos.groupware.service.domain.leave.dto.UpdateLeaveBalanceReqDto;
 import pharos.groupware.service.domain.leave.entity.LeaveBalance;
 import pharos.groupware.service.domain.leave.entity.LeaveBalanceRepository;
 import pharos.groupware.service.domain.team.entity.User;
@@ -201,28 +205,23 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
 
     @Override
     @Transactional
-    public void applyUsage(ApplyLeaveUsageReqDto reqDto) {
-        BigDecimal usedDays = reqDto.getUsedDays();
+    public void applyUsage(User user, LeaveTypeEnum type, int yearNumber, BigDecimal usedDays) {
         if (usedDays.signum() <= 0) return;
-        User user = userRepository.findById(reqDto.getUserId()).orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
-        final int bucketYear = reqDto.getYearNumber();
-        final String actor = user.getUsername() == null ? "system" : user.getUsername();
 
         // 1) 타입별 정책 분기
-        if (reqDto.getLeaveType() == LeaveTypeEnum.ANNUAL) {
-            applyAnnual(user.getId(), bucketYear, usedDays, actor);
+        if (type == LeaveTypeEnum.ANNUAL) {
+            applyAnnual(user.getId(), yearNumber, usedDays);
             return;
         }
 
         // initialGrant=false 타입: 없으면 생성해서 used만 채움, 있으면 used +=
-        LeaveTypeEnum type = reqDto.getLeaveType();
         LeaveBalance lb = leaveBalanceRepository
-                .findByUserIdAndLeaveTypeAndYearNumber(user.getId(), type, bucketYear)
+                .findByUserIdAndLeaveTypeAndYearNumber(user.getId(), type, yearNumber)
                 .orElseGet(() -> {
                     // 신규 생성: totalAllocated는 defaultDays(한도형), 아니면 0
                     BigDecimal alloc = BigDecimal.valueOf(type.getDefaultDays());
                     LeaveBalance created = LeaveBalance.create(new CreateLeaveBalanceReqDto(
-                            user.getId(), type, bucketYear, alloc
+                            user.getId(), type, yearNumber, alloc
                     ));
                     return created;
                 });
@@ -237,28 +236,40 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
             if (afterUsed.compareTo(currentAlloc) > 0) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "생일연차 잔액 부족");
             }
-            lb.addUsed(usedDays, actor);
-        } else if (type.getDefaultDays() > 0) {
+            lb.addUsed(usedDays);
+        } else if (type.getDefaultDays() > 0) { //TODO: 비교값 수정 lb.getTotalAllocated()?
             // 한도 초과분은 ADVANCE에 기록
             BigDecimal shortage = afterUsed.subtract(currentAlloc);
             if (shortage.signum() > 0) {
                 // 우선 가능한 만큼만 사용
                 BigDecimal usable = usedDays.subtract(shortage);
-                if (usable.signum() > 0) lb.addUsed(usable, actor);
+                if (usable.signum() > 0) lb.addUsed(usable);
                 // 남는 부족분은 ADVANCE.used 증가
-                applyAdvance(user.getId(), bucketYear, shortage, actor);
+                applyAdvance(user.getId(), yearNumber, shortage);
             } else {
                 // 한도 내
-                lb.addUsed(usedDays, actor);
+                lb.addUsed(usedDays);
             }
         } else {
             // 한도 없는(non-cap) 약정/공가/보상 등: 그냥 누적
-            lb.addUsed(usedDays, actor);
+            lb.addUsed(usedDays);
         }
 
         // 신규면 저장
         if (lb.getId() == null) leaveBalanceRepository.save(lb);
     }
+
+    @Override
+    public void revertUsage(User user, LeaveTypeEnum type, int yearNumber, BigDecimal usedDays) {
+        if (usedDays.signum() <= 0) return;
+        final String actor = user.getUsername() == null ? "system" : user.getUsername();
+
+        LeaveBalance lb = leaveBalanceRepository
+                .findByUserIdAndLeaveTypeAndYearNumber(user.getId(), type, yearNumber)
+                .orElseThrow(() -> new EntityNotFoundException("해당 LeaveBalance가 없습니다."));
+        lb.subtractUsed(usedDays);
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -276,10 +287,33 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
         return exporter.export(rows, userNameMap, Paths.get(exportDir));
     }
 
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void reallocateAnnualOnJoinedDateChange(Long userId, Integer beforeYearNo, Integer afterYearNo) {
+        List<LeaveBalance> balances = leaveBalanceRepository
+                .findByUserIdAndYearNumber(userId, beforeYearNo);
+
+        if (balances.isEmpty()) {
+            throw new EntityNotFoundException("해당 연도의 LeaveBalance가 없습니다. userId="
+                    + userId + ", year=" + beforeYearNo);
+        }
+
+        for (LeaveBalance lb : balances) {
+            // 모든 LeaveBalance의 연도 업데이트
+            lb.updateYearNumber(afterYearNo);
+
+            // ANNUAL만 총 연차 일수 재계산
+            if (lb.getLeaveType() == LeaveTypeEnum.ANNUAL) {
+                BigDecimal newTotal = BigDecimal.valueOf(LeaveUtils.annualGrantDays(afterYearNo));
+                lb.overwriteTotalAllocated(newTotal.setScale(3, RoundingMode.HALF_UP));
+            }
+        }
+    }
+
     /**
      * ANNUAL: 잔액 부족분은 ADVANCE.used로 기록
      */
-    private void applyAnnual(Long userId, int yearNumber, BigDecimal usedDays, String actor) {
+    private void applyAnnual(Long userId, int yearNumber, BigDecimal usedDays) {
         // 1) 연차 버킷 잠금 조회(없으면 예외 or 0할당 생성? 정책에 따라)
         LeaveBalance annual = leaveBalanceRepository
                 .findByUserIdAndLeaveTypeAndYearNumber(userId, LeaveTypeEnum.ANNUAL, yearNumber)
@@ -291,20 +325,20 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
 
         if (remain.compareTo(usedDays) >= 0) {
             // 전부 ANNUAL에서 차감
-            annual.addUsed(usedDays, actor);
+            annual.addUsed(usedDays);
             return;
         }
 
         // 일부만 ANNUAL, 나머지는 ADVANCE
-        if (remain.signum() > 0) annual.addUsed(remain, actor);
+        if (remain.signum() > 0) annual.addUsed(remain);
         BigDecimal shortage = usedDays.subtract(remain);
-        applyAdvance(userId, yearNumber, shortage, actor);
+        applyAdvance(userId, yearNumber, shortage);
     }
 
     /**
      * 부족분을 빌려쓴연차(ADVANCE.used)에 누적 (없으면 생성 total=0)
      */
-    private void applyAdvance(Long userId, int yearNumber, BigDecimal delta, String actor) {
+    private void applyAdvance(Long userId, int yearNumber, BigDecimal delta) {
         if (delta == null || delta.signum() <= 0) return;
 
         LeaveBalance adv = leaveBalanceRepository
@@ -313,7 +347,7 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
                         userId, LeaveTypeEnum.ADVANCE, yearNumber, BigDecimal.ZERO
                 )));
 
-        adv.addUsed(delta, actor);
+        adv.addUsed(delta);
         if (adv.getId() == null) leaveBalanceRepository.save(adv);
     }
 

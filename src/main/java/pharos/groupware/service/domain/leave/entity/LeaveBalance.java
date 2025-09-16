@@ -96,16 +96,25 @@ public class LeaveBalance {
         touch();
     }
 
-    public void addUsed(BigDecimal newUsed, String actor) {
+    public void addUsed(BigDecimal newUsed) {
         this.used = this.used.add(LeaveUtils.nullToZero(newUsed));
-        this.updatedAt = OffsetDateTime.now();
-        this.updatedBy = actor;
+        touch();
     }
 
+    public void updateYearNumber(Integer newYearNumber) {
+        this.yearNumber = newYearNumber;
+        touch();
+    }
 
     private void touch() {
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = "system";
     }
 
+    public void subtractUsed(BigDecimal days) {
+        BigDecimal next = this.used.subtract(days);
+        if (next.signum() < 0) next = BigDecimal.ZERO;
+        this.used = LeaveUtils.scale(next);
+        touch();
+    }
 }

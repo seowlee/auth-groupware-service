@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.calendar.entity;
+package pharos.groupware.service.domain.holiday.entity;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

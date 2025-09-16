@@ -12,7 +12,7 @@
 
                 <select id="calTypeFilter">
                     <option value="">전체 유형</option>
-                    <option th:each="t : ${leaveTypes}" th:text="${t.description}" th:value="${t.name()}"></option>
+                    <option th:each="t : ${leaveTypes}" th:text="${t.krName}" th:value="${t.name()}"></option>
                     <!-- 필요 타입 추가 -->
                 </select>
 

@@ -26,9 +26,9 @@ body {
 }
 
 .form-container h2 {
-    color: #2d3748;
+    color: #2b6cb0;
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 1.5rem;
     text-align: center;
     margin-top: 0;
@@ -55,13 +55,19 @@ body {
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 600;
-    color: #4a5568;
+    font-weight: 700;
+    color: #2d3748;
     font-size: 14px;
 }
 
+.form-group span {
+    color: #2d3748;
+}
+
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
+    color: #2d3748;
     width: 100%;
     padding: 12px 16px;
     border: 2px solid #e2e8f0;
@@ -70,6 +76,25 @@ body {
     background: #f7fafc;
     transition: all 0.3s ease;
 }
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #a0aec0;
+}
+
+/* disabled 컨트롤이 연해 보이지 않도록(브라우저 기본 페이드 제거) */
+.form-group input[disabled],
+.form-group select[disabled],
+.form-group textarea[disabled] {
+    color: #2d3748;
+    -webkit-text-fill-color: #2d3748; /* Safari에서 disabled일 때 연해지는 문제 방지 */
+    opacity: 1; /* 기본 흐림 제거 */
+}
+
+.form-group select option {
+    color: #2d3748;
+}
+
 
 .form-group input:focus,
 .form-group select:focus {
@@ -103,6 +128,7 @@ body {
 }
 
 .tab-nav li {
+    color: #2d3748;
     padding: 8px 14px;
     cursor: pointer;
     border: 1px solid #ddd;
@@ -113,8 +139,13 @@ body {
 }
 
 .tab-nav li.active {
-    background: #fff;
+    color: #2d3748;
+    background: #edf2f7;
     font-weight: 600
+}
+
+.tab-nav li:hover {
+    color: #1a202c;
 }
 
 .tab-pane {
@@ -212,16 +243,24 @@ textarea:focus {
 .lb-table th, .lb-table td {
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #2d3748;
 }
 
 .lb-table thead th {
-    font-weight: 700;
-    color: #e2e8f0;
-    background: rgba(255, 255, 255, 0.03);
+    color: #2d3748; /* 진한 텍스트 */
+    background: #edf2f7; /* 밝은 헤더 배경 */
+    border-bottom: 1px solid #e2e8f0;
+    /*font-weight: 700;*/
+    /*color: #e2e8f0;*/
+    /*background: rgba(255, 255, 255, 0.03);*/
 }
 
 .lb-table tbody tr:hover {
     background: rgba(255, 255, 255, 0.03);
+}
+
+.lb-indent {
+    padding-left: 20px;
 }
 
 .lb-num {
@@ -230,13 +269,13 @@ textarea:focus {
 }
 
 .lb-dim {
-    opacity: .75;
+    opacity: .9;
 }
 
 .lb-unit::after {
     content: "일";
     margin-left: 4px;
-    opacity: .8;
+    opacity: .9;
 }
 
 /* 타입 배지 */
@@ -250,26 +289,32 @@ textarea:focus {
     background: #e2e8f0;
 }
 
+/* 메인 타입 */
+/* 연차 */
 .lb-type-annual {
     background: #bee3f8;
 }
 
-/* 연차 */
+/* 생일 */
 .lb-type-birthday {
     background: #fed7e2;
 }
 
-/* 생일 */
+/* 병가 */
 .lb-type-sick {
     background: #c6f6d5;
 }
 
-/* 병가 */
+/* 기타 */
 .lb-type-custom {
     background: #e2e8f0;
 }
 
-/* 기타 */
+/* 선택: 하위(정산)톤은 살짝 옅게 (cls를 위처럼 annual로 주면 이건 생략 가능) */
+.lb-type-annual-sub {
+    background: #d7ecff;
+}
+
 
 /* 사용/잔여 progress bar */
 .lb-bar {
@@ -301,4 +346,53 @@ textarea:focus {
 .lb-total-row td {
     font-weight: 700;
     border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+/* ─── Leave table: parent/child 시각화 ─── */
+.lb-type-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.lb-parent-row td {
+    font-weight: 600;
+}
+
+.lb-parent-row .lb-type-badge {
+    /* 부모는 약하게 강조 */
+    box-shadow: inset 0 0 0 2px rgba(66, 153, 225, 0.12);
+}
+
+.lb-child-row .lb-type-cell {
+    padding-left: 36px; /* 들여쓰기 */
+}
+
+/* 자식 앞에 트리 기호(└) */
+.lb-child-row .lb-type-cell::before {
+    content: "└";
+    position: absolute;
+    left: 16px;
+    color: #a0aec0; /* 연한 회색 */
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* 부모-자식 연결 느낌의 세로 보조 라인(살짝) */
+.lb-child-row .lb-type-cell::after {
+    content: "";
+    position: absolute;
+    left: 20px;
+    top: -6px;
+    bottom: -6px;
+    width: 1px;
+    background: #e2e8f0;
+    opacity: .7;
+}
+
+/* 자식 배지는 회색 유지(기존 규칙 유지용 보강) */
+.lb-child-row .lb-type-badge {
+    background: #e2e8f0;
+    color: #1a202c;
 }

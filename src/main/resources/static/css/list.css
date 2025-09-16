@@ -193,6 +193,11 @@ th.sortable {
     color: #e53e3e;
 }
 
+.status-canceled {
+    background-color: #a0aec0;
+    color: #2d3748;
+}
+
 /* 검색 필터 스타일 */
 .search-filter-container {
     background: white;
@@ -265,9 +270,13 @@ th.sortable {
 }
 
 .pagination-controls .btn {
-    padding: 8px 12px;
-    font-size: 14px;
-    min-width: auto;
+    display: inline-flex; /* 가로 정렬 강제 */
+    align-items: center; /* 세로 가운데 */
+    justify-content: center; /* 가로 가운데 */
+    gap: 4px; /* 아이콘(화살표)와 글자 사이 간격 */
+    white-space: nowrap; /* 줄바꿈 방지 */
+    min-width: 60px; /* 버튼 폭 일정하게 */
+    padding: 6px 12px;
 }
 
 .pagination-controls .btn:disabled {
@@ -295,93 +304,6 @@ th.sortable {
     display: none !important;
 }
 
-/* 폼 컨테이너 스타일 (기존 유지) */
-/*.form-container {*/
-/*    display: none;*/
-/*    background: white;*/
-/*    border: 1px solid #e2e8f0;*/
-/*    border-radius: 16px;*/
-/*    padding: 30px;*/
-/*    margin-bottom: 30px;*/
-/*    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);*/
-/*    backdrop-filter: blur(10px);*/
-/*    position: relative;*/
-/*    overflow: hidden;*/
-/*}*/
-
-/*.form-container::before {*/
-/*    content: "";*/
-/*    position: absolute;*/
-/*    top: 0;*/
-/*    left: 0;*/
-/*    right: 0;*/
-/*    height: 4px;*/
-/*    background: linear-gradient(90deg, #4299e1, #667eea, #9f7aea);*/
-/*}*/
-
-/*.form-container.show {*/
-/*    display: block;*/
-/*    animation: slideDown 0.3s ease-out;*/
-/*}*/
-
-/*@keyframes slideDown {*/
-/*    from {*/
-/*        opacity: 0;*/
-/*        transform: translateY(-20px);*/
-/*    }*/
-/*    to {*/
-/*        opacity: 1;*/
-/*        transform: translateY(0);*/
-/*    }*/
-/*}*/
-
-/*.form-container h3 {*/
-/*    color: #2d3748;*/
-/*    font-size: 1.5rem;*/
-/*    font-weight: 700;*/
-/*    margin-bottom: 24px;*/
-/*    text-align: center;*/
-/*}*/
-
-/*!* 폼 그룹 스타일 *!*/
-/*.form-group {*/
-/*    margin-bottom: 20px;*/
-/*}*/
-
-/*.form-group label {*/
-/*    display: block;*/
-/*    margin-bottom: 8px;*/
-/*    font-weight: 600;*/
-/*    color: #4a5568;*/
-/*    font-size: 14px;*/
-/*}*/
-
-/*.form-group input,*/
-/*.form-group select,*/
-/*.form-group textarea {*/
-/*    width: 100%;*/
-/*    padding: 12px 16px;*/
-/*    border: 2px solid #e2e8f0;*/
-/*    border-radius: 8px;*/
-/*    font-size: 14px;*/
-/*    transition: all 0.3s ease;*/
-/*    background: #f7fafc;*/
-/*}*/
-
-/*.form-group input:focus,*/
-/*.form-group select:focus,*/
-/*.form-group textarea:focus {*/
-/*    outline: none;*/
-/*    border-color: #4299e1;*/
-/*    background: white;*/
-/*    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);*/
-/*}*/
-
-/*.form-group textarea {*/
-/*    resize: vertical;*/
-/*    min-height: 100px;*/
-/*    font-family: inherit;*/
-/*}*/
 
 /* 날짜 범위 스타일 */
 .date-range {

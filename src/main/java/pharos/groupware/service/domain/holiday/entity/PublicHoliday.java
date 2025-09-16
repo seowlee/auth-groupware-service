@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.calendar.entity;
+package pharos.groupware.service.domain.holiday.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

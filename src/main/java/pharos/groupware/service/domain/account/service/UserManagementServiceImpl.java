@@ -6,6 +6,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import pharos.groupware.service.common.enums.AuditActionEnum;
+import pharos.groupware.service.common.enums.AuditStatusEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
 import pharos.groupware.service.common.util.LeaveUtils;
@@ -15,6 +17,7 @@ import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
 import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
 import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.domain.account.dto.UserApplicantResDto;
+import pharos.groupware.service.domain.audit.service.AuditLogService;
 import pharos.groupware.service.domain.leave.service.LeaveBalanceService;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
@@ -22,6 +25,7 @@ import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +33,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static pharos.groupware.service.common.util.AuditLogUtils.details;
 import static pharos.groupware.service.common.util.DateUtils.KST;
 
 @Slf4j
@@ -41,6 +46,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final UserService localUserService;
     private final UserDeletionTxService userDeletionTxService;
     private final LeaveBalanceService leaveBalanceService;
+    private final AuditLogService auditLogService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -50,6 +56,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     public String createUser(CreateUserReqDto reqDto) {
         String keycloakId = null;
         String currentUsername = AuthUtils.getCurrentUsername();
+        User actor = localUserService.getAuthenticatedUser();
         try {
             keycloakId = keycloakUserService.createUser(reqDto);
             reqDto.setUserUUID(keycloakId);
@@ -57,36 +64,62 @@ public class UserManagementServiceImpl implements UserManagementService {
 //        graphUserService.assignLicenseToUser(graphUserId);
             Integer yearNumber = LeaveUtils.getCurrentYearNumber(reqDto.getJoinedDate());
             reqDto.setYearNumber(yearNumber);
-            Long userId = localUserService.createUser(reqDto, currentUsername);
+            Long userId = localUserService.createUser(reqDto, actor.getUsername());
             log.info("사용자 생성 완료 | userUUID: {}", keycloakId);
-
             leaveBalanceService.initializeLeaveBalancesForUser(userId, yearNumber);
-//        auditLogService.record("USER_CREATE", "superadmin", keycloakId);
+            auditLogService.saveLog(
+                    actor.getId(),
+                    actor.getUsername(),
+                    AuditActionEnum.USER_CREATE,
+                    AuditStatusEnum.SUCCESS,
+                    details("reqDto", reqDto, "localUserId", userId)
+            );
             return keycloakId;
         } catch (Exception e) {
             log.error("사용자 생성 실패", e);
+            auditLogService.saveLog(
+                    actor != null ? actor.getId() : null,
+                    actor != null ? actor.getUsername() : "system",
+                    AuditActionEnum.USER_CREATE,
+                    AuditStatusEnum.FAILED,
+                    details("reqDto", reqDto, "error", e.getMessage())
+            );
             if (keycloakId != null) {
                 keycloakUserService.deleteUser(keycloakId);
             }
+            throw new IllegalStateException("사용자 생성에 실패했습니다");
         }
-        return null;
     }
 
     @Override
     @Transactional
     public void deleteUser(String keycloakUserId) {
+        User actor = localUserService.getAuthenticatedUser();
         UUID uuid = UUID.fromString(keycloakUserId);
         User user = userRepository.findByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+        Long targetUserId = user.getId();
+        String username = user.getUsername();
         try {
             //        graphUserService.deleteUser(graphUserId);
             keycloakUserService.deleteUser(keycloakUserId);
             localUserService.deleteUser(user);
             log.info("Deleted user. userUUID={}", keycloakUserId);
-//        auditLogService.record("USER_DELETE", "SUCCESS", "Deleted user_uuid: " + keycloakUserId);
+
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.USER_DELETE, AuditStatusEnum.SUCCESS,
+                    details("targetUserId", targetUserId, "keycloakUserId", keycloakUserId, "username", username)
+            );
 
         } catch (Exception e) {
             log.error("failed to delete user. keycloakUserId={}", keycloakUserId, e);
+            auditLogService.saveLog(
+                    actor.getId(), actor.getUsername(),
+                    AuditActionEnum.USER_DELETE, AuditStatusEnum.FAILED,
+                    details("targetUserId", targetUserId, "keycloakUserId", keycloakUserId, "username", username, "error", e.getMessage())
+            );
+            throw new IllegalStateException("사용자 삭제에 실패했습니다");
         }
 
     }
@@ -96,39 +129,90 @@ public class UserManagementServiceImpl implements UserManagementService {
     public String updateUser(UUID uuid, UpdateUserByAdminReqDto reqDto) {
         User user = userRepository.findByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        UserStatusEnum before = user.getStatus();
-        UserStatusEnum after = reqDto.getStatus() != null
+        User actor = localUserService.getAuthenticatedUser();
+        //  변경 전 스냅샷 (joinedDate/yearNumber 비교용)
+        LocalDate beforeJoined = user.getJoinedDate();
+        Integer beforeYearNo = user.getYearNumber();
+
+        // 상태 전이 판단용
+        UserStatusEnum beforeStatus = user.getStatus();
+        UserStatusEnum afterStatus = reqDto.getStatus() != null
                 ? UserStatusEnum.valueOf(reqDto.getStatus())
-                : before;
+                : beforeStatus;
 
-        // 1) 기본 정보 수정
-        localUserService.update(user, reqDto);
+        boolean kcSynced = false;
+        String kcSyncError = null;
 
-
-        // 2) 상태 전이 오케스트레이션
-        if (before != after) {
-            if (before == UserStatusEnum.PENDING && after == UserStatusEnum.ACTIVE) {
-                approvePendingUser(user);
-                return user.getUserUuid().toString();
-            } else if (before == UserStatusEnum.ACTIVE && after == UserStatusEnum.INACTIVE) {
-                deactivateUser(user);
-            } else if (before == UserStatusEnum.INACTIVE && after == UserStatusEnum.ACTIVE) {
-                reactivateUser(user); // 새로 추가: Keycloak enable + user.activate()
-            } else {
-                throw new ResponseStatusException(BAD_REQUEST,
-                        "허용되지 않는 상태 전이: " + before + " → " + after);
-            }
-        }
-
-        // Keycloak에도 반영할 필드가 있을 경우
         try {
-            if (needToSyncWithKeycloak(reqDto)) {
-                String keycloakUserId = user.getUserUuid().toString();
-                keycloakUserService.updateUserProfile(keycloakUserId, reqDto);
+            // 1) 기본 정보 수정
+            localUserService.update(user, reqDto);
+
+            // 2) 입사일 변경 → 연차 한도 재배정
+            LocalDate afterJoined = user.getJoinedDate();
+            Integer afterYearNo = user.getYearNumber();
+            boolean joinedChanged = !java.util.Objects.equals(beforeJoined, afterJoined);
+            if (joinedChanged) {
+                leaveBalanceService.reallocateAnnualOnJoinedDateChange(user.getId(), beforeYearNo, afterYearNo);
             }
+            // 3) 상태 전이 오케스트레이션
+            if (beforeStatus != afterStatus) {
+                if (beforeStatus == UserStatusEnum.PENDING && afterStatus == UserStatusEnum.ACTIVE) {
+                    approvePendingUser(user);
+                    return user.getUserUuid().toString();
+                } else if (beforeStatus == UserStatusEnum.ACTIVE && afterStatus == UserStatusEnum.INACTIVE) {
+                    deactivateUser(user);
+                } else if (beforeStatus == UserStatusEnum.INACTIVE && afterStatus == UserStatusEnum.ACTIVE) {
+                    reactivateUser(user); // 새로 추가: Keycloak enable + user.activate()
+                } else {
+                    throw new ResponseStatusException(BAD_REQUEST,
+                            "허용되지 않는 상태 전이: " + beforeStatus + " → " + afterStatus);
+                }
+            }
+
+            // 4) Keycloak 동기화(필요 시)
+            if (needToSyncWithKeycloak(reqDto)) {
+                try {
+                    keycloakUserService.updateUserProfile(user.getUserUuid().toString(), reqDto);
+                    kcSynced = true;
+                } catch (Exception ke) {
+                    kcSynced = false;
+                    kcSyncError = ke.getMessage();
+                    throw new RuntimeException("Keycloak 동기화 실패", ke);
+                }
+            }
+            // 5)  감사 로그
+            auditLogService.saveLog(
+                    actor.getId(),
+                    actor.getUsername(),
+                    AuditActionEnum.USER_UPDATE,
+                    AuditStatusEnum.SUCCESS,
+                    details(
+                            "targetUserId", user.getId(),
+                            "reqDto", reqDto,
+                            "beforeJoinedDate", beforeJoined,
+                            "afterJoinedDate", afterJoined,
+                            "beforeYearNumber", beforeYearNo,
+                            "afterYearNumber", afterYearNo,
+                            "joinedDateChanged", joinedChanged,
+                            "beforeStatus", beforeStatus.name(),
+                            "requestedStatus", afterStatus.name(),
+                            "keycloakSynced", kcSynced
+                    )
+            );
         } catch (Exception e) {
-            log.error("Keycloak 업데이트 실패", e);
-            throw new RuntimeException("사용자 정보는 저장되었으나 Keycloak 동기화 실패", e);
+            auditLogService.saveLog(
+                    actor != null ? actor.getId() : null,
+                    actor != null ? actor.getUsername() : "system",
+                    AuditActionEnum.USER_UPDATE, AuditStatusEnum.FAILED,
+                    details(
+                            "targetUserId", user.getId(),
+                            "reqDto", reqDto,
+                            "error", e.getMessage(),
+                            "keycloakSynced", kcSynced,
+                            "keycloakSyncError", kcSyncError
+                    )
+            );
+            throw e;
         }
         return user.getUserUuid().toString();
     }
@@ -204,41 +288,58 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Override
     @Transactional
     public void registerOrLinkSocialUser(PendingUserReqDto reqDto) {
-        String normalizedPhone = PhoneNumberUtils.normalize(reqDto.getPhoneNumber());
-        String kakaoSub = reqDto.getProviderUserId();
+        try {
+
+            String normalizedPhone = PhoneNumberUtils.normalize(reqDto.getPhoneNumber());
+            String kakaoSub = reqDto.getProviderUserId();
 
 //        if (normalizedPhone == null || normalizedPhone.isBlank()) {
 //            throw new IllegalArgumentException("휴대전화 번호가 필요합니다.");
 //        }
-        if (kakaoSub == null || kakaoSub.isBlank()) {
-            throw new IllegalArgumentException("Kakao sub가 필요합니다.");
-        }
+            if (kakaoSub == null || kakaoSub.isBlank()) {
+                throw new IllegalArgumentException("Kakao sub가 필요합니다.");
+            }
 
-        // 0) sub가 이미 다른 사용자에 등록되어 있으면 막기
+            // 0) sub가 이미 다른 사용자에 등록되어 있으면 막기
 //        Optional<User> existingBySub = userRepository.findByKakaoSub(kakaoSub);
 //        if (existingBySub.isPresent()) {
 //            return; // 이미 등록되어 있으면 조용히 성공 처리하거나, 예외로 알림(정책)
 //        }
 
-        // 1) 휴대폰으로 기존 사용자 찾기
-        Optional<User> existingUserOpt = userRepository.findByPhoneNumber(normalizedPhone);
-        if (existingUserOpt.isPresent()) {
-            User existingUser = existingUserOpt.get();
+            // 1) 휴대폰으로 기존 사용자 찾기
+            Optional<User> existingUserOpt = userRepository.findByPhoneNumber(normalizedPhone);
+            if (existingUserOpt.isPresent()) {
+                User existingUser = existingUserOpt.get();
 
-            // 1-a) 해당 사용자가 Keycloak 계정을 이미 가지고 있으면 → 그 계정에 Kakao 연동
-            String keycloakUserId = String.valueOf(existingUser.getUserUuid());
-            String kakaoUsername = reqDto.getEmail();
-            keycloakUserService.linkKakaoFederatedIdentity(
-                    keycloakUserId,
-                    kakaoSub,
-                    kakaoUsername
+                // 1-a) 해당 사용자가 Keycloak 계정을 이미 가지고 있으면 → 그 계정에 Kakao 연동
+                String keycloakUserId = String.valueOf(existingUser.getUserUuid());
+                String kakaoUsername = reqDto.getEmail();
+                keycloakUserService.linkKakaoFederatedIdentity(
+                        keycloakUserId,
+                        kakaoSub,
+                        kakaoUsername
+                );
+                // 로컬에도 반영
+                localUserService.linkKakaoLocally(existingUser, kakaoSub);
+                return;
+
+            }
+            Long pendingUserId = localUserService.registerPendingUser(reqDto);
+            auditLogService.saveLog(null, "anonymous",
+                    AuditActionEnum.USER_PENDING, AuditStatusEnum.SUCCESS,
+                    details("reqDto", reqDto, "pendingUserId", pendingUserId));
+        } catch (Exception e) {
+            auditLogService.saveLog(
+                    null, "anonymous",
+                    AuditActionEnum.USER_PENDING, AuditStatusEnum.FAILED,
+                    details(
+                            "reqDto", reqDto,
+                            "error", e.getMessage()
+                    )
             );
-            // 로컬에도 반영
-            localUserService.linkKakaoLocally(existingUser, kakaoSub);
-            return;
-
+            // 프론트 메시지용
+            throw new IllegalStateException("소셜 연동 사용자 대기 처리에 실패했습니다");
         }
-        localUserService.registerPendingUser(reqDto);
     }
 
     @Override
@@ -255,11 +356,33 @@ public class UserManagementServiceImpl implements UserManagementService {
             } catch (Exception e) {
                 fail++;
                 log.error("keycloak delete failed: {}", id, e);
+                auditLogService.saveJobLog(
+                        "delete-inactive-users",
+                        AuditActionEnum.USER_DELETE_KEYCLOAK,
+                        AuditStatusEnum.FAILED,
+                        details(
+                                "targetUserUuid", id,
+                                "error", e.getMessage(),
+                                "cutoff", cutoff,
+                                "days", days
+                        )
+                );
             }
         }
         for (List<UUID> chunk : PartitionUtils.batchesOf(ok, 1000)) {
             userRepository.deleteByUserUuidIn(chunk);
         }
+        auditLogService.saveJobLog(
+                "delete-inactive-users",
+                AuditActionEnum.USER_DELETE_KEYCLOAK,
+                AuditStatusEnum.SUCCESS,
+                details(
+                        "days", days,
+                        "okCount", ok.size(),
+                        "failCount", fail,
+                        "cutoff", cutoff
+                )
+        );
         log.info("Purge INACTIVE users finished. days={}, ok={}, fail={}, cutoff={}", days, ok.size(), fail, cutoff);
     }
 
@@ -272,8 +395,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     private boolean needToSyncWithKeycloak(UpdateUserByAdminReqDto reqDto) {
-        return reqDto.getEmail() != null
-                || reqDto.getFirstName() != null
+        return reqDto.getFirstName() != null
                 || reqDto.getLastName() != null;
     }
 }

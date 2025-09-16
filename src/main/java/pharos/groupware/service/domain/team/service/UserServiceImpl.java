@@ -74,12 +74,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void registerPendingUser(PendingUserReqDto reqDto) {
+    public Long registerPendingUser(PendingUserReqDto reqDto) {
         Team defaultTeam = teamRepository.findTopByOrderByIdAsc()
                 .orElseThrow(() -> new IllegalStateException("등록된 팀이 없습니다"));
         User user = User.fromPendingDto(reqDto, defaultTeam, passwordEncoder);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
         log.info("승인 대기 사용자 등록 완료: {}", user.getEmail());
+        return savedUser.getId();
     }
 
     @Override
@@ -99,10 +100,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void update(User user, UpdateUserByAdminReqDto reqDto) {
-        String currentUsername = AuthUtils.getCurrentUsername();
-        Integer yearNumber = LeaveUtils.getCurrentYearNumber(reqDto.getJoinedDate());
-        reqDto.setYearNumber(yearNumber);
-        user.updateByAdmin(reqDto, currentUsername);
+        String actor = AuthUtils.getCurrentUsername();
+        if (reqDto.getJoinedDate() != null) {
+            reqDto.setYearNumber(LeaveUtils.getCurrentYearNumber(reqDto.getJoinedDate()));
+        } else {
+            reqDto.setYearNumber(user.getYearNumber()); // 유지
+        }
+        user.updateByAdmin(reqDto, actor);
     }
 
     @Override
@@ -147,7 +151,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getCurrentUser() {
+    public User getAuthenticatedUser() {
         String uuid = AuthUtils.extractUserUUID();
         return userRepository.findByUserUuid(UUID.fromString(uuid))
                 .orElseThrow(() -> new EntityNotFoundException("현재 사용자를 찾을 수 없습니다."));
@@ -155,7 +159,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean isCurrentUserSuperAdmin() {
-        return getCurrentUser().getRole().isSuperAdmin();
+        return getAuthenticatedUser().getRole().isSuperAdmin();
     }
 
     @Override

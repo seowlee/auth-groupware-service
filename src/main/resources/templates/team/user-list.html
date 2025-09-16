@@ -14,15 +14,15 @@
             </select>
             <select id="filterRole">
                 <option value="">전체 역할</option>
-                <option value="TEAM_MEMBER">팀원</option>
-                <option value="TEAM_LEADER">팀장</option>
-                <option value="SUPER_ADMIN">최고관리자</option>
+                <option th:each="role : ${roles}"
+                        th:text="${role.description}"
+                        th:value="${role.name()}"></option>
             </select>
             <select id="filterStatus">
                 <option value="">전체 상태</option>
-                <option value="ACTIVE">활성</option>
-                <option value="INACTIVE">비활성</option>
-                <option value="PENDING">대기</option>
+                <option th:each="status : ${statuses}"
+                        th:text="${status.description}"
+                        th:value="${status.name()}"></option>
             </select>
             <button class="btn" id="searchBtn">검색</button>
             <button class="btn btn-secondary" id="resetFilterBtn">초기화</button>
@@ -69,11 +69,19 @@
                 <span id="paginationInfo">총 0개 항목</span>
             </div>
             <div class="pagination-controls">
-                <button class="btn btn-secondary" id="firstPageBtn">처음</button>
-                <button class="btn btn-secondary" id="prevPageBtn">이전</button>
+                <button class="btn btn-secondary" id="firstPageBtn">
+                    <span class="icon">«</span><span>첫</span>
+                </button>
+                <button class="btn btn-secondary" id="prevPageBtn">
+                    <span class="icon">‹</span><span>이전</span>
+                </button>
                 <span id="currentPageInfo">1 / 1</span>
-                <button class="btn btn-secondary" id="nextPageBtn">다음</button>
-                <button class="btn btn-secondary" id="lastPageBtn">마지막</button>
+                <button class="btn btn-secondary" id="nextPageBtn">
+                    <span>다음</span><span class="icon">›</span>
+                </button>
+                <button class="btn btn-secondary" id="lastPageBtn">
+                    <span>끝</span><span class="icon">»</span>
+                </button>
             </div>
             <div class="page-size-selector">
                 <span>페이지 크기:</span>

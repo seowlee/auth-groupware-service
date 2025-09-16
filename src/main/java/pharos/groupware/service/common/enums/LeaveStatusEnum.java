@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum LeaveStatusEnum {
-    APPROVED("승인완료"),
+    APPROVED("승인"),
     CANCELED("취소"),
     REJECTED("반려"),
     PENDING("대기");

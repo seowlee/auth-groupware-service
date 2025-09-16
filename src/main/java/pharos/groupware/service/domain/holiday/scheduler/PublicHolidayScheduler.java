@@ -1,9 +1,9 @@
-package pharos.groupware.service.domain.calendar.scheduler;
+package pharos.groupware.service.domain.holiday.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import pharos.groupware.service.domain.calendar.service.PublicHolidaySyncService;
+import pharos.groupware.service.domain.holiday.service.PublicHolidaySyncService;
 
 @Component
 @RequiredArgsConstructor

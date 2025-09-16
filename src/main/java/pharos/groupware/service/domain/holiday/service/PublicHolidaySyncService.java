@@ -1,6 +1,6 @@
-package pharos.groupware.service.domain.calendar.service;
+package pharos.groupware.service.domain.holiday.service;
 
-import pharos.groupware.service.domain.calendar.dto.SyncReportResDto;
+import pharos.groupware.service.domain.holiday.dto.SyncReportResDto;
 
 public interface PublicHolidaySyncService {
     void syncYear(int year);

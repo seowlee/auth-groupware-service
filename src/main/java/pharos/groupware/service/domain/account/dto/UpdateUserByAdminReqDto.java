@@ -8,7 +8,7 @@ import java.time.LocalDate;
 @Data
 public class UpdateUserByAdminReqDto {
     private String phoneNumber;
-    private String email;
+    //    private String email;
     private String firstName;
     private String lastName;
     private String role;

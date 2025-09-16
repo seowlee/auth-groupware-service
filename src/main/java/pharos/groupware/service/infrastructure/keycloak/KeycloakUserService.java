@@ -110,7 +110,7 @@ public class KeycloakUserService {
 
         if (reqDto.getFirstName() != null) updates.put("firstName", reqDto.getFirstName());
         if (reqDto.getLastName() != null) updates.put("lastName", reqDto.getLastName());
-        if (reqDto.getEmail() != null) updates.put("email", reqDto.getEmail());
+//        if (reqDto.getEmail() != null) updates.put("email", reqDto.getEmail());
 //        if (reqDto.getUsername() != null)  updates.put("username", reqDto.getUsername());
 
         withAuth().put()

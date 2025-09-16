@@ -1,6 +1,6 @@
 import {PaginationManager} from "./pagination.js";
 import {navigateTo} from './router.js';
-import {mapLeaveType} from './leave-common.js';
+import {formatLeaveDays, mapLeaveType} from './leave-common.js';
 import {showLoading, showMessage} from "./list-form-common.js";
 
 let _leaveListManager = null;
@@ -110,7 +110,7 @@ class LeaveListManager {
           <td>${mapLeaveType(r.leaveType)}</td>
           <td>${start}</td>
           <td>${end}</td>
-          <td>${days}일</td>
+          <td>${formatLeaveDays(days)}</td>
           <td>
             <span class="status-badge ${this.mapStatusClass(r.status)}">
               ${this.mapStatus(r.status)}
@@ -188,7 +188,12 @@ class LeaveListManager {
     }
 
     mapStatusClass(s) {
-        return ({PENDING: 'status-pending', APPROVED: 'status-approved', REJECTED: 'status-rejected'}[s] || '');
+        return ({
+            PENDING: 'status-pending',
+            APPROVED: 'status-approved',
+            CANCELED: 'status-canceled',
+            REJECTED: 'status-rejected'
+        }[s] || '');
     }
 
     validateDateRange() {

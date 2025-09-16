@@ -14,7 +14,7 @@
             <div class="form-group full-width">
                 <label for="leaveType">연차 유형</label>
                 <select disabled id="leaveType" required>
-                    <option th:each="t : ${leaveTypes}" th:text="${t.description}" th:value="${t.name()}"></option>
+                    <option th:each="t : ${leaveTypes}" th:text="${t.krName}" th:value="${t.name()}"></option>
                 </select>
             </div>
         </div>

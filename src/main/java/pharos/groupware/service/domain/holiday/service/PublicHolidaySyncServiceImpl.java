@@ -1,11 +1,11 @@
-package pharos.groupware.service.domain.calendar.service;
+package pharos.groupware.service.domain.holiday.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pharos.groupware.service.domain.calendar.dto.SyncReportResDto;
-import pharos.groupware.service.domain.calendar.entity.PublicHoliday;
-import pharos.groupware.service.domain.calendar.entity.PublicHolidayRepository;
+import pharos.groupware.service.domain.holiday.dto.SyncReportResDto;
+import pharos.groupware.service.domain.holiday.entity.PublicHoliday;
+import pharos.groupware.service.domain.holiday.entity.PublicHolidayRepository;
 import pharos.groupware.service.infrastructure.publicapi.HolidayApiItem;
 import pharos.groupware.service.infrastructure.publicapi.HolidayOpenApiClient;
 
@@ -22,6 +22,7 @@ public class PublicHolidaySyncServiceImpl implements PublicHolidaySyncService {
      * 특정 연도 공휴일을 API에서 받아와 테이블에 반영.
      * 정책: 연도 단위로 전량 덮어쓰기(선삭제 후 삽입) 또는 UPSERT 중 선택.
      */
+    @Override
     @Transactional
     public void syncYear(int year) {
         List<HolidayApiItem> items = client.fetchYear(year);
@@ -31,7 +32,7 @@ public class PublicHolidaySyncServiceImpl implements PublicHolidaySyncService {
             return;
         }
 
-        // 1) 기존 연도 데이터 삭제(가장 간단/명확)
+        // 1) 기존 연도 데이터 삭제
         repository.deleteAllByYear(year);
 
         // 2) INSERT

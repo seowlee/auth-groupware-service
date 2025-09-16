@@ -1,5 +1,12 @@
 import {navigateTo} from './router.js';
-import {fmt3, leaveTypeOptionsHtml, mapLeaveClass, mapLeaveType, yearNumberLabel} from './leave-common.js';
+import {
+    ensureEnums,
+    fmt3,
+    formatLeaveDays,
+    leaveTypeOptionsHtml,
+    mapLeaveClass,
+    yearNumberLabel
+} from './leave-common.js';
 
 /**
  * 사용자 상세 정보 관리자
@@ -40,6 +47,7 @@ class UserDetailManager {
      * 화면에 사용자 정보 반영
      */
     render(user) {
+        const ENUMS = ensureEnums();
         document.getElementById('detailUsername').textContent = user.username;
         document.getElementById('detailEmail').textContent = user.email;
         document.getElementById('detailPhoneNumber').value = user.phoneNumber;
@@ -48,19 +56,25 @@ class UserDetailManager {
         document.getElementById('detailJoinedDate').value = user.joinedDate;
         // 상태
         const userStatus = document.getElementById('detailStatus');
-        userStatus.innerHTML = [
-            {v: 'ACTIVE', t: '활성'},
-            {v: 'INACTIVE', t: '비활성'},
-            {v: 'PENDING', t: '승인대기'}
-        ].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+        // userStatus.innerHTML = [
+        //     {v: 'ACTIVE', t: '활성'},
+        //     {v: 'INACTIVE', t: '비활성'},
+        //     {v: 'PENDING', t: '승인대기'}
+        // ].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+        userStatus.innerHTML = (ENUMS.statuses || [])
+            .map(s => `<option value="${s.name}">${s.description}</option>`)
+            .join('');
         userStatus.value = user.status;
         // 역할 셀렉트
         const roleSelect = document.getElementById('detailRole');
-        roleSelect.innerHTML = [
-            {v: 'TEAM_MEMBER', t: '팀원'},
-            {v: 'TEAM_LEADER', t: '팀장'},
-            {v: 'SUPER_ADMIN', t: '최고관리자'}
-        ].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+        // roleSelect.innerHTML = [
+        //     {v: 'TEAM_MEMBER', t: '팀원'},
+        //     {v: 'TEAM_LEADER', t: '팀장'},
+        //     {v: 'SUPER_ADMIN', t: '최고관리자'}
+        // ].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+        roleSelect.innerHTML = (ENUMS.roles || [])
+            .map(r => `<option value="${r.name}">${r.description}</option>`)
+            .join('');
         roleSelect.value = user.role;
 
         this.renderLeaveBalances(user.leaveBalances || [], false, user.yearNumber);
@@ -75,7 +89,31 @@ class UserDetailManager {
     renderLeaveBalances(balances, editable, yearNumber) {
         const el = document.getElementById('leaveBalances');
         const rows = balances || [];
-        const sum = rows.reduce((a, r) => {
+        // 🔹 parent 기반 정렬 시퀀스 만들기 (ENUMS.leaveTypes의 정의 순서 기준)
+        const {leaveTypes = []} = ensureEnums();
+        const parents = leaveTypes.filter(t => !t.parent).map(t => t.name);
+        const childMap = new Map(); // parent -> [childName...]
+        leaveTypes.forEach(t => {
+            if (t.parent) {
+                if (!childMap.has(t.parent)) childMap.set(t.parent, []);
+                childMap.get(t.parent).push(t.name);
+            }
+        });
+        const seq = [];
+        parents.forEach(p => {
+            seq.push(p);
+            (childMap.get(p) || []).forEach(c => seq.push(c));
+        });
+
+        // 🔹 balances를 seq 순서로 정렬 (seq에 없는 타입은 뒤로)
+        const idx = (code) => {
+            const i = seq.indexOf(code);
+            return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+        };
+        const rowsSorted = rows.slice().sort((a, b) => idx(a.leaveType) - idx(b.leaveType));
+
+        // 합계
+        const sum = rowsSorted.reduce((a, r) => {
             const t = Number(r.totalAllocated ?? 0);
             const u = Number(r.used ?? 0);
             return {total: a.total + t, used: a.used + u};
@@ -97,20 +135,28 @@ class UserDetailManager {
                   </tr>
                 </thead>
                 <tbody>
-                  ${rows.map(r => {
+${rowsSorted.map(r => {
                 const code = r.leaveType;
+                const {leaveTypes = []} = ensureEnums();
+                const meta = leaveTypes.find(t => t.name === code);
+                const isChild = !!meta?.parent;
+                const label = meta?.krName || code;
                 const total = Number(r.totalAllocated ?? 0);
                 const used = Number(r.used ?? 0);
                 const remain = Math.max(0, total - used);
                 const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
                 const yr = r.yearNumber ?? yearNumber ?? '';
                 const yrLabel = yearNumberLabel(yr, yearNumber);
+                // 들여쓰기 라벨 처리 (연차 하위)
+                // const label = mapLeaveType(code);
                 return `
-                      <tr>
-                        <td><span class="lb-type-badge ${mapLeaveClass(code)}">${mapLeaveType(code)}</span></td>
-                        <td class="lb-num lb-unit">${fmt3(total)}</td>
-                        <td class="lb-num lb-unit">${fmt3(used)}</td>
-                        <td class="lb-num lb-unit">${fmt3(remain)}</td>
+                    <tr class="${isChild ? 'lb-child-row' : 'lb-parent-row'}">
+                      <td class="lb-type-cell">
+                        <span class="lb-type-badge ${mapLeaveClass(code)}">${label}</span>
+                       </td>
+                        <td class="lb-num">${formatLeaveDays(total)}</td>
+                        <td class="lb-num">${formatLeaveDays(used)}</td>
+                        <td class="lb-num">${formatLeaveDays(remain)}</td>
                         <td>${yrLabel}</td>
                         <td>
                           <div class="lb-bar"><span style="width:${pct}%"></span></div>
@@ -120,9 +166,9 @@ class UserDetailManager {
             }).join('')}
                   <tr class="lb-total-row">
                     <td>합계</td>
-                    <td class="lb-num lb-unit">${fmt3(sum.total)}</td>
-                    <td class="lb-num lb-unit">${fmt3(sum.used)}</td>
-                    <td class="lb-num lb-unit">${fmt3(sumRemain)}</td>
+                    <td class="lb-num">${formatLeaveDays(sum.total)}</td>
+                    <td class="lb-num">${formatLeaveDays(sum.used)}</td>
+                    <td class="lb-num">${formatLeaveDays(sumRemain)}</td>
                     <td class="lb-num">—</td>
                     <td></td>
                   </tr>
@@ -144,7 +190,7 @@ class UserDetailManager {
             </tr>
           </thead>
           <tbody>
-            ${rows.map(r => {
+            ${rowsSorted.map(r => {
             const code = r.leaveType;
             const total = Number(r.totalAllocated ?? 0);
             const used = Number(r.used ?? 0);
@@ -153,7 +199,7 @@ class UserDetailManager {
             const yrLabel = yearNumberLabel(yr, yearNumber);
             return `
                 <tr>
-                  <td><select class="lb-type">${leaveTypeOptionsHtml(code)}</select></td>
+                  <td class="lb-type-cell"><select class="lb-type">${leaveTypeOptionsHtml(code)}</select></td>
                   <td><input class="lb-total" type="number" step="0.001" min="0" value="${total || ''}"></td>
                   <td class="lb-num lb-unit">${fmt3(used)}</td>
                   <td class="lb-num lb-unit">${fmt3(remain)}</td>
@@ -361,6 +407,19 @@ class UserDetailManager {
             .forEach(id => document.getElementById(id).disabled = !enable);
     }
 
+}
+
+function getEnums() {
+    if (window.ENUMS) return window.ENUMS;                    // 이미 있으면 재사용
+    const el = document.getElementById('enums-data');
+    if (!el) return (window.ENUMS = {roles: [], statuses: [], leaveTypes: []});
+    try {
+        window.ENUMS = JSON.parse(el.textContent.trim());
+    } catch (e) {
+        console.error('ENUM 파싱 오류', e);
+        window.ENUMS = {roles: [], statuses: [], leaveTypes: []};
+    }
+    return window.ENUMS;
 }
 
 /**

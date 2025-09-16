@@ -106,6 +106,24 @@ public class Leave {
         return leave;
     }
 
+    public void updateFrom(UpdateLeaveReqDto reqDto, String currentUsername) {
+        this.leaveType = LeaveTypeEnum.valueOf(reqDto.getLeaveType());
+        this.startDt = DateUtils.toSeoulOffsetDateTime(reqDto.getStartDt());
+        this.endDt = DateUtils.toSeoulOffsetDateTime(reqDto.getEndDt());
+        this.usedDays = reqDto.getUsedDays();
+        this.reason = reqDto.getReason();
+        this.updatedAt = OffsetDateTime.now();
+        this.updatedBy = currentUsername;
+    }
+
+    public void cancel(String actor) {
+        this.status = LeaveStatusEnum.CANCELED;
+        this.updatedAt = OffsetDateTime.now();
+        this.updatedBy = actor;
+        // 필요하면 캘린더 이벤트 아이디를 비우고 싶을 때:
+        // this.calendarEventId = null;
+    }
+
     public void validateUpdatable(LocalDateTime newStart, LocalDateTime newEnd, String newLeaveTypeStr) {
         // 1) 상태 체크
         if (status == LeaveStatusEnum.CANCELED || status == LeaveStatusEnum.REJECTED) {
@@ -151,19 +169,16 @@ public class Leave {
             }
         }
 
-        // 5) (선택) 영업일/공휴일 규칙 검증
-        //    BusinessCalendarService 등을 주입해 쓰지 말고(도메인 순수성),
-        //    서비스 계층에서 먼저 검증 후 이곳에서는 '형식/상태' 위주 검증만 하는 것을 권장.
-        //    필요하면 도메인 서비스(인터페이스)로 추상화.
-
     }
 
-    public void updateFrom(UpdateLeaveReqDto reqDto, String currentUsername) {
-        this.leaveType = LeaveTypeEnum.valueOf(reqDto.getLeaveType());
-        this.startDt = DateUtils.toSeoulOffsetDateTime(reqDto.getStartDt());
-        this.endDt = DateUtils.toSeoulOffsetDateTime(reqDto.getEndDt());
-        this.reason = reqDto.getReason();
-        this.updatedAt = OffsetDateTime.now();
-        this.updatedBy = currentUsername;
+    public void validateCancelable() {
+        if (this.status == LeaveStatusEnum.CANCELED) {
+            throw new IllegalStateException("이미 취소된 연차입니다.");
+        }
+        if (this.endDt != null && this.endDt.isBefore(OffsetDateTime.now())) {
+            throw new IllegalStateException("이미 종료된 연차는 취소할 수 없습니다.");
+        }
     }
+
+
 }

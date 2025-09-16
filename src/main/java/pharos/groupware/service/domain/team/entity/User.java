@@ -155,15 +155,15 @@ public class User {
     }
 
     public void updateByAdmin(UpdateUserByAdminReqDto reqDto, String currentUsername) {
-        if (reqDto.getPhoneNumber() != null) this.phoneNumber = reqDto.getPhoneNumber();
-        if (reqDto.getEmail() != null) this.email = reqDto.getEmail();
-        if (reqDto.getFirstName() != null) this.firstName = reqDto.getFirstName();
-        if (reqDto.getLastName() != null) this.lastName = reqDto.getLastName();
-        if (reqDto.getJoinedDate() != null) this.joinedDate = reqDto.getJoinedDate();
-        if (reqDto.getYearNumber() != null) this.yearNumber = reqDto.getYearNumber();
-        if (reqDto.getRole() != null) this.role = UserRoleEnum.valueOf(reqDto.getRole());
-        if (reqDto.getStatus() != null) this.status = UserStatusEnum.valueOf(reqDto.getStatus());
-        if (reqDto.getTeamId() != null) this.team = new Team(reqDto.getTeamId());
+        this.phoneNumber = reqDto.getPhoneNumber();
+//        this.email = reqDto.getEmail();
+        this.firstName = reqDto.getFirstName();
+        this.lastName = reqDto.getLastName();
+        this.joinedDate = reqDto.getJoinedDate();
+        this.yearNumber = reqDto.getYearNumber();
+        this.role = UserRoleEnum.valueOf(reqDto.getRole());
+        this.status = UserStatusEnum.valueOf(reqDto.getStatus());
+        this.team = new Team(reqDto.getTeamId());
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = currentUsername;
     }

@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public interface UserService {
 
-    void registerPendingUser(PendingUserReqDto createDto);
+    Long registerPendingUser(PendingUserReqDto createDto);
 
     void deleteUser(User user);
 
@@ -27,7 +27,7 @@ public interface UserService {
     Long createUser(CreateUserReqDto createDto, String currentUsername);
 
 
-    User getCurrentUser();
+    User getAuthenticatedUser();
 
     boolean isCurrentUserSuperAdmin();
 

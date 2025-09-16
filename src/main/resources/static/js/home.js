@@ -6,6 +6,7 @@ import {loadPageIntoMainContent, navigateTo, replaceStateAndLoad} from './router
 import {initLeaveEdit} from "./leave-form.js";
 import {initLeaveCreate} from "./create-leave-form.js";
 import {initLeaveCalendarManager} from "./leave-calendar.js";
+import {initAuditLogList} from './audit-log.js';
 
 
 export function setupHomePage() {
@@ -145,10 +146,10 @@ export function loadFeatureScripts(path) {
         initLeaveCreate();
     } else if (path.startsWith('/leaves/') && path !== '/leaves') {
         initLeaveEdit();
+    } else if (path === '/admin/logs') {   // ✅ 감사 로그 페이지
+        initAuditLogList();
+
     }
 }
 
 document.addEventListener('DOMContentLoaded', setupHomePage);
-// // SPA 초기화
-// setupHomePage();
-// window.loadPageIntoMainContent = loadPageIntoMainContent;

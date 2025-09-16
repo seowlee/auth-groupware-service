@@ -50,6 +50,12 @@ nav h1 {
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
+    /*flex: 1; !* 남은 공간 차지 *!*/
+    /*text-align: center; !* 가운데 정렬 *!*/
+    /*font-size: 1rem; !* 화면 줄어들면 글자 작게 *!*/
+    /*white-space: nowrap; !* 줄바꿈 안 되게 *!*/
+    /*overflow: hidden; !* 넘치면 숨김 *!*/
+    /*text-overflow: ellipsis; !* … 표시 *!*/
 }
 
 nav h1::after {
@@ -268,6 +274,9 @@ main p {
 /* 메인 패널 내부 오버레이 토스트 */
 #main-content {
     position: relative;
+    background: #f4f6f8; /* 바디와 동일 */
+    padding: 24px; /* 폼이 벽에 붙지 않게 여백 */
+    border-radius: 12px; /* 카드 느낌 */
 }
 
 .main-float-toast {
@@ -381,6 +390,11 @@ main > * {
 
 /* 모바일 반응형 - 상단 네비게이션으로 변경 */
 @media (max-width: 768px) {
+    :root {
+        --mnav-h: 72px;
+    }
+
+    /* 고정바 실제 높이에 맞춰 조절(64~80px 범위) */
     /* 햄버거 버튼 보이기 */
     .hamburger-btn {
         display: block;
@@ -394,6 +408,7 @@ main > * {
     nav {
         width: 100%;
         height: auto;
+        min-height: var(--mnav-h); /* ✅ 고정바 높이 확보 */
         padding: 1rem;
         background: linear-gradient(90deg, #2d3748 0%, #4a5568 100%);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
@@ -502,7 +517,8 @@ main > * {
 
     main {
         padding: 1rem;
-        padding-top: 5rem;
+        /*padding-top: 5rem;*/
+        padding-top: calc(var(--mnav-h) + 12px); /* ✅ 제목이 가려지지 않게 */
         flex: 1;
         margin: 0;
         border-radius: 0;

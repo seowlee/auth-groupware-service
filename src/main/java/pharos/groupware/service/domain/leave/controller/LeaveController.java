@@ -58,7 +58,7 @@ public class LeaveController {
     @Operation(summary = "연차 수정", description = "기존 연차 정보를 수정합니다.")
     @PostMapping("/{id}")
     public ResponseEntity<String> updateLeave(@PathVariable Long id, @RequestBody UpdateLeaveReqDto reqDto) {
-        leaveService.updateLeave(id, reqDto);
+        Long leaveId = leaveService.updateLeave(id, reqDto);
         return ResponseEntity.ok("연차 수정 완료");
     }
 

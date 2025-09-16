@@ -1,4 +1,6 @@
 <div data-fragment="content" th:fragment="content">
+    <!-- ENUM 데이터를 JS가 읽을 수 있도록 JSON으로 삽입 -->
+    <script id="enums-data" th:utext="${enumsJson}" type="application/json"></script>
     <!-- 탭 네비게이션 -->
     <ul class="tab-nav">
         <li class="active" data-tab="profile">사용자 상세 정보</li>

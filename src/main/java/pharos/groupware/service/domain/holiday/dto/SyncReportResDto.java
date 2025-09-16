@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.calendar.dto;
+package pharos.groupware.service.domain.holiday.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

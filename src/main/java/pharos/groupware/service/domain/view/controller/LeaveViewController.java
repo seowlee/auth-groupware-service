@@ -6,7 +6,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import pharos.groupware.service.common.enums.LeaveStatusEnum;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Controller
 @RequestMapping("/leaves")
@@ -15,7 +19,10 @@ public class LeaveViewController {
     @GetMapping()
     public String showLeaveListPage(HttpServletRequest request, Model model) {
         model.addAttribute("leaveTypes", LeaveTypeEnum.values());
-
+        List<LeaveStatusEnum> leaveStatuses = Arrays.stream(LeaveStatusEnum.values())
+                .filter(s -> s != LeaveStatusEnum.PENDING) // PENDING 숨김
+                .toList();
+        model.addAttribute("leaveStatuses", leaveStatuses);
         String xhr = request.getHeader("X-Requested-With");
         if ("XMLHttpRequest".equalsIgnoreCase(xhr)) {
             return "leave/leave-list :: content";
@@ -38,9 +45,14 @@ public class LeaveViewController {
     @GetMapping("/apply")
     public String showCreateLeaveForm(HttpServletRequest request, Model model) {
         model.addAttribute("mode", "create");
-        model.addAttribute("leaveTypes", LeaveTypeEnum.values());
+        // 정산용 타입 제외
+        List<LeaveTypeEnum> leaveTypes = Arrays.stream(LeaveTypeEnum.values())
+                .filter(t -> t != LeaveTypeEnum.ADVANCE && t != LeaveTypeEnum.BORROWED)
+                .toList();
+        model.addAttribute("leaveTypes", leaveTypes);
 
-        if ("XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))) {
+        String xhr = request.getHeader("X-Requested-With");
+        if ("XMLHttpRequest".equalsIgnoreCase(xhr)) {
             return "leave/create-leave-form :: content";
         }
         return "account/home";

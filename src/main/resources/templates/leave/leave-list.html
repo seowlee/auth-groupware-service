@@ -1,6 +1,6 @@
 <div data-fragment="content" th:fragment="content">
     <div class="list-container">
-        <h1>연차 목록</h1>
+        <h1>연차 신청 내역</h1>
         <!-- 검색/필터 -->
         <div class="search-filter-container">
             <input id="leaveKeyword" placeholder="신청자명 검색" type="text"/>
@@ -9,13 +9,13 @@
             </select>
             <select id="leaveType">
                 <option value="">전체 유형</option>
-                <option th:each="t : ${leaveTypes}" th:text="${t.description}" th:value="${t.name()}"></option>
+                <option th:each="t : ${leaveTypes}" th:text="${t.krName}" th:value="${t.name()}"></option>
             </select>
             <select id="leaveStatus">
                 <option value="">전체 상태</option>
-                <option value="APPROVED">승인</option>
-                <option value="CANCELED">취소</option>
-                <option value="REJECTED">반려</option>
+                <option th:each="s : ${leaveStatuses}"
+                        th:text="${s}"
+                        th:value="${s.name()}"></option>
             </select>
 
             <button class="btn" id="leaveSearchBtn">검색</button>
@@ -57,11 +57,19 @@
                 <span id="paginationInfo">총 0개 항목</span>
             </div>
             <div class="pagination-controls">
-                <button class="btn btn-secondary" id="firstPageBtn">처음</button>
-                <button class="btn btn-secondary" id="prevPageBtn">이전</button>
+                <button class="btn btn-secondary" id="firstPageBtn">
+                    <span class="icon">«</span><span>첫</span>
+                </button>
+                <button class="btn btn-secondary" id="prevPageBtn">
+                    <span class="icon">‹</span><span>이전</span>
+                </button>
                 <span id="currentPageInfo">1 / 1</span>
-                <button class="btn btn-secondary" id="nextPageBtn">다음</button>
-                <button class="btn btn-secondary" id="lastPageBtn">마지막</button>
+                <button class="btn btn-secondary" id="nextPageBtn">
+                    <span>다음</span><span class="icon">›</span>
+                </button>
+                <button class="btn btn-secondary" id="lastPageBtn">
+                    <span>끝</span><span class="icon">»</span>
+                </button>
             </div>
             <div class="page-size-selector">
                 <span>페이지 크기:</span>

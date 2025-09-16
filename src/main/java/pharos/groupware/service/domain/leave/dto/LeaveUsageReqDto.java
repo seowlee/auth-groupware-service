@@ -6,7 +6,7 @@ import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import java.math.BigDecimal;
 
 @Data
-public class ApplyLeaveUsageReqDto {
+public class LeaveUsageReqDto {
     private Long userId;
     private LeaveTypeEnum leaveType;
     private Integer yearNumber;

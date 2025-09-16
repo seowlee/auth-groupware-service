@@ -14,11 +14,14 @@ import java.nio.file.Path;
 public class LeaveBalanceScheduler {
     private final LeaveBalanceService leaveBalanceService;
 
-    @Scheduled(cron = "0 10 3 * * ?", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 5 2 * * ?", zone = "Asia/Seoul")
     public void autoRenew() {
         leaveBalanceService.renewAnnualLeaveForToday();
     }
 
+    /**
+     * 연차 보유량 xlsx export 배치
+     */
     @Scheduled(cron = "0 20 3 1 * ?")
     public void exportMonthly() {
         Path file = leaveBalanceService.exportLatestBalances(null); // 전체 타입

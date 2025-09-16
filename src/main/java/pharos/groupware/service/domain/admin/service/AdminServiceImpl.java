@@ -37,7 +37,7 @@ public class AdminServiceImpl implements AdminService {
         if (!passwordEncoder.matches(reqDto.getPassword(), user.getPassword())) {
             throw new RuntimeException("비밀번호 오류");
         }
-        // ✅ 2. Spring Security 인증 토큰 생성 (getAuthorities() 문제 해결)
+        //  2. Spring Security 인증 토큰 생성 (getAuthorities() 문제 해결)
         // Enum의 이름으로 권한을 생성합니다. 'ROLE_' 접두사는 Spring Security의 규칙입니다.
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user.getUsername(),
@@ -45,7 +45,7 @@ public class AdminServiceImpl implements AdminService {
                 AuthorityUtils.createAuthorityList("ROLE_" + user.getRole().name())
         );
 
-        // ✅ 3. SecurityContext에 인증 정보 등록 -> 이 코드로 인해 세션이 생성됩니다.
+        //  3. SecurityContext에 인증 정보 등록 -> 이 코드로 인해 세션이 생성됩니다.
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtTokenProvider.createAccessToken(user);
         String refreshToken = jwtTokenProvider.createRefreshToken(user);
