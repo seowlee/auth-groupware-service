@@ -36,11 +36,11 @@ public class Leave {
     private User user;
 
     @NotNull
-    @Column(name = "start_time", nullable = false)
+    @Column(name = "start_dt", nullable = false)
     private OffsetDateTime startDt;
 
     @NotNull
-    @Column(name = "end_time", nullable = false)
+    @Column(name = "end_dt", nullable = false)
     private OffsetDateTime endDt;
 
     @Column(name = "used_days", precision = 6, scale = 3, nullable = false)

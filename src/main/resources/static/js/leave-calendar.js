@@ -4,15 +4,18 @@ import {showMessage} from './list-form-common.js';
 
 let _leaveCalendarManager = null;
 
-export function initLeaveCalendarManager() {
+export function initLeaveCalendarManager(onRowClick = (leaveId) => {
+    navigateTo(`/leaves/${leaveId}`);
+}) {
     if (!_leaveCalendarManager) {
-        _leaveCalendarManager = new LeaveCalendarManager();
+        _leaveCalendarManager = new LeaveCalendarManager(onRowClick);
     }
     return _leaveCalendarManager.init();
 }
 
 class LeaveCalendarManager {
-    constructor() {
+    constructor(onRowClick) {
+        this.onRowClick = onRowClick;
         this.apiPrefix = '/api';
         this.calendar = null;
         this.filters = {teamId: '', type: '', status: ''};
@@ -85,16 +88,78 @@ class LeaveCalendarManager {
                 }),
                 failure: () => showMessage?.('연차 이벤트 로딩 실패', 'error')
             },
-
+            // 공휴일(배경) — FullCalendar가 start/end를 자동으로 전달
+            eventSources: [
+                {
+                    url: `${this.apiPrefix}/holidays`,
+                    method: 'GET',
+                    // v6: 소스별 변환 함수는 eventDataTransform 사용
+                    eventDataTransform: (h) => {
+                        // end는 '다음날 0시(배타)'로 맞춰줘야 셀 전체가 칠해짐
+                        const add1 = (ds) => {
+                            const d = new Date(ds + 'T00:00:00');
+                            d.setDate(d.getDate() + 1);
+                            return d.toISOString().slice(0, 10);
+                        };
+                        return {
+                            title: '',
+                            start: h.date,
+                            end: add1(h.date),
+                            display: 'background',
+                            classNames: ['holiday-bg'],
+                            extendedProps: {holidayName: h.name}
+                        };
+                    }
+                }
+            ],
             // 클릭 시 상세로 이동
             eventClick: (info) => {
+                if (info.event.display === 'background') return; // 공휴일 클릭 무시
                 const id = info.event.id;
-                if (id) navigateTo(`/leave/${id}`);
+                if (id && this.onRowClick) this.onRowClick(id);
             },
 
             eventDidMount: (info) => {
-                // 툴팁 title 보강(선택)
-                const s = info.event.extendedProps?.extendedProps_status;
+                if (info.event.display === 'background') {
+                    // 공휴일: 셀 자체에 표시 강화 (배경 + 뱃지)
+                    const name = info.event.extendedProps?.holidayName || '';
+                    if (name) info.el.title = name;
+                    const cell = info.el.closest('.fc-daygrid-day');
+                    if (cell && !cell.classList.contains('is-holiday')) {
+                        cell.classList.add('is-holiday');
+                        const top = cell.querySelector('.fc-daygrid-day-top');
+                        if (top) {
+                            const badge = document.createElement('div');
+                            badge.className = 'holiday-badge';
+                            badge.textContent = info.event.title;
+                            badge.textContent = name;
+                            top.appendChild(badge);
+                        }
+                    }
+                    return;
+                }
+                const statusColor = {
+                    APPROVED: '#22c55e', // green
+                    PENDING: '#f59e0b', // amber
+                    REJECTED: '#ef4444', // red
+                    CANCELED: '#9ca3af'  // gray
+                };
+                const typeColor = {
+                    ANNUAL: '#3b82f6', // blue
+                    SICK: '#06b6d4', // cyan
+                    BIRTHDAY: '#a855f7', // purple
+                    ADVANCE: '#10b981'  // emerald
+                };
+
+                const s = info.event.extendedProps?.status; // ← extendedProps.status 로 접근
+                const t = info.event.extendedProps?.type;
+
+                const color = statusColor[s] || typeColor[t];
+                if (color) {
+                    info.el.style.backgroundColor = color;
+                    info.el.style.borderColor = color;
+                    info.el.style.color = '#fff';
+                }
                 if (s) info.el.title = `${info.event.title} · ${s}`;
             }
         });

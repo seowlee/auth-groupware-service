@@ -23,7 +23,7 @@ public class UserResDto {
         dto.setStatus(user.getStatus().name());
         dto.setJoinedDate(user.getJoinedDate().toString()); // ISO 8601 기본 포맷
         dto.setTeamId(user.getTeam().getId());
-        dto.setTeamName(user.getTeam().getName());
+        dto.setTeamName(user.getTeam().getKrName());
         return dto;
     }
 }

@@ -1,7 +1,9 @@
 spring:
   application:
     name: auth-groupware
-
+  config:
+    activate:
+      on-profile: prod
   datasource:
     url: jdbc:postgresql://localhost:5432/groupware_db?options=-c%20TimeZone=Asia/Seoul
     username: myuser
@@ -17,6 +19,11 @@ spring:
         default_schema: groupware
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  flyway:
+    enabled: true
+    schemas: groupware
+    baseline-on-migrate: true
+    table: flyway_schema_history
   # 1) Spring Security OAuth2 Client / Resource Server 설정
   security:
     oauth2:
@@ -34,14 +41,14 @@ spring:
             provider: keycloak
         provider:
           keycloak:
-            issuer-uri: http://localhost:8080/realms/groupware
+            issuer-uri: http://localhost:8081/realms/groupware
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/groupware
+          issuer-uri: http://localhost:8081/realms/groupware
 
 # 2) Keycloak Admin API 사용을 위한 설정
 keycloak:
-  auth-server-url: http://localhost:8080
+  auth-server-url: http://localhost:8081
   realm: groupware
   client-id: groupware-app
   client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
@@ -82,4 +89,4 @@ springdoc:
     tagsSorter: alpha
 
 server:
-  port: 8081
+  port: 8080

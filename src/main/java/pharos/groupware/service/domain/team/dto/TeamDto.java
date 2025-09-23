@@ -5,6 +5,6 @@ import pharos.groupware.service.domain.team.entity.Team;
 
 public record TeamDto(Long id, String name) {
     public static TeamDto from(Team team) {
-        return new TeamDto(team.getId(), team.getName());
+        return new TeamDto(team.getId(), team.getKrName());
     }
 }

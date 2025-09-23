@@ -19,10 +19,7 @@ import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import pharos.groupware.service.domain.audit.service.AuditLogService;
 import pharos.groupware.service.domain.holiday.entity.PublicHolidayRepository;
 import pharos.groupware.service.domain.holiday.service.WorkDayService;
-import pharos.groupware.service.domain.leave.dto.CreateLeaveReqDto;
-import pharos.groupware.service.domain.leave.dto.LeaveDetailResDto;
-import pharos.groupware.service.domain.leave.dto.LeaveSearchReqDto;
-import pharos.groupware.service.domain.leave.dto.UpdateLeaveReqDto;
+import pharos.groupware.service.domain.leave.dto.*;
 import pharos.groupware.service.domain.leave.entity.Leave;
 import pharos.groupware.service.domain.leave.entity.LeaveRepository;
 import pharos.groupware.service.domain.team.entity.User;
@@ -31,6 +28,10 @@ import pharos.groupware.service.domain.team.service.UserService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static pharos.groupware.service.common.util.AuditLogUtils.details;
@@ -284,5 +285,47 @@ public class LeaveServiceImpl implements LeaveService {
             throw new IllegalArgumentException("연차 취소에 실패했습니다.");
         }
         log.info("Canceled leave id={} (userId={}, usedDays={})", leave.getId(), applicantUser.getId(), usedDays);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventResDto> getCalendarEvents(
+            Long teamId,
+            LeaveTypeEnum type,
+            LeaveStatusEnum status,
+            OffsetDateTime start,
+            OffsetDateTime end
+    ) {
+        // 1) 현재 사용자가 SUPER_ADMIN 인지 판단
+        boolean isSuperAdmin = userService.isCurrentUserSuperAdmin();
+
+        // 2) 노출 허용 상태 집합
+        Set<LeaveStatusEnum> allowed = isSuperAdmin
+                ? EnumSet.allOf(LeaveStatusEnum.class)
+                : EnumSet.of(LeaveStatusEnum.APPROVED, LeaveStatusEnum.PENDING);
+
+        // 3) 클라이언트가 상태 필터를 넣어온 경우에도 "허용 집합"과 교집합만 허용
+        if (status != null && allowed.contains(status)) {
+            allowed = EnumSet.of(status);
+        } else if (status != null && !allowed.contains(status)) {
+            // 비허용 상태를 요청하면 결과를 비워 버림
+            return List.of();
+        }
+//        final Set<LeaveStatusEnum> allowedFinal = allowed; // 람다용 final 복사
+        // 4) 조회 후 상태 필터링 (레포지토리 변경 없이 동작)
+        var rows = leaveRepository.findAllForCalendar(teamId, type, allowed, start, end);
+        return rows.stream().map(l -> {
+            var user = l.getUser();
+            String title = user.getUsername() + " · " + l.getLeaveType().getKrName();
+            return CalendarEventResDto.builder()
+                    .id(String.valueOf(l.getId()))
+                    .title(title)
+                    .start(l.getStartDt().toString())
+                    .end(l.getEndDt().toString())
+                    .status(l.getStatus().name())
+                    .type(l.getLeaveType().name())
+                    .userName(user.getUsername())
+                    .build();
+        }).toList();
     }
 }

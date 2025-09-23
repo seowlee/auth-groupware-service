@@ -10,9 +10,9 @@ import pharos.groupware.service.common.enums.AuditActionEnum;
 import pharos.groupware.service.common.enums.AuditStatusEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
+import pharos.groupware.service.common.util.CommonUtils;
 import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.common.util.PartitionUtils;
-import pharos.groupware.service.common.util.PhoneNumberUtils;
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
 import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
 import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
@@ -290,7 +290,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     public void registerOrLinkSocialUser(PendingUserReqDto reqDto) {
         try {
 
-            String normalizedPhone = PhoneNumberUtils.normalize(reqDto.getPhoneNumber());
+            String normalizedPhone = CommonUtils.phoneNumberNormalize(reqDto.getPhoneNumber());
             String kakaoSub = reqDto.getProviderUserId();
 
 //        if (normalizedPhone == null || normalizedPhone.isBlank()) {

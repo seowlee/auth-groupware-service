@@ -146,7 +146,7 @@ export function loadFeatureScripts(path) {
         initLeaveCreate();
     } else if (path.startsWith('/leaves/') && path !== '/leaves') {
         initLeaveEdit();
-    } else if (path === '/admin/logs') {   // ✅ 감사 로그 페이지
+    } else if (path === '/admin/logs') {   // 감사 로그 페이지
         initAuditLogList();
 
     }

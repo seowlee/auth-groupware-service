@@ -6,7 +6,7 @@ import {showLoading, showMessage} from "./list-form-common.js";
 let _leaveListManager = null;
 
 export function initLeaveListManager(onRowClick = (leaveId) => {
-    navigateTo(`/leave/${leaveId}`);
+    navigateTo(`/leaves/${leaveId}`);
 }) {
     if (!_leaveListManager) {
         _leaveListManager = new LeaveListManager(onRowClick);

@@ -54,7 +54,7 @@ public class IdpLinkServiceImpl implements IdpLinkService {
                     )
             );
         } catch (Exception e) {
-            // ✅ 실패 감사로그 (actor는 본인)
+            // 실패 감사로그 (actor는 본인)
             auditLogService.saveLog(
                     user.getId(),
                     user.getUsername(),

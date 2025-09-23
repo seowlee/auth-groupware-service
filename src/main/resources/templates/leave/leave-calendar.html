@@ -4,28 +4,26 @@
 
         <!-- 검색/필터 섹션: 목록과 톤 맞춤 -->
         <div class="search-filter-container">
-            <div class="filters-row">
-                <select id="calTeamFilter">
-                    <option value="">전체 팀</option>
-                    <!-- JS에서 팀 옵션 렌더 -->
-                </select>
+            <select id="calTeamFilter">
+                <option value="">전체 팀</option>
+                <!-- JS에서 팀 옵션 렌더 -->
+            </select>
 
-                <select id="calTypeFilter">
-                    <option value="">전체 유형</option>
-                    <option th:each="t : ${leaveTypes}" th:text="${t.krName}" th:value="${t.name()}"></option>
-                    <!-- 필요 타입 추가 -->
-                </select>
+            <select id="calTypeFilter">
+                <option value="">전체 유형</option>
+                <option th:each="t : ${leaveTypes}" th:text="${t.krName}" th:value="${t.name()}"></option>
+                <!-- 필요 타입 추가 -->
+            </select>
 
-                <select id="calStatusFilter">
-                    <option value="">전체 상태</option>
-                    <option value="APPROVED">승인</option>
-                    <option value="PENDING">대기</option>
-                    <option value="REJECTED">반려</option>
-                </select>
+            <select id="calStatusFilter">
+                <option value="">전체 상태</option>
+                <option value="APPROVED">승인</option>
+                <option value="PENDING">대기</option>
+                <option value="REJECTED">반려</option>
+            </select>
 
-                <button class="btn btn-primary" id="calSearchBtn">검색</button>
-                <button class="btn btn-secondary" id="calResetBtn">초기화</button>
-            </div>
+            <button class="btn btn-primary" id="calSearchBtn">검색</button>
+            <button class="btn btn-secondary" id="calResetBtn">초기화</button>
         </div>
 
         <!-- 캘린더 영역 -->

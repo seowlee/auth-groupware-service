@@ -6,7 +6,7 @@ class CreateLeaveFormManager {
         this.form = null;
         this.applicantSel = null;
         this.isSuperAdmin = false;
-
+        this.holidayMap = null; // Map('YYYY-MM-DD' -> '휴일명')
     }
 
     async init() {
@@ -25,7 +25,8 @@ class CreateLeaveFormManager {
         if (this.isSuperAdmin) {
             await this.loadApplicants(); // 필요 시 defaultUuid를 인자로 넘기기
         }
-        this.bindEvents();
+        this.bindEvents();             // 이벤트 바인딩(힌트/차단 포함)
+        await this.initDatePickers(); // Air Datepicker 달력 구동
     }
 
     /**
@@ -59,8 +60,124 @@ class CreateLeaveFormManager {
         this.form.addEventListener("submit", this.handleSubmit.bind(this));
         const cancelBtn = document.getElementById("cancelFormBtn");
         if (cancelBtn) cancelBtn.addEventListener("click", this.onCancelBtnClick.bind(this));
+        //  시작일 변경 시, 종료일 최소값을 시작일로 묶기
+        // const s = document.getElementById("startDate");
+        // const e = document.getElementById("endDate");
+        // // const sHint = document.getElementById("startDateHint");
+        // // const eHint = document.getElementById("endDateHint");
+        // if (s && e) {
+        //         const syncMin = () => {
+        //             if (s.value) e.min = s.value;         // 종료일은 시작일 이후만
+        //             if (e.value && s.value && e.value < s.value) {
+        //                 e.value = s.value;                   // 잘못 선택되어 있으면 맞춰주기
+        //             }
+        //             // this.updateDateHint(s, sHint);
+        //             // this.updateDateHint(e, eHint);
+        //         };
+        //         s.addEventListener("change", syncMin);
+        //         // e.addEventListener("change", () => this.updateDateHint(e, eHint));
+        //         // 초기 1회 동기화
+        //         syncMin();
+        //
+        // }
     }
 
+    /** 올해+내년 공휴일을 로드해 Map(date→name)으로 캐시 */
+    async loadHolidayMap() {
+        if (this._holidayMap) return this._holidayMap;
+        const y = new Date().getFullYear();
+        const fetchYear = async (yy) => (await (await fetch(`/api/holidays/year/${yy}`)).json());
+        const [a, b] = await Promise.all([fetchYear(y), fetchYear(y + 1)]);
+        this._holidayMap = new Map([...a, ...b].map(h => [h.date, h.name]));
+        return this._holidayMap;
+    }
+
+    /** Flatpickr 초기화: 공휴일/주말 비활성 + 시작 선택 시 종료 minDate 연동 */
+    async initDatePickers() {
+        if (!window.flatpickr) return;
+        const sEl = document.getElementById("startDate");
+        const eEl = document.getElementById("endDate");
+        if (!sEl || !eEl) return;
+
+        flatpickr.localize(flatpickr.l10ns.ko);
+        const holidayMap = await this.loadHolidayMap();
+        const fmtLocal = (d) => {
+            const p = (n) => (n < 10 ? "0" + n : "" + n);
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+        };
+        const isHoliday = (d) => holidayMap.has(fmtLocal(d));
+        const isWeekend = (d) => [0, 6].includes(d.getDay());
+
+        // 🔒 정책: 무엇을 막을지 선택 (둘 다 true 권장)
+        const BLOCK_HOLIDAYS = true;
+        const BLOCK_WEEKENDS = true;
+
+        // disable 규칙(Flatpickr는 true를 반환하면 그 날짜를 비활성화함)
+        const disableFn = (d) =>
+            (BLOCK_WEEKENDS && isWeekend(d)) ||
+            (BLOCK_HOLIDAYS && isHoliday(d));
+
+        // 셀에 시각적 표시(주말/공휴일 클래스 + 툴팁)
+        const decorate = (dObj, dStr, fp, dayElem) => {
+            const d = dayElem.dateObj;
+            if (isWeekend(d)) dayElem.classList.add('fp-weekend');
+            if (isHoliday(d)) {
+                dayElem.classList.add('fp-holiday');
+                dayElem.title = holidayMap.get(fmtLocal(d)) || '공휴일';
+            }
+        };
+
+        // 현재 시작값(있으면) → 로컬 00:00으로 정규화
+        const parseYmd = (v) => v ? new Date(v + 'T00:00') : null;
+        const toLocalMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        let startMin = parseYmd(sEl.value);            // 시작일 최소값(동적으로 바뀜)
+        if (startMin) startMin = toLocalMidnight(startMin);
+
+        // 종료 달력에서 "시작일 이전"을 막기 위한 동적 disable 함수
+        const beforeStartFn = (d) => (startMin ? d < startMin : false);
+        const endPicker = flatpickr(eEl, {
+            dateFormat: 'Y-m-d',
+            minDate: startMin || 'today',
+            disable: [disableFn, beforeStartFn],  // 🔒 주말/공휴일 + 시작일 이전 모두 차단
+            onDayCreate: decorate,
+            onReady: (_sd, _ds, fp) => fp.calendarContainer.classList.add('end-cal'),
+            onOpen: () => {                 // 열릴 때 현재 시작일 기준으로 뷰 이동
+                const v = sEl.value;
+                if (v) endPicker.jumpToDate(new Date(v + 'T00:00'));
+            },
+            disableMobile: true,              // 모바일도 일관된 UI
+            position: 'auto center',
+            prevArrow: '‹', nextArrow: '›'
+        });
+
+        const startPicker = flatpickr(sEl, {
+            dateFormat: 'Y-m-d',
+            disable: [disableFn],
+            onDayCreate: decorate,
+            onChange: ([d]) => {
+                if (!d) return;
+                endPicker.set('minDate', d);   // 제한만 바꾸고
+                endPicker.clear();             // 종료일 값은 비우기(다시 고르게)
+                endPicker.jumpToDate(d);       // 뷰를 시작일 위치로 이동
+            },
+            onReady: (_sd, _ds, fp) => fp.calendarContainer.classList.add('start-cal'),
+            disableMobile: true,
+            position: 'auto center',
+            prevArrow: '‹', nextArrow: '›'
+        });
+
+        // 폼이 열릴 때부터 시작값이 있었던 경우 초기 동기화
+        if (startMin) {
+            endPicker.set('disable', [disableFn, beforeStartFn]);
+            endPicker.clear();
+            endPicker.jumpToDate(startMin);
+        }
+        // 🔘 아이콘 버튼으로 달력 열기
+        const sBtn = sEl.closest('.date-field')?.querySelector('.calendar-btn');
+        if (sBtn) sBtn.addEventListener('click', () => startPicker.open());
+        const eBtn = eEl.closest('.date-field')?.querySelector('.calendar-btn');
+        if (eBtn) eBtn.addEventListener('click', () => endPicker.open());
+    }
 
     collectFormData() {
         const startDateTime = `${document.getElementById("startDate")?.value}T${document.getElementById("startTime")?.value}`;
@@ -193,6 +310,40 @@ class CreateLeaveFormManager {
         navigateTo("/leaves");
 
     }
+
+    // /** 입력값이 주말/공휴일인지 힌트 UI 갱신 + (옵션) 차단 */
+    // updateDateHint(inputEl, hintEl) {
+    //     if (!inputEl || !hintEl) return;
+    //     const v = inputEl.value;
+    //     hintEl.textContent = '';
+    //     hintEl.className = 'field-hint';
+    //     inputEl.setCustomValidity(''); // reset
+    //     if (!v) return;
+    //
+    //     const d = new Date(v + 'T00:00:00');
+    //     const isWeekend = [0, 6].includes(d.getDay()); // 일(0), 토(6)
+    //     const holidayName = this.holidayMap?.get(v) || '';
+    //
+    //     // 정책: 표시만 할지, 선택 차단까지 할지
+    //     const BLOCK_WEEKENDS = false;   // 주말 선택 금지하려면 true
+    //     const BLOCK_HOLIDAYS = false;   // 공휴일 선택 금지하려면 true
+    //
+    //     if (isWeekend) {
+    //         hintEl.classList.add('is-weekend');
+    //         hintEl.textContent = '주말';
+    //         if (BLOCK_WEEKENDS) {
+    //             inputEl.setCustomValidity('주말은 선택할 수 없습니다.');
+    //         }
+    //     }
+    //     if (holidayName) {
+    //         hintEl.classList.remove('is-weekend');
+    //         hintEl.classList.add('is-holiday');
+    //         hintEl.innerHTML = `공휴일 <span class="badge">${holidayName}</span>`;
+    //         if (BLOCK_HOLIDAYS) {
+    //             inputEl.setCustomValidity('공휴일은 선택할 수 없습니다.');
+    //         }
+    //     }
+    // }
 
 }
 

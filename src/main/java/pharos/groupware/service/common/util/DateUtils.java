@@ -1,8 +1,5 @@
 package pharos.groupware.service.common.util;
 
-import jakarta.validation.constraints.NotNull;
-
-import java.math.BigDecimal;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
@@ -49,10 +46,15 @@ public final class DateUtils {
         return holidays.contains(date);
     }
 
-    public static BigDecimal calculateLeaveDays(@NotNull LocalDateTime startDt, @NotNull LocalDateTime endDt) {
-        return BigDecimal.ONE;
+
+    public static LocalDate parseToDate(String s, boolean startOfDay) {
+        try {
+            return OffsetDateTime.parse(s).toLocalDate();
+        } catch (Exception ignore) {
+            return LocalDate.parse(s);
+        }
     }
-    
+
     public static LocalDateTime max(LocalDateTime a, LocalDateTime b) {
         return (a.isAfter(b)) ? a : b;
     }

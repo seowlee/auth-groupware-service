@@ -4,20 +4,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pharos.groupware.service.common.util.LeaveUtils;
-import pharos.groupware.service.domain.holiday.entity.PublicHoliday;
 import pharos.groupware.service.domain.holiday.entity.PublicHolidayRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class WorkDayServiceImpl implements WorkDayService {
     private final PublicHolidayRepository publicHolidayRepository;
-
+    private final PublicHolidayService holidayService;
     /**
      * 주말/공휴일 제외 근무일 여부
      */
@@ -33,14 +31,15 @@ public class WorkDayServiceImpl implements WorkDayService {
     @Override
     @Transactional(readOnly = true)
     public Set<LocalDate> holidaysFor(LocalDate start, LocalDate end) {
-        Set<LocalDate> out = new HashSet<>();
-        int y1 = start.getYear(), y2 = end.getYear();
-        for (int y = y1; y <= y2; y++) {
-            publicHolidayRepository.findAllByYear(y)
-                    .stream().map(PublicHoliday::getHolidayDate)
-                    .forEach(out::add);
-        }
-        return out;
+//        Set<LocalDate> out = new HashSet<>();
+//        int y1 = start.getYear(), y2 = end.getYear();
+//        for (int y = y1; y <= y2; y++) {
+//            publicHolidayRepository.findAllByYear(y)
+//                    .stream().map(PublicHoliday::getHolidayDate)
+//                    .forEach(out::add);
+//        }
+//        return out;
+        return holidayService.dateSetSpanningYears(start, end);
     }
 
     /**

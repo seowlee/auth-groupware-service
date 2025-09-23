@@ -22,8 +22,11 @@ public class Team {
 
     @Size(max = 100)
     @NotNull
-    @Column(name = "name", nullable = false, length = 100)
-    private String name;
+    @Column(name = "kr_name", nullable = false, length = 100)
+    private String krName;
+
+    @Column(name = "en_name", nullable = false, length = 100)
+    private String enName;
 
     @ColumnDefault("now()")
     @Column(name = "created_at")

@@ -1,0 +1,210 @@
+/* 현재 달의 날짜 숫자 더 진하게 */
+.fc .fc-daygrid-day-number {
+    color: #374151; /* gray-700 */
+    font-weight: 600;
+}
+
+/* 다른 달(그레이아웃)만 옅게 */
+.fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+    color: #cbd5e1; /* slate-300 */
+}
+
+/* 요일 헤더도 또렷하게 */
+.fc .fc-col-header-cell-cushion {
+    color: #374151;
+    font-weight: 700;
+}
+
+/* 주말 색상 */
+.fc-day-sat {
+    background: rgba(59, 130, 246, .06);
+}
+
+.fc-day-sun {
+    background: rgba(239, 68, 68, .07);
+}
+
+.fc-day-sat .fc-daygrid-day-number {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+.fc-day-sun .fc-daygrid-day-number {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+/* 공휴일(배경 이벤트 기본색) */
+.fc-event.holiday-bg,
+.fc-daygrid-event.holiday-bg {
+    background: rgba(244, 63, 94, .12) !important;
+    border: none !important;
+}
+
+.fc-bg-event .fc-event-title,
+.fc-daygrid-bg-harness .fc-event-title {
+    display: none !important;
+}
+
+/* 공휴일 셀 강조(가독성 업) — JS가 is-holiday 클래스를 셀에 붙임 */
+.fc-daygrid-day {
+    position: relative;
+}
+
+.fc-daygrid-day.is-holiday {
+    background: linear-gradient(180deg, rgba(254, 226, 226, .55) 0%, rgba(254, 226, 226, .28) 100%) !important;
+}
+
+.fc-daygrid-day.is-holiday .fc-daygrid-day-number {
+    color: #dc2626; /* red-600 */
+    font-weight: 700;
+}
+
+.fc-daygrid-day.is-holiday .holiday-badge {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    font-size: 10px;
+    line-height: 1;
+    background: #fee2e2; /* red-100 */
+    color: #b91c1c; /* red-700 */
+    padding: 2px 5px;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: .95;
+}
+
+
+/* 날짜 필드 아래 공휴일/주말 안내 */
+.field-hint {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280; /* gray-500 */
+}
+
+.field-hint.is-weekend {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+/* 파란 주말 표시 */
+.field-hint.is-holiday {
+    color: #b91c1c;
+    font-weight: 700; /* 빨간 공휴일 */
+}
+
+.field-hint .badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #fee2e2;
+    color: #b91c1c; /* red-100/700 */
+    font-weight: 700;
+}
+
+/* 래퍼 + 아이콘 버튼 */
+.date-field {
+    position: relative;
+}
+
+/*.date-field .date-input {*/
+/*    padding-right: 44px;*/
+/*    cursor: pointer;*/
+/*    line-height: normal;*/
+/*}*/
+
+/* 인풋+아이콘 래퍼 */
+.date-input-wrap {
+    position: relative;
+    display: block;
+}
+
+.date-input {
+    padding-right: 44px;
+    cursor: pointer;
+    line-height: normal;
+}
+
+/* 아이콘: 완전 중앙 정렬 + 클릭 막지 않음 */
+.date-input-wrap .calendar-ico {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%); /* 세로 정확히 중앙 */
+    width: 24px;
+    height: 24px;
+    pointer-events: none; /* 아이콘 위 클릭도 input으로 전달 */
+    opacity: .8;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' fill='none' stroke='%2394a3b8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E") no-repeat center/20px 20px;
+}
+
+/* Flatpickr 미니멀 커스텀(테마 위에 오버라이드) */
+.flatpickr-calendar {
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, .14);
+}
+
+/* 종료 달력에서 오늘 표시(테두리/색/두께) 완전히 제거 + 비활성 색 적용 */
+.flatpickr-calendar.end-cal .flatpickr-day.today:not(.selected) {
+    box-shadow: none !important;
+    color: inherit !important;
+    font-weight: 400 !important;
+}
+
+.flatpickr-calendar.end-cal .flatpickr-day.today.flatpickr-disabled {
+    color: #cbd5e1 !important; /* 회색으로 흐리게 */
+    font-weight: 400 !important;
+}
+
+
+.flatpickr-months {
+    font-weight: 700;
+}
+
+.flatpickr-day {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.flatpickr-day.selected {
+    box-shadow: 0 6px 14px rgba(37, 99, 235, .35);
+}
+
+.flatpickr-day.today:not(.selected) {
+    box-shadow: inset 0 0 0 2px #2563eb;
+    color: #2563eb;
+}
+
+/* 주말 텍스트 컬러 */
+.flatpickr-day:nth-child(7n+1) {
+    color: #ef4444;
+}
+
+/* 일 */
+.flatpickr-day:nth-child(7n) {
+    color: #2563eb;
+}
+
+/* 토 */
+
+/* 우리가 붙이는 주말/공휴일 표시 */
+.fp-weekend {
+    background: rgba(59, 130, 246, .10) !important;
+}
+
+.fp-holiday {
+    background: rgba(244, 63, 94, .15) !important;
+}
+
+.flatpickr-day.fp-holiday::after {
+    content: "";
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+}

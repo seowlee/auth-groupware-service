@@ -36,7 +36,7 @@ public class UserDetailResDto {
         dto.setRole(user.getRole().name());
         dto.setStatus(user.getStatus().name());
         dto.setTeamId(user.getTeam().getId());
-        dto.setTeamName(user.getTeam().getName());
+        dto.setTeamName(user.getTeam().getKrName());
         return dto;
     }
 

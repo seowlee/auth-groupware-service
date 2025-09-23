@@ -3,6 +3,7 @@ package pharos.groupware.service.domain.holiday.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pharos.groupware.service.domain.holiday.dto.HolidayKey;
 import pharos.groupware.service.domain.holiday.dto.SyncReportResDto;
 import pharos.groupware.service.domain.holiday.entity.PublicHoliday;
 import pharos.groupware.service.domain.holiday.entity.PublicHolidayRepository;
@@ -11,6 +12,8 @@ import pharos.groupware.service.infrastructure.publicapi.HolidayOpenApiClient;
 
 import java.time.LocalDate;
 import java.util.*;
+
+import static pharos.groupware.service.common.util.CommonUtils.parseSeq;
 
 @Service
 @RequiredArgsConstructor
@@ -66,24 +69,26 @@ public class PublicHolidaySyncServiceImpl implements PublicHolidaySyncService {
             return SyncReportResDto.fail(year, "API returned empty list");
         }
 
-        // 1) API -> (날짜 -> 아이템) 정리
-        Map<LocalDate, HolidayApiItem> apiMap = new LinkedHashMap<>();
+        // 1) API -> (date, seq) 기준으로 정리
+        Map<HolidayKey, HolidayApiItem> apiByKey = new LinkedHashMap<>();
         for (HolidayApiItem it : items) {
             LocalDate d = HolidayOpenApiClient.toDate(it.getLocdate());
-            if (d != null) apiMap.put(d, it); // 중복 날짜 있으면 마지막 값으로 덮음
+            if (d == null) continue;
+            short seq = parseSeq(it.getSeq());
+            apiByKey.put(new HolidayKey(d, seq), it);
         }
 
         // 2) DB에 이미 있는 날짜 수집
-        Set<LocalDate> existingDates = repository.findAllDatesByYear(year);
+        Set<HolidayKey> existingDates = repository.findAllKeysByYear(year);
 
-        // 3) 없는 날짜만 rows 생성
+        // 3) 신규 공휴일 탐지
         List<PublicHoliday> toInsert = new ArrayList<>();
-        for (Map.Entry<LocalDate, HolidayApiItem> e : apiMap.entrySet()) {
-            if (existingDates.contains(e.getKey())) continue; // 이미 있으면 skip
+        for (Map.Entry<HolidayKey, HolidayApiItem> e : apiByKey.entrySet()) {
+            HolidayKey key = e.getKey();
+            if (existingDates.contains(key)) continue; // 이미 있으면 skip
 
             HolidayApiItem it = e.getValue();
-            short seq = Short.parseShort(it.getSeq());
-            toInsert.add(PublicHoliday.of(e.getKey(), it.getDateName(), seq, year));
+            toInsert.add(PublicHoliday.of(key.date(), it.getDateName(), key.seq(), year));
         }
 
         // 4) 저장
@@ -91,6 +96,6 @@ public class PublicHolidaySyncServiceImpl implements PublicHolidaySyncService {
             repository.saveAll(toInsert);
         }
 
-        return SyncReportResDto.ok(year, toInsert.size(), 0, apiMap.size());
+        return SyncReportResDto.ok(year, toInsert.size(), 0, items.size());
     }
 }
