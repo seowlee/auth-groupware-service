@@ -1,6 +1,6 @@
 // src/js/user-list.js
-import {PaginationManager} from './pagination.js';
-import {navigateTo} from './router.js';
+import {PaginationManager} from "./pagination.js";
+import {navigateTo} from "./core/router.js";
 import {showLoading, showMessage} from "./list-form-common.js";
 
 let _userListManager = null;
@@ -71,9 +71,11 @@ class UserListManager {
             const res = await fetch(`/api/team/users?${params}`);
             if (!res.ok) throw new Error();
             const data = await res.json();
+            // const data = await fetchWithCsrf(`/api/team/users?${params}`);
             this.renderUsers(data.content);
             this.pagination.updatePagination(data);
-        } catch {
+        } catch (e) {
+            console.error('[loadUsers] failed:', e);
             showMessage('사용자 목록 로딩 실패', 'error');
         } finally {
             showLoading(false);

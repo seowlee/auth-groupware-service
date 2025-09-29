@@ -31,9 +31,12 @@ public interface UserService {
 
     boolean isCurrentUserSuperAdmin();
 
+    boolean isCurrentUserTeamLead();
+    
     void linkKakaoLocally(User existingUser, String kakaoSub);
 
     void activate(User user);
 
     void update(User user, UpdateUserByAdminReqDto reqDto);
+
 }

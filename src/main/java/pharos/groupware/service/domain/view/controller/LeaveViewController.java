@@ -22,6 +22,8 @@ public class LeaveViewController {
         List<LeaveStatusEnum> leaveStatuses = Arrays.stream(LeaveStatusEnum.values())
                 .filter(s -> s != LeaveStatusEnum.PENDING) // PENDING 숨김
                 .toList();
+        // TODO: session
+//        request.getSession().setAttribute("userdto", userDto);
         model.addAttribute("leaveStatuses", leaveStatuses);
         String xhr = request.getHeader("X-Requested-With");
         if ("XMLHttpRequest".equalsIgnoreCase(xhr)) {

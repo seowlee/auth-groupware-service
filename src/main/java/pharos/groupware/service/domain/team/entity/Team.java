@@ -2,11 +2,9 @@ package pharos.groupware.service.domain.team.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
@@ -20,7 +18,6 @@ public class Team {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Size(max = 100)
     @NotNull
     @Column(name = "kr_name", nullable = false, length = 100)
     private String krName;
@@ -28,21 +25,15 @@ public class Team {
     @Column(name = "en_name", nullable = false, length = 100)
     private String enName;
 
-    @ColumnDefault("now()")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @ColumnDefault("now()")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 

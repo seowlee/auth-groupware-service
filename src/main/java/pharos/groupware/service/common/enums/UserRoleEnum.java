@@ -16,4 +16,8 @@ public enum UserRoleEnum {
     public boolean isSuperAdmin() {
         return this == SUPER_ADMIN;
     }
+
+    public boolean isTeamLeader() {
+        return this == TEAM_LEADER;
+    }
 }

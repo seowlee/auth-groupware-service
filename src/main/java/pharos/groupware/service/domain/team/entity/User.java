@@ -2,11 +2,9 @@ package pharos.groupware.service.domain.team.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
@@ -30,7 +28,6 @@ public class User {
     private Long id;
 
     @NotNull
-    @ColumnDefault("gen_random_uuid()")
     @Column(name = "user_uuid", nullable = false)
     private UUID userUuid;
 
@@ -62,43 +59,36 @@ public class User {
     private String lastName;
 
     @NotNull
-    @ColumnDefault("CURRENT_DATE")
-    @Column(name = "joined_date", nullable = false)
+    @Column(name = "joined_date")
     private LocalDate joinedDate;
 
     @NotNull
-    @ColumnDefault("1")
-    @Column(name = "year_number", nullable = false)
+    @Column(name = "year_number")
     private Integer yearNumber;
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 20)
+    @Column(name = "role")
     private UserRoleEnum role;
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status")
     private UserStatusEnum status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
     private Team team;
 
-    @ColumnDefault("now()")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @ColumnDefault("now()")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @ColumnDefault("'system'")
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 

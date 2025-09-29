@@ -2,9 +2,7 @@ package pharos.groupware.service.domain.leave.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
-import org.hibernate.annotations.ColumnDefault;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.domain.leave.dto.CarryOverLeaveBalanceReqDto;
@@ -27,37 +25,28 @@ public class LeaveBalance {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "leave_type", nullable = false, length = 30)
+    @Column(name = "leave_type")
     private LeaveTypeEnum leaveType;
 
     @NotNull
-    @ColumnDefault("1")
     @Column(name = "year_number", nullable = false)
     private Integer yearNumber;
 
-    @ColumnDefault("0.000")
     @Column(name = "total_allocated", precision = 6, scale = 3)
     private BigDecimal totalAllocated;
 
-    @ColumnDefault("0.000")
     @Column(name = "used", precision = 6, scale = 3)
     private BigDecimal used;
 
-    @ColumnDefault("now()")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @ColumnDefault("now()")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 

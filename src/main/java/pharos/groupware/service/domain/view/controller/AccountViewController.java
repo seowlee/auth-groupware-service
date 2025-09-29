@@ -1,37 +1,69 @@
 package pharos.groupware.service.domain.view.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import pharos.groupware.service.domain.team.entity.UserRepository;
-
-import java.io.IOException;
+import org.springframework.web.bind.annotation.SessionAttribute;
+import pharos.groupware.service.common.security.AppUser;
+import pharos.groupware.service.common.session.SessionKeys;
+import pharos.groupware.service.domain.m365.service.M365IntegrationReadService;
+import pharos.groupware.service.domain.team.entity.User;
+import pharos.groupware.service.domain.team.service.UserService;
 
 @Controller
 @RequiredArgsConstructor
 public class AccountViewController {
-    private final UserRepository userRepository;
+    private final UserService userService;
+    private final M365IntegrationReadService m365IntegrationReadService;
 
+    // 1) 루트: 로그인 여부에 따라 리다이렉트
+    @GetMapping("/")
+    public String root(Authentication auth) {
+        boolean loggedIn = (auth != null && auth.isAuthenticated()
+                && !(auth instanceof AnonymousAuthenticationToken));
+        return "redirect:" + (loggedIn ? "/home" : "/login");
+    }
 
+    // 2) 로그인 페이지: 이미 로그인이면 홈으로
     @GetMapping("/login")
-    public String login(HttpServletResponse response) throws IOException {
-        // 인증된 사용자는 홈화면으로.
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken)) {
-            response.sendRedirect("/home");
-            return null;
+    public String login(Authentication auth) {
+        boolean loggedIn = (auth != null && auth.isAuthenticated()
+                && !(auth instanceof AnonymousAuthenticationToken));
+        if (loggedIn) {
+            return "redirect:/home";
         }
         return "account/login";
     }
 
+    // 3) 홈 페이지: 세션의 AppUser를 (있으면) 모델에 싣기
     @GetMapping("/home")
-    public String home() {
+    public String home(
+            @SessionAttribute(value = SessionKeys.CURRENT_USER, required = false) AppUser actor,
+            Model model
+    ) {
+        if (actor != null) {
+            model.addAttribute("actor", actor);
+            User user = userService.getAuthenticatedUser();
+            boolean isSuperAdmin =
+                    actor.role() != null && actor.role().isSuperAdmin(); // 프로젝트에 맞게 판별
+            boolean kakaoLinked = user.getKakaoSub() != null;                // 필드명 프로젝트에 맞게
+            boolean m365Linked = isSuperAdmin && m365IntegrationReadService.isLinked();
+
+            // ↑ 조직 전체/테넌트 기준의 연결 여부를 읽는 서비스 (임의 예시)
+
+            model.addAttribute("isSuperAdmin", isSuperAdmin);
+            model.addAttribute("kakaoLinked", kakaoLinked);
+            model.addAttribute("m365Linked", m365Linked);
+            // ================
+        } else {
+            model.addAttribute("isSuperAdmin", false);
+            model.addAttribute("kakaoLinked", false);
+            model.addAttribute("m365Linked", false);
+        }
         return "account/home";
     }
 

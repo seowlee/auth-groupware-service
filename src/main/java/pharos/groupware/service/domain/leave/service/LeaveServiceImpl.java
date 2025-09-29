@@ -16,6 +16,7 @@ import pharos.groupware.service.common.enums.AuditActionEnum;
 import pharos.groupware.service.common.enums.AuditStatusEnum;
 import pharos.groupware.service.common.enums.LeaveStatusEnum;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
+import pharos.groupware.service.common.security.AppUser;
 import pharos.groupware.service.domain.audit.service.AuditLogService;
 import pharos.groupware.service.domain.holiday.entity.PublicHolidayRepository;
 import pharos.groupware.service.domain.holiday.service.WorkDayService;
@@ -25,6 +26,7 @@ import pharos.groupware.service.domain.leave.entity.LeaveRepository;
 import pharos.groupware.service.domain.team.entity.User;
 import pharos.groupware.service.domain.team.entity.UserRepository;
 import pharos.groupware.service.domain.team.service.UserService;
+import pharos.groupware.service.infrastructure.graph.GraphGroupService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 
 import java.math.BigDecimal;
@@ -41,6 +43,7 @@ import static pharos.groupware.service.common.util.AuditLogUtils.details;
 @Service
 public class LeaveServiceImpl implements LeaveService {
     private final GraphUserService graphUserService;
+    private final GraphGroupService graphGroupService;
     private final UserService userService;
     private final LeaveBalanceService leaveBalanceService;
     private final WorkDayService workDayService;
@@ -70,7 +73,7 @@ public class LeaveServiceImpl implements LeaveService {
         }
 
 
-        Page<Leave> page = leaveRepository.findAllBySearchFilter(searchDto.getUserUuid(), searchDto.getKeyword(), searchDto.getTeamId(), typeEnum, statusEnum, pageable);
+        Page<Leave> page = leaveRepository.findAllBySearchFilter(searchDto.getKeyword(), searchDto.getTeamId(), typeEnum, statusEnum, pageable);
 
         return page.map(LeaveDetailResDto::fromEntity);
     }
@@ -88,50 +91,51 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Override
     @Transactional
-    public Long applyLeave(CreateLeaveReqDto dto) {
+    public Long applyLeave(CreateLeaveReqDto dto, AppUser actor) {
         User user = userRepository.findByUserUuid(UUID.fromString(dto.getUserUuid()))
                 .orElseThrow(() -> new EntityNotFoundException("해당 사용자를 찾을 수 없습니다."));
-        User actor = userService.getAuthenticatedUser();
         // 권한 체크
-        if (!actor.getRole().isSuperAdmin()) {
-            if (!user.getUserUuid().equals(actor.getUserUuid())) {
-                throw new AccessDeniedException("신청 권한이 없습니다.");
-            }
+        boolean isSuperAdmin = actor.role().isSuperAdmin();
+        if (!isSuperAdmin && !user.getUserUuid().equals(actor.userUuid())) {
+            throw new AccessDeniedException("신청 권한이 없습니다.");
         }
+
         dto.setUserName(user.getUsername());
         dto.setUserEmail(user.getEmail());
         LeaveTypeEnum leaveType = LeaveTypeEnum.valueOf(dto.getLeaveType());
         BigDecimal usedDays = workDayService.countLeaveDays(dto.getStartDt(), dto.getEndDt());
         dto.setUsedDays(usedDays);
 
-        String subject = leaveType.getDescription() + " 신청 (" + dto.getUserName() + ")";
+        String subject = leaveType.getKrName() + " 신청 (" + dto.getUserName() + ")";
         String body = "연차 유형: " + leaveType.getKrName() + "\n"
                 + "사용일수: " + usedDays.stripTrailingZeros().toPlainString() + "일\n"
                 + "신청자: " + dto.getUserName() + " (" + dto.getUserEmail() + ")\n"
                 + "사유: " + (dto.getReason() != null ? dto.getReason() : "없음");
         try {
-            String eventId = graphUserService.createEvent(
+            String eventId = graphGroupService.createGroupEvent(
                     subject,
                     body,
                     dto.getStartDt(),
                     dto.getEndDt()
             );
 
-            Leave leave = Leave.create(dto, user, eventId, actor.getUsername());
+            Leave leave = Leave.create(dto, user, eventId, actor.username());
             Leave savedLeave = leaveRepository.save(leave);
 
 
             leaveBalanceService.applyUsage(user, leaveType, user.getYearNumber(), usedDays);
-            auditLogService.saveLog(actor.getId(), actor.getUsername(),
+            auditLogService.saveLog(actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_APPLY_GRAPH_CREATE, AuditStatusEnum.SUCCESS,
                     details("applyDto", dto, "subject", subject, "body", body,
                             "eventId", eventId, "leaveId", savedLeave.getId()));
             return savedLeave.getId();
+        } catch (IllegalStateException ex) { // ← M365 미연동 등
+            throw ex; // 메시지 보존
         } catch (RestClientResponseException e) {
             // Graph API 오류
             log.error("Graph API 오류 발생: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(), e);
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_APPLY_GRAPH_CREATE, AuditStatusEnum.FAILED,
                     details("applyDto", dto, "subject", subject, "body", body,
                             "httpStatus", e.getStatusCode().value(),
@@ -143,7 +147,7 @@ public class LeaveServiceImpl implements LeaveService {
             // 내부 로직 오류
             log.error("연차 신청 처리 중 내부 오류", e);
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_APPLY_GRAPH_CREATE, AuditStatusEnum.FAILED,
                     details("applyDto", dto, "subject", subject, "body", body,
                             "error", e.getMessage())
@@ -154,17 +158,14 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Override
     @Transactional
-    public Long updateLeave(Long id, UpdateLeaveReqDto reqDto) {
+    public Long updateLeave(Long id, UpdateLeaveReqDto reqDto, AppUser actor) {
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("연차를 찾을 수 없습니다."));
         User applicantUser = leave.getUser();
-        User actor = userService.getAuthenticatedUser();
-
         // 권한 체크
-        if (!actor.getRole().isSuperAdmin()) {
-            if (!applicantUser.getUserUuid().equals(actor.getUserUuid())) {
-                throw new AccessDeniedException("수정 권한이 없습니다.");
-            }
+        boolean isSuperAdmin = actor.role().isSuperAdmin();
+        if (!isSuperAdmin && !applicantUser.getUserUuid().equals(actor.userUuid())) {
+            throw new AccessDeniedException("수정 권한이 없습니다.");
         }
         // 비즈니스 룰 검증 (기간/슬롯/영업일 등)
         leave.validateUpdatable(reqDto.getStartDt(), reqDto.getEndDt(), reqDto.getLeaveType());
@@ -183,7 +184,7 @@ public class LeaveServiceImpl implements LeaveService {
                 + "사유: " + (reqDto.getReason() != null ? reqDto.getReason() : "없음");
         try {
             // 캘린더 이벤트도 update
-            graphUserService.updateEvent(
+            graphGroupService.updateGroupEvent(
                     calendarEventId,
                     subject,
                     body,
@@ -192,9 +193,9 @@ public class LeaveServiceImpl implements LeaveService {
             );
 
             // 도메인 업데이트
-            leave.updateFrom(reqDto, actor.getUsername());
+            leave.updateFrom(reqDto, actor.username());
             log.info("Updating leave with id {}", id);
-            auditLogService.saveLog(actor.getId(), actor.getUsername(),
+            auditLogService.saveLog(actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_UPDATE_GRAPH_UPDATE, AuditStatusEnum.SUCCESS,
                     details("reqDto", reqDto, "subject", subject, "body", body,
                             "eventId", calendarEventId, "leaveId", id));
@@ -205,7 +206,7 @@ public class LeaveServiceImpl implements LeaveService {
             log.error("Graph API 오류(연차 수정): leaveId={}, eventId={}, status={}, body={}",
                     leave.getId(), calendarEventId, e.getStatusCode(), e.getResponseBodyAsString(), e);
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_UPDATE_GRAPH_UPDATE, AuditStatusEnum.FAILED,
                     details("reqDto", reqDto, "subject", subject, "body", body,
                             "eventId", calendarEventId,
@@ -217,7 +218,7 @@ public class LeaveServiceImpl implements LeaveService {
             // 내부 오류
             log.error("연차 수정 내부 오류", e);
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_UPDATE_GRAPH_UPDATE, AuditStatusEnum.FAILED,
                     details("reqDto", reqDto, "subject", subject, "body", body,
                             "eventId", calendarEventId, "error", e.getMessage())
@@ -228,16 +229,15 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Override
     @Transactional
-    public void cancelLeave(Long id) {
+    public void cancelLeave(Long id, AppUser actor) {
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("연차를 찾을 수 없습니다."));
         User applicantUser = leave.getUser();
-        User actor = userService.getAuthenticatedUser();
+
         // 권한 체크
-        if (!actor.getRole().isSuperAdmin()) {
-            if (!applicantUser.getUserUuid().equals(actor.getUserUuid())) {
-                throw new AccessDeniedException("수정 권한이 없습니다.");
-            }
+        boolean isSuperAdmin = actor.role().isSuperAdmin();
+        if (!isSuperAdmin && !applicantUser.getUserUuid().equals(actor.userUuid())) {
+            throw new AccessDeniedException("취소 권한이 없습니다.");
         }
         // 상태/시점 검증
         leave.validateCancelable();
@@ -257,16 +257,16 @@ public class LeaveServiceImpl implements LeaveService {
             }
 
             // Leave 상태 전이
-            leave.cancel(actor.getUsername());
+            leave.cancel(actor.username());
             // 그래프 이벤트 삭제(실패해도 취소는 계속)
 
-            graphUserService.deleteEvent(leave.getCalendarEventId());
+            graphGroupService.deleteGroupEvent(leave.getCalendarEventId());
         } catch (RestClientResponseException e) {
             log.warn("Graph API 오류(연차 취소) - 이벤트 삭제 실패: leaveId={}, eventId={}, status={}, body={}",
                     id, calendarEventId, e.getStatusCode(), e.getResponseBodyAsString(), e);
 
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_CANCEL_GRAPH_DELETE, AuditStatusEnum.FAILED,
                     details("leaveId", id, "eventId", calendarEventId,
                             "httpStatus", e.getStatusCode().value(),
@@ -278,7 +278,7 @@ public class LeaveServiceImpl implements LeaveService {
                     id, calendarEventId, e.getMessage(), e);
 
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_CANCEL_GRAPH_DELETE, AuditStatusEnum.FAILED,
                     details("leaveId", id, "eventId", calendarEventId, "error", e.getMessage())
             );
@@ -297,12 +297,10 @@ public class LeaveServiceImpl implements LeaveService {
             OffsetDateTime end
     ) {
         // 1) 현재 사용자가 SUPER_ADMIN 인지 판단
-        boolean isSuperAdmin = userService.isCurrentUserSuperAdmin();
+//        boolean isSuperAdmin = userService.isCurrentUserSuperAdmin();
 
         // 2) 노출 허용 상태 집합
-        Set<LeaveStatusEnum> allowed = isSuperAdmin
-                ? EnumSet.allOf(LeaveStatusEnum.class)
-                : EnumSet.of(LeaveStatusEnum.APPROVED, LeaveStatusEnum.PENDING);
+        Set<LeaveStatusEnum> allowed = EnumSet.of(LeaveStatusEnum.APPROVED, LeaveStatusEnum.PENDING);
 
         // 3) 클라이언트가 상태 필터를 넣어온 경우에도 "허용 집합"과 교집합만 허용
         if (status != null && allowed.contains(status)) {

@@ -1,5 +1,5 @@
-import {navigateTo} from "./router.js";
-import {readErrorMessage} from "./list-form-common.js";
+import {navigateTo} from "./core/router.js";
+import {apiFetch, readErrorMessage} from "./list-form-common.js";
 
 class LeaveFormManager {
     constructor(id) {
@@ -150,11 +150,10 @@ class LeaveFormManager {
         }
         const data = this.collectPayload();
         try {
-            const res = await fetch(`${this.apiPrefix}/${this.leaveId}`, {
+            const res = await apiFetch(`${this.apiPrefix}/${this.leaveId}`, {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(data)
-            });
+            }, `/leaves/${this.leaveId}`);
             if (!res.ok) throw new Error(await readErrorMessage(res) || "연차 수정 실패");
             alert("연차가 수정되었습니다.");
             this.editing = false;

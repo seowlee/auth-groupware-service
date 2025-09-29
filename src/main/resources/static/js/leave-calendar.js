@@ -1,4 +1,4 @@
-import {navigateTo} from './router.js';
+import {navigateTo} from './core/router.js';
 import {showMessage} from './list-form-common.js';
 
 

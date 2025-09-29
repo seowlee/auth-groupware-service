@@ -1,4 +1,6 @@
-import {navigateTo} from "./router.js";
+import {navigateTo} from "./core/router.js";
+import {apiFetch, readErrorMessage} from "./list-form-common.js"; // [ADD]
+import {validateDateTimes} from "./leave-common.js"; // [ADD]
 
 class CreateLeaveFormManager {
     constructor() {
@@ -35,7 +37,7 @@ class CreateLeaveFormManager {
     async loadApplicants(defaultUuid = "") {
         try {
             // SUPER_ADMIN: 전체 또는 검색 결과 로드
-            const res = await fetch('/api/admin/users/applicants');
+            const res = await apiFetch('/api/admin/users/applicants');
             if (!res.ok) throw new Error("사용자 목록 로딩 실패");
             const users = await res.json(); // [{userUuid, username, email}, ...]
             this.renderApplicantOptions(users, defaultUuid);
@@ -84,12 +86,12 @@ class CreateLeaveFormManager {
 
     /** 올해+내년 공휴일을 로드해 Map(date→name)으로 캐시 */
     async loadHolidayMap() {
-        if (this._holidayMap) return this._holidayMap;
+        if (this.holidayMap) return this.holidayMap;
         const y = new Date().getFullYear();
         const fetchYear = async (yy) => (await (await fetch(`/api/holidays/year/${yy}`)).json());
         const [a, b] = await Promise.all([fetchYear(y), fetchYear(y + 1)]);
-        this._holidayMap = new Map([...a, ...b].map(h => [h.date, h.name]));
-        return this._holidayMap;
+        this.holidayMap = new Map([...a, ...b].map(h => [h.date, h.name]));
+        return this.holidayMap;
     }
 
     /** Flatpickr 초기화: 공휴일/주말 비활성 + 시작 선택 시 종료 minDate 연동 */
@@ -199,14 +201,26 @@ class CreateLeaveFormManager {
         if (!this.validateFormData(data)) return;
 
         try {
-            const res = await fetch(this.apiPrefix, {
+            const res = await apiFetch(this.apiPrefix, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(data)
-            });
+            }, "/leaves/apply");
 
             if (!res.ok) {
-                throw new Error(await res.text() || "연차 신청 실패");
+                let userMsg = "연차 신청 실패";
+                try {
+                    // 우선 JSON 시도 (문제상황: {"code":"M365_SETUP_REQUIRED","message":"..."} 형태)
+                    const err = await res.json();
+                    if (err?.code === "M365_SETUP_REQUIRED") {
+                        userMsg = "Microsoft 365 연동이 아직 완료되지 않았습니다. 관리자에게 문의하세요.";
+                    } else if (typeof err?.message === "string" && err.message.trim()) {
+                        userMsg = err.message;
+                    }
+                } catch {
+                    userMsg = await readErrorMessage(res);
+                }
+                throw new Error(userMsg);
             }
 
             alert("연차 신청 완료!");
@@ -214,9 +228,22 @@ class CreateLeaveFormManager {
 
             navigateTo("/leaves");
         } catch (err) {
+            // 401/403은 apiFetch에서 이미 처리/리다이렉트됨
+            if (err?.message === "UNAUTHORIZED" || err?.message === "FORBIDDEN") return;
             console.error(err);
             alert("신청 중 오류: " + (err.message || err));
         }
+    }
+
+    getAllowedLeaveTypes() {
+        // select 안의 option 중 value가 있는 것만 모아 Set으로
+        const sel = document.getElementById("leaveType");
+        if (!sel) return new Set();
+        return new Set(
+            Array.from(sel.querySelectorAll("option"))
+                .map(o => (o.value || "").trim())
+                .filter(v => v.length > 0)
+        );
     }
 
     validateFormData(data) {
@@ -252,45 +279,20 @@ class CreateLeaveFormManager {
             return false;
         }
 
-        // 3) 연차 유형 유효값
-        const allowedTypes = new Set(["ANNUAL", "BIRTHDAY", "SICK", "CUSTOM"]);
+        // 2) 연차 유형 유효값 (서버가 내려준 option 기준)
+        const allowedTypes = this.getAllowedLeaveTypes();
         if (!allowedTypes.has(data.leaveType)) {
             alert("연차 유형 값이 올바르지 않습니다.");
             return false;
         }
-
-        // 4) 시간 슬롯 제약
-        const allowedStart = new Set(["09:00", "13:00"]);
-        const allowedEnd = new Set(["13:00", "17:00"]);
-        if (!allowedStart.has(startHHmm) || !allowedEnd.has(endHHmm)) {
-            alert("시작/종료 시간은 09:00/13:00/17:00 중에서 선택해주세요.");
+        // 3) 시간/날짜 검증 공통 사용
+        const errMsg = validateDateTimes(startDate, startHHmm, endDate, endHHmm);
+        if (errMsg) {
+            alert(errMsg);
             return false;
         }
-
-        // 5) 같은 날짜인 경우 허용 가능한 조합만 통과
-        if (startDate === endDate) {
-            const okSameDay =
-                (startHHmm === "09:00" && (endHHmm === "13:00" || endHHmm === "17:00")) ||
-                (startHHmm === "13:00" && endHHmm === "17:00");
-            if (!okSameDay) {
-                alert("같은 날짜에서는 (09→13), (09→17), (13→17) 조합만 가능합니다.");
-                return false;
-            }
-        } else {
-            // 6) 다른 날짜 구간이면 최종적으로 시작<종료 보장 (실제 Date 비교)
-            const s = new Date(`${startDate}T${startHHmm}:00`);
-            const e = new Date(`${endDate}T${endHHmm}:00`);
-            if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
-                alert("시작/종료 일시 형식을 확인해주세요.");
-                return false;
-            }
-            if (s >= e) {
-                // 날짜가 다르더라도 이상 케이스 방지
-                alert("시작 일시는 종료 일시보다 빨라야 합니다.");
-                return false;
-            }
-        }
         return true;
+
     }
 
     getFieldDisplayName(field) {
@@ -311,46 +313,6 @@ class CreateLeaveFormManager {
 
     }
 
-    // /** 입력값이 주말/공휴일인지 힌트 UI 갱신 + (옵션) 차단 */
-    // updateDateHint(inputEl, hintEl) {
-    //     if (!inputEl || !hintEl) return;
-    //     const v = inputEl.value;
-    //     hintEl.textContent = '';
-    //     hintEl.className = 'field-hint';
-    //     inputEl.setCustomValidity(''); // reset
-    //     if (!v) return;
-    //
-    //     const d = new Date(v + 'T00:00:00');
-    //     const isWeekend = [0, 6].includes(d.getDay()); // 일(0), 토(6)
-    //     const holidayName = this.holidayMap?.get(v) || '';
-    //
-    //     // 정책: 표시만 할지, 선택 차단까지 할지
-    //     const BLOCK_WEEKENDS = false;   // 주말 선택 금지하려면 true
-    //     const BLOCK_HOLIDAYS = false;   // 공휴일 선택 금지하려면 true
-    //
-    //     if (isWeekend) {
-    //         hintEl.classList.add('is-weekend');
-    //         hintEl.textContent = '주말';
-    //         if (BLOCK_WEEKENDS) {
-    //             inputEl.setCustomValidity('주말은 선택할 수 없습니다.');
-    //         }
-    //     }
-    //     if (holidayName) {
-    //         hintEl.classList.remove('is-weekend');
-    //         hintEl.classList.add('is-holiday');
-    //         hintEl.innerHTML = `공휴일 <span class="badge">${holidayName}</span>`;
-    //         if (BLOCK_HOLIDAYS) {
-    //             inputEl.setCustomValidity('공휴일은 선택할 수 없습니다.');
-    //         }
-    //     }
-    // }
-
-}
-
-/** URL에서 /leaves/{id}의 {id} 추출 */
-function getLeaveIdFromUrl() {
-    const segs = window.location.pathname.split("/");
-    return segs[segs.length - 1] || null;
 }
 
 /** 생성 모드 진입점 (home.js에서 호출) */

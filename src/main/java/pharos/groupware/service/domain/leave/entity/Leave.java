@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
-import org.hibernate.annotations.ColumnDefault;
 import pharos.groupware.service.common.enums.LeaveStatusEnum;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import pharos.groupware.service.common.util.DateUtils;
@@ -48,12 +47,12 @@ public class Leave {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "leave_type", nullable = false, length = 30)
+    @Column(name = "leave_type")
     private LeaveTypeEnum leaveType;
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status")
     private LeaveStatusEnum status;
 
     @Column(name = "reason", length = Integer.MAX_VALUE)
@@ -63,25 +62,18 @@ public class Leave {
     @Column(name = "calendar_event_id", length = 512)
     private String calendarEventId;
 
-    @ColumnDefault("CURRENT_DATE")
     @Column(name = "applied_at")
     private OffsetDateTime appliedAt;
 
-    @ColumnDefault("now()")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @ColumnDefault("now()")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 

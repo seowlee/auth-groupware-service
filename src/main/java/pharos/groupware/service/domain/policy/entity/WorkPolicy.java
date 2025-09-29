@@ -2,7 +2,6 @@ package pharos.groupware.service.domain.policy.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
@@ -40,21 +39,15 @@ public class WorkPolicy {
     @Column(name = "lunch_break_minutes", nullable = false)
     private Integer lunchBreakMinutes;
 
-    @ColumnDefault("now()")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @ColumnDefault("now()")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @Size(max = 50)
-    @ColumnDefault("'system'")
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 

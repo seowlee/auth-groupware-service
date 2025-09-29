@@ -1,155 +1,135 @@
-// src/js/home.js
-import {initUserListManager} from './user-list.js';
-import {initUserDetail} from './user-detail.js';
-import {initLeaveListManager} from "./leave-list.js";
-import {loadPageIntoMainContent, navigateTo, replaceStateAndLoad} from './router.js';
-import {initLeaveEdit} from "./leave-form.js";
-import {initLeaveCreate} from "./create-leave-form.js";
-import {initLeaveCalendarManager} from "./leave-calendar.js";
-import {initAuditLogList} from './audit-log.js';
+// [ENTRY] 홈 엔트리: 라우터를 단방향 import, 프래그먼트 완료 이벤트(page:loaded) 구독
+//        경로별 기능 모듈/외부 CDN을 "필요할 때"만 동적 로딩
+//
+import {loadPageIntoMainContent, navigateTo, replaceStateAndLoad} from './core/router.js';
+import {loadScriptOnce, loadStyleOnce} from './core/loader.js';
+import {showFlashToastIfAny, updateIntegrationButtonsFromDataset} from './core/ui.js';
 
-
+// [NOTE] 일부 브라우저에서 초기 진입 시 중복 실행을 막기 위한 가드(선택)
+let featuresInitializedOnce = false;
+// ==============================
+// 홈 페이지 초기 세팅
+// ==============================
 export function setupHomePage() {
-    document.addEventListener('DOMContentLoaded', onInitialLoad);
+    // document.addEventListener('DOMContentLoaded', () => {
+    //     onInitialLoad();
+    //     updateIntegrationButtonsFromDataset(); // nav 버튼이 이미 DOM에 존재하는 시점
+    // });
     onInitialLoad();
-    document.querySelectorAll('.menu-link').forEach(link =>
-        link.addEventListener('click', onMenuClick)
-    );
+    updateIntegrationButtonsFromDataset();
+    // 메뉴 링크 클릭 → SPA 네비게이션
+    // document.querySelectorAll('.menu-link').forEach(link => {
+    //     link.addEventListener('click', onMenuClick);
+    // });
+    // 메뉴 클릭(이벤트 위임)
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('.menu-link');
+        if (!link) return;
+        e.preventDefault();
+        const url = link.dataset.url;
+        if (url) navigateTo(url);
+    });
+
+    // 햄버거
     const ham = document.querySelector('.hamburger-btn');
     if (ham) ham.addEventListener('click', toggleMobileMenu);
+
+    // 뒤로/앞으로
     window.addEventListener('popstate', onPopState);
+
+    // 반응형
     window.addEventListener('resize', onWindowResize);
+    // [NEW] 프래그먼트 로드 완료 이벤트를 한 곳에서 처리
+    window.addEventListener('page:loaded', onFragmentLoaded);
+    // 서버 플래시 메시지 토스트
     showFlashToastIfAny();
+    // updateIntegrationButtonsFromDataset();
 }
 
-function onInitialLoad() {
+// ==============================
+// 네비게이션
+// ==============================
+async function onInitialLoad() {
     const path = window.location.pathname;
-    if (path === '/home') {
-        replaceStateAndLoad('/team/users');
+    if (path.startsWith('/home')) {
+        // 로그인 후 홈 → 기본 탭
+        await replaceStateAndLoad('/team/users');
     } else {
-        loadPageIntoMainContent(path);
+        await loadPageIntoMainContent(path);
     }
 }
 
-function onMenuClick(e) {
+async function onMenuClick(e) {
     e.preventDefault();
     const url = e.currentTarget.dataset.url;
-    navigateTo(url);
+    if (!url) return;
+    await navigateTo(url);
 }
 
-function onPopState(e) {
+async function onPopState(e) {
     const url = e.state?.path || '/team/users';
-    loadPageIntoMainContent(url);
+    await loadPageIntoMainContent(url);
 }
-
 
 function toggleMobileMenu() {
-    document.querySelector('nav ul').classList.toggle('show');
+    document.querySelector('nav ul')?.classList.toggle('show');
 }
 
 function onWindowResize() {
     if (window.innerWidth > 768) {
-        document.querySelector('nav ul').classList.remove('show');
+        document.querySelector('nav ul')?.classList.remove('show');
     }
 }
 
-function showMainFloatToast(msg, type = 'success') {
-    const main = document.getElementById('main-content');
-    if (!main) return;
+// ====== [핵심] 프래그먼트 삽입 완료 후 경로별 초기화 ======
+async function onFragmentLoaded(e) {
+    const path = e.detail?.path || window.location.pathname;
 
-    // 래퍼가 없으면 생성해서 main에 부착
-    let wrap = main.querySelector('.main-float-toast');
-    if (!wrap) {
-        wrap = document.createElement('div');
-        wrap.className = 'main-float-toast';
-        main.appendChild(wrap);
-    }
-    // 토스트 카드 생성
-    const card = document.createElement('div');
-    card.className = `toast-card ${type}`;
-    card.textContent = msg;
-    wrap.appendChild(card);
-    // 등장 애니메이션 + 자동 제거
-    requestAnimationFrame(() => card.classList.add('show'));
-    setTimeout(() => card.classList.remove('show'), 2800);
-    setTimeout(() => card.remove(), 3500);
-}
-
-function showFlashToastIfAny() {
-    const msgMeta = document.querySelector('meta[name="toast-msg"]');
-    const typeMeta = document.querySelector('meta[name="toast-type"]');
-    const msg = msgMeta?.content;
-    const type = (typeMeta?.content) || 'success';
-    if (!msg) return;
-
-    const main = document.getElementById('main-content');
-
-    const run = () => {
-        showMainFloatToast(msg, type);
-        // 한 번만 뜨도록 비워둔다
-        msgMeta.content = '';
-        if (typeMeta) typeMeta.content = '';
-    };
-
-    // SPA로 프래그먼트가 비동기로 들어오니, 채워진 뒤에 실행
-    if (main && main.children.length > 0) {
-        run();
-    } else {
-        const mo = new MutationObserver(() => {
-            if (main.children.length > 0) {
-                mo.disconnect();
-                run();
-            }
-        });
-        mo.observe(main, {childList: true});
-    }
-}
-
-function highlightActiveMenu(path) {
-    document.querySelectorAll('.menu-link').forEach(l => {
-        l.classList.toggle('active', l.dataset.url === path);
-    });
-}
-
-function runScripts(container) {
-    const scripts = container.querySelectorAll('script');
-    scripts.forEach(old => {
-        const s = document.createElement('script');
-        if (old.src) {
-            s.src = old.src;
-        } else {
-            s.textContent = old.textContent;
-        }
-        document.head.appendChild(s);
-        old.remove();
-    });
-}
-
-export function loadFeatureScripts(path) {
+    // 경로별 기능 모듈을 지연 로딩
+    // 팀 사용자 목록
     if (path === '/team/users') {
-        initUserListManager(userId => {
-            navigateTo(`/team/users/${userId}`);
-        });
-    } else if (path.startsWith('/team/users/')) {
-        initUserDetail();
-    } else if (path === '/admin/users/new') {
-        import('./create-user-form.js').then(m => m.initCreateUserForm());
-    } else if (path === '/leaves') {
-        initLeaveListManager(leaveId => {
-            navigateTo(`/leaves/${leaveId}`);
-        });
-    } else if (path === '/leaves/calendar') {
-        initLeaveCalendarManager(leaveId => {
-            navigateTo(`/leaves/${leaveId}`);
-        });
-    } else if (path === '/leaves/apply') {
-        initLeaveCreate();
-    } else if (path.startsWith('/leaves/') && path !== '/leaves') {
-        initLeaveEdit();
-    } else if (path === '/admin/logs') {   // 감사 로그 페이지
-        initAuditLogList();
-
+        const m = await import('./user-list.js');
+        m.initUserListManager?.(id => navigateTo(`/team/users/${id}`));
+    } // 사용자 상세 (/team/users/{id})
+    else if (path.startsWith('/team/users/') && path !== '/team/users') {
+        const m = await import('./user-detail.js');
+        m.initUserDetail?.();
+    } // 사용자 등록 (최고관리자)
+    else if (path === '/admin/users/new') {
+        const m = await import('./create-user-form.js');
+        await m.initCreateUserForm?.();
+    } // 연차 목록
+    else if (path === '/leaves') {
+        const m = await import('./leave-list.js');
+        m.initLeaveListManager?.(id => navigateTo(`/leaves/${id}`));
+    } // 연차 캘린더 (FullCalendar를 필요)
+    else if (path.startsWith('/leaves/calendar')) {
+        await loadScriptOnce('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js');
+        const m = await import('./leave-calendar.js');
+        m.initLeaveCalendarManager?.(id => navigateTo(`/leaves/${id}`));
+    } // 연차 신청 (flatpickr 필요)
+    else if (path === '/leaves/apply') {
+        // 외부 위젯 로딩
+        await loadStyleOnce('https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css');
+        await loadScriptOnce('https://cdn.jsdelivr.net/npm/flatpickr');
+        await loadScriptOnce('https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js');
+        const m = await import('./create-leave-form.js');
+        m.initLeaveCreate?.();
+    } // 연차 수정 (/leaves/{id})
+    else if (path.startsWith('/leaves/') && path !== '/leaves') {
+        const m = await import('./leave-form.js');
+        m.initLeaveEdit?.();
+    } // 감사 로그
+    else if (path === '/admin/logs') {
+        const m = await import('./audit-log.js');
+        m.initAuditLogList?.();
     }
+    // 프래그먼트가 들어온 뒤에도 버튼 상태를 항상 재반영
+    updateIntegrationButtonsFromDataset();
+    // 초기 진입 시 중복 방지(일부 브라우저에서 DOMContentLoaded 직후 한 번 더 들어오는 걸 방지)
+    if (!featuresInitializedOnce) featuresInitializedOnce = true;
 }
 
+
+// 엔트리
 document.addEventListener('DOMContentLoaded', setupHomePage);

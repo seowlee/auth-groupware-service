@@ -70,3 +70,49 @@ export const yearNumberLabel = (target, base) => {
     if (diff === -1) return '이전 근속년차';
     return diff > 1 ? `${diff}년 후` : `${Math.abs(diff)}년 전`;
 }
+
+// 시간 슬롯 공통
+export const ALLOWED_START_TIMES = ["09:00", "13:00"];
+export const ALLOWED_END_TIMES = ["13:00", "17:00"];
+
+// 같은 날짜에서 가능한 조합
+export function isValidSameDayRange(startHHmm, endHHmm) {
+    return (
+        (startHHmm === "09:00" && (endHHmm === "13:00" || endHHmm === "17:00")) ||
+        (startHHmm === "13:00" && endHHmm === "17:00")
+    );
+}
+
+// 날짜/시간 유효성 (문자열)
+export function validateDateTimes(startDate, startHHmm, endDate, endHHmm) {
+    // 날짜 형식 및 순서 (날짜 우선)
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRe.test(startDate) || !dateRe.test(endDate)) {
+        return "날짜 형식을 확인해주세요. (예: 2025-08-21)";
+    }
+    // 단순 문자열 비교로도 YYYY-MM-DD는 크기 비교 가능
+    if (endDate < startDate) {
+        return "종료 날짜가 시작 날짜보다 앞설 수 없습니다.";
+    }
+    // 시간 슬롯 제약
+    if (!ALLOWED_START_TIMES.includes(startHHmm) || !ALLOWED_END_TIMES.includes(endHHmm)) {
+        return "시작/종료 시간은 09:00/13:00/17:00 중에서 선택해주세요.";
+    }
+    // 같은 날짜인 경우 허용 가능한 조합만 통과
+    if (startDate === endDate) {
+        if (!isValidSameDayRange(startHHmm, endHHmm)) {
+            return "같은 날짜에서는 (09→13), (09→17), (13→17) 조합만 가능합니다.";
+        }
+    } else {
+        //  다른 날짜 구간이면 최종적으로 시작<종료 보장 (실제 Date 비교)
+        const s = new Date(`${startDate}T${startHHmm}:00`);
+        const e = new Date(`${endDate}T${endHHmm}:00`);
+        if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
+            return "시작/종료 일시 형식을 확인해주세요.";
+        }
+        if (s >= e) {
+            return "시작 일시는 종료 일시보다 빨라야 합니다.";
+        }
+    }
+    return null; // ok
+}

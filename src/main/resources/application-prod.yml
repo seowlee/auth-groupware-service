@@ -39,9 +39,21 @@ spring:
               - profile
               - email
             provider: keycloak
+          graph-delegated:
+            provider: azure
+            client-id: ${graph.client-id}
+            client-secret: ${graph.client-secret}   # 서버 측 Authorization Code면 사용
+            scope: openid, profile, offline_access, Group.ReadWrite.All
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
         provider:
           keycloak:
             issuer-uri: http://localhost:8081/realms/groupware
+          azure:
+            authorization-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/authorize
+            token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
+            user-info-uri: https://graph.microsoft.com/oidc/userinfo
+            user-name-attribute: sub
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8081/realms/groupware
@@ -54,14 +66,17 @@ keycloak:
   client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
   token-uri: "${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token"
 graph:
-  client-id: 1ce57593-86c4-4ceb-a024-c2b15a0c129e
-  client-secret: ENC(0btuSDMFX+RI7OHTLBRJlle36AwkHGpDa4+v6LmmoGEnxadgD6oDdCabqn7jdXjgEMWuwL3tGA+fMyGG96SDv1C4lxk2WSZc6KKlJz/KX/c=)
-  tenant-id: 3c6e1605-cc29-4ef2-8ac8-ad3901cb0d85
+  base-url: https://graph.microsoft.com/v1.0
+  timezone: Asia/Seoul
+  calendar:
+    target: group        # group | mailbox | user-calendar
+    group-id: c2ff4957-08e0-4b66-8a08-cf7309747efc
+  client-id: 5ca27977-ddbd-46c9-9e42-9217d573e234
+  client-secret: ENC(qlv/dftI4g9UQ7OB6DuyAnG/krRNNcWS2GLNLrm7Kd4hz9FvvlJayKh1CW557wJWelW3vZyhzFB/PAvta64jF9h2hUoSE2iK2Xjv+YUn3bs=)
+  tenant-id: 5f4afae7-6bef-4a88-8bdd-46858cb0bef8
   token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
   scope: https://graph.microsoft.com/.default
-  base-url: https://graph.microsoft.com/v1.0
-  calendar-user-id: 9950969b-933c-4860-aece-c7396e2c16cc
-  timezone: Asia/Seoul
+  calendar-user-id: 3bc50c15-03a9-4ea7-a2c5-b095dc82474a
 external:
   holiday:
     base-url: https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService

@@ -21,7 +21,7 @@ public enum LeaveTypeEnum {
     CUSTOM("기타 휴가", "기타 휴가(약정)", 0, false, false, null),
 
     // 정산
-    ADVANCE("빌려쓴연차", "빌려쓴연차(정산)", 0, false, false, "ANNUAL"),
+    ADVANCE("땡겨쓴연차", "땡겨쓴연차(정산)", 0, false, false, "ANNUAL"),
     BORROWED("차감연차", "차감연차(정산)", 0, false, false, "ANNUAL");
 
     private final String krName;

@@ -8,17 +8,49 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import pharos.groupware.service.common.security.CustomUserDetails;
 
+import java.util.Optional;
+
 public final class AuthUtils {
     private AuthUtils() {
+    }
+
+    /**
+     * Authentication에서 UUID(문자열)를 시도 추출
+     */
+    public static Optional<String> tryExtractUserUUID(Authentication authentication) {
+        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
+            return Optional.ofNullable(jwtAuth.getToken().getSubject());
+        }
+        if (authentication instanceof OAuth2AuthenticationToken oauth) {
+            return Optional.ofNullable(oauth.getPrincipal().getAttribute("sub"));
+        }
+        if (authentication instanceof UsernamePasswordAuthenticationToken up) {
+            Object p = up.getPrincipal();
+            if (p instanceof CustomUserDetails cud && cud.getUserUuid() != null) {
+                return Optional.of(cud.getUserUuid().toString());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * SecurityContext에서 바로 추출 + 실패시 예외
+     */
+    public static String extractUserUUIDOrThrow() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return tryExtractUserUUID(auth)
+                .orElseThrow(() -> new IllegalStateException("인증 정보에서 사용자 UUID를 추출하지 못했습니다."));
     }
 
     public static String extractUserUUID() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtAuth) {
             return jwtAuth.getToken().getSubject(); // JWT 로그인 (fallback)
-        } else if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
-            return oauthToken.getPrincipal().getAttribute("sub"); // Keycloak 로그인
-        } else if (authentication instanceof UsernamePasswordAuthenticationToken up) { // form login
+        }
+        if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
+            return oauthToken.getPrincipal().getAttribute("sub"); // OIDC(Keycloak)
+        }
+        if (authentication instanceof UsernamePasswordAuthenticationToken up) { // form login
             Object principal = up.getPrincipal();
             if (principal instanceof CustomUserDetails customUserDetails) {
                 return String.valueOf(customUserDetails.getUserUuid());

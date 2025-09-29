@@ -1,0 +1,103 @@
+spring:
+  application:
+    name: auth-groupware
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/groupware_db?options=-c%20TimeZone=Asia/Seoul
+    username: myuser
+    password: ENC(bg3SOL/khQb3hTHXdQ6a7Cc34D7c7SFq2DeqkSxg/ct7VZU9LCNmMmpCdmtAwZ6Z)
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # dev 환경이면 update / 운영이면 validate 추천
+    show-sql: true
+    properties:
+      hibernate:
+        default_schema: groupware
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    schemas: groupware
+    baseline-on-migrate: true
+    table: flyway_schema_history
+  # 1) Spring Security OAuth2 Client / Resource Server 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: groupware-app
+            client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+            provider: keycloak
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8081/realms/groupware
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/realms/groupware
+
+# 2) Keycloak Admin API 사용을 위한 설정
+keycloak:
+  auth-server-url: http://localhost:8081
+  realm: groupware
+  client-id: groupware-app
+  client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
+  token-uri: "${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token"
+graph:
+  base-url: https://graph.microsoft.com/v1.0
+  timezone: Asia/Seoul
+
+  tenant-id: 3c6e1605-cc29-4ef2-8ac8-ad3901cb0d85
+  client-id: 1ce57593-86c4-4ceb-a024-c2b15a0c129e
+  client-secret: ENC(0btuSDMFX+RI7OHTLBRJlle36AwkHGpDa4+v6LmmoGEnxadgD6oDdCabqn7jdXjgEMWuwL3tGA+fMyGG96SDv1C4lxk2WSZc6KKlJz/KX/c=)
+
+  authorize-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/authorize
+  token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
+  redirect-uri: http://localhost:8080/admin/m365/callback
+  delegated-scope: "openid profile offline_access Group.ReadWrite.All"
+  scope: https://graph.microsoft.com/.default
+
+  calendar-user-id: 9950969b-933c-4860-aece-c7396e2c16cc
+  calendar:
+    target: group        # group | mailbox | user-calendar
+    group-id: 664b7722-a8b1-40a3-9e44-7a16c58bab21
+external:
+  holiday:
+    base-url: https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService
+    # data.go.kr 에서 받은 서비스키 (이미 URL 인코딩된 값 사용 권장)
+    service-key: ENC(u5URnJm/ZUKyv1KfSDb2l05dfONvdSKZOZ74OM9OUkvQUDv++NfXYrv/ijiE33FNOorhRBrEp8JZYQpvxPb2oRq06pWnhvBfuh9+dG5m2liRTonEmnMiiuR5NBdH1rGdODvSh9rtn2w769WFTxmKJfcSu8KIQuwFSuB3KTc4TQo8KvlEdcK4Tci3a5K+Rw4o)
+# 3) JWT 토큰 설정 (Fallback 로그인용)
+jwt:
+  secret-key: "VW5saWtlbHlMb25nU2VjdXJlU2VjcmV0S2V5U3RyaW5nQ2hhbmdlVGhpcyEhMTIz"  # Base64-encoded 256bit
+  access-token-validity: 900000      # 15분 (15 * 60 * 1000ms)
+  refresh-token-validity: 604800000  # 7일 (7 * 24 * 60 * 60 * 1000ms)
+
+logging:
+  level:
+    root: INFO                              # 전체 로그 기본 레벨
+    org.springframework.security: DEBUG     # 스프링 시큐리티 디버그
+    sun.rmi.transport.tcp: WARN             # RMI/JMX 잡음 억제
+
+export:
+  leave-balance:
+    dir: /Users/yourname/exports   # Mac/Linux
+    # dir: C:/exports               # Windows
+
+springdoc:
+  swagger-ui:
+    tagsSorter: alpha
+
+server:
+  port: 8080
+  forward-headers-strategy: framework # 프록시 뒤에서 {baseUrl} 계산 정확히 (운영시)

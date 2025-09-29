@@ -1,5 +1,5 @@
 import {PaginationManager} from "./pagination.js";
-import {navigateTo} from './router.js';
+import {navigateTo} from './core/router.js';
 import {formatLeaveDays, mapLeaveType} from './leave-common.js';
 import {showLoading, showMessage} from "./list-form-common.js";
 

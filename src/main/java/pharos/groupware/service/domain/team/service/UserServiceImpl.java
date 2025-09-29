@@ -109,6 +109,7 @@ public class UserServiceImpl implements UserService {
         user.updateByAdmin(reqDto, actor);
     }
 
+
     @Override
     public Page<UserResDto> findAllUsers(UserSearchReqDto reqDto, Pageable pageable) {
 
@@ -160,6 +161,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean isCurrentUserSuperAdmin() {
         return getAuthenticatedUser().getRole().isSuperAdmin();
+    }
+
+    @Override
+    public boolean isCurrentUserTeamLead() {
+        return getAuthenticatedUser().getRole().isTeamLeader();
+
     }
 
     @Override

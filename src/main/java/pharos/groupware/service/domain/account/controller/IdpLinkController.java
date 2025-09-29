@@ -15,7 +15,8 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import pharos.groupware.service.common.util.AuthUtils;
+import pharos.groupware.service.common.annotation.CurrentActor;
+import pharos.groupware.service.common.security.AppUser;
 import pharos.groupware.service.domain.account.service.IdpLinkService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
@@ -75,8 +76,8 @@ public class IdpLinkController {
 
     // 옵션: 완료 콜백(성공/실패 표시용)
     @GetMapping("/link/kakao/callback")
-    public String callback(RedirectAttributes ra) {
-        String keycloakUserId = AuthUtils.extractUserUUID();
+    public String callback(RedirectAttributes ra, @CurrentActor AppUser actor) {
+        String keycloakUserId = String.valueOf(actor.userUuid());
         try {
             idpLinkService.persistKakaoSub(keycloakUserId);
             ra.addFlashAttribute("toastType", "success");

@@ -1,7 +1,12 @@
 package pharos.groupware.service.common.config;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -14,18 +19,44 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-
-import java.util.List;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
+import pharos.groupware.service.common.security.LoginSuccessHandler;
 
 @Configuration
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-    private static final List<String> CLIENTS_TO_EXTRACT = List.of("groupware-app");
-
+    private final LoginSuccessHandler loginSuccessHandler;
 
     @Bean
+    @Order(1)
+    SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/**") // [ADD] 경로 바인딩 (deprecated 없는 최신식)
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) // 401
+                        .accessDeniedHandler((req, res, ex) -> { // 403
+                            res.setStatus(HttpStatus.FORBIDDEN.value());
+                            res.setContentType("application/json;charset=UTF-8");
+                            res.getWriter().write("{\"message\":\"권한이 없습니다.\"}");
+                        })
+                )
+                // JWT 기반 API 인증 (Swagger Authorize에 사용)
+                // Swagger용 JWT(Resource Server)는 세션에 의존하지 않음
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain filterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
                 .cors(Customizer.withDefaults())
@@ -33,11 +64,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers("/login", "/api/admin/login", "/oauth2/**", "/link/kakao/callback").permitAll()
+                        .requestMatchers("/.well-known/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/health", "/login", "/api/admin/login", "/oauth2/**", "/link/kakao/callback", "/admin/m365/**").permitAll()
                         .requestMatchers("/realms/**", "/api/admin/users/pending", "/error/pending-approval").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                .requestCache(c -> c.requestCache(requestCache()))
                 // 폼 로그인 : 실제 사용자 로그인 뷰 제공용
                 .formLogin(form -> form
                         .loginPage("/login")
@@ -61,26 +94,12 @@ public class SecurityConfig {
                             request.getSession().setAttribute("errorMessage", errorMessage);
                             response.sendRedirect("/login?error");
                         })
+                        .successHandler(loginSuccessHandler)
                 )
                 // Keycloak 또는 외부 IDP용 OAuth2 로그인
                 .oauth2Login(oauth2 -> oauth2
-                                .loginPage("/login")
-                                .defaultSuccessUrl("/home", true)
-//                                .userInfoEndpoint(userInfo -> userInfo
-//                                        .oidcUserService(customOAuth2UserService)
-//                                )
-//                                .failureHandler((request, response, exception) -> {
-//                                    if (exception instanceof OAuth2AuthenticationException authEx &&
-//                                            "pending_user".equals(authEx.getError().getErrorCode())) {
-//                                        System.out.println("case11111111111==========");
-//                                        response.sendRedirect("/error/pending-approval");
-//                                    } else {
-//                                        System.out.println("case22222222222=========");
-//                                        response.sendRedirect("/login?error");
-//                                    }
-//                                })
-//                                .successHandler(successHandler)
-
+                        .loginPage("/login")
+                        .successHandler(loginSuccessHandler)
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -88,11 +107,6 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
-                )
-
-                // JWT 기반 API 인증 (Swagger Authorize에 사용)
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(Customizer.withDefaults())
                 );
         return http.build();
     }
@@ -111,4 +125,21 @@ public class SecurityConfig {
         return new HttpSessionSecurityContextRepository();
     }
 
+    @Bean
+    RequestCache requestCache() {
+        return new HttpSessionRequestCache() {
+            @Override
+            public void saveRequest(HttpServletRequest req, HttpServletResponse res) {
+                String uri = req.getRequestURI();
+                if ("/".equals(uri)
+                        || uri.equals("/favicon.ico")
+                        || uri.startsWith("/.well-known/")
+                        || uri.startsWith("/admin/m365/")
+                        || uri.startsWith("/link/kakao/")) {
+                    return; // 저장 안 함
+                }
+                super.saveRequest(req, res);
+            }
+        };
+    }
 }

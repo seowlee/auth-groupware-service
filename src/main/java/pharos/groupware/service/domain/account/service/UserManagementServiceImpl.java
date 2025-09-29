@@ -9,7 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import pharos.groupware.service.common.enums.AuditActionEnum;
 import pharos.groupware.service.common.enums.AuditStatusEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
-import pharos.groupware.service.common.util.AuthUtils;
+import pharos.groupware.service.common.security.AppUser;
 import pharos.groupware.service.common.util.CommonUtils;
 import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.common.util.PartitionUtils;
@@ -53,10 +53,8 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    public String createUser(CreateUserReqDto reqDto) {
+    public String createUser(CreateUserReqDto reqDto, AppUser actor) {
         String keycloakId = null;
-        String currentUsername = AuthUtils.getCurrentUsername();
-        User actor = localUserService.getAuthenticatedUser();
         try {
             keycloakId = keycloakUserService.createUser(reqDto);
             reqDto.setUserUUID(keycloakId);
@@ -64,12 +62,12 @@ public class UserManagementServiceImpl implements UserManagementService {
 //        graphUserService.assignLicenseToUser(graphUserId);
             Integer yearNumber = LeaveUtils.getCurrentYearNumber(reqDto.getJoinedDate());
             reqDto.setYearNumber(yearNumber);
-            Long userId = localUserService.createUser(reqDto, actor.getUsername());
+            Long userId = localUserService.createUser(reqDto, actor.username());
             log.info("사용자 생성 완료 | userUUID: {}", keycloakId);
             leaveBalanceService.initializeLeaveBalancesForUser(userId, yearNumber);
             auditLogService.saveLog(
-                    actor.getId(),
-                    actor.getUsername(),
+                    actor.id(),
+                    actor.username(),
                     AuditActionEnum.USER_CREATE,
                     AuditStatusEnum.SUCCESS,
                     details("reqDto", reqDto, "localUserId", userId)
@@ -78,8 +76,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         } catch (Exception e) {
             log.error("사용자 생성 실패", e);
             auditLogService.saveLog(
-                    actor != null ? actor.getId() : null,
-                    actor != null ? actor.getUsername() : "system",
+                    actor != null ? actor.id() : null,
+                    actor != null ? actor.username() : "system",
                     AuditActionEnum.USER_CREATE,
                     AuditStatusEnum.FAILED,
                     details("reqDto", reqDto, "error", e.getMessage())
@@ -93,8 +91,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    public void deleteUser(String keycloakUserId) {
-        User actor = localUserService.getAuthenticatedUser();
+    public void deleteUser(String keycloakUserId, AppUser actor) {
         UUID uuid = UUID.fromString(keycloakUserId);
         User user = userRepository.findByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
@@ -107,7 +104,8 @@ public class UserManagementServiceImpl implements UserManagementService {
             log.info("Deleted user. userUUID={}", keycloakUserId);
 
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor.id(),
+                    actor.username(),
                     AuditActionEnum.USER_DELETE, AuditStatusEnum.SUCCESS,
                     details("targetUserId", targetUserId, "keycloakUserId", keycloakUserId, "username", username)
             );
@@ -115,7 +113,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         } catch (Exception e) {
             log.error("failed to delete user. keycloakUserId={}", keycloakUserId, e);
             auditLogService.saveLog(
-                    actor.getId(), actor.getUsername(),
+                    actor != null ? actor.id() : null,
+                    actor != null ? actor.username() : "system",
                     AuditActionEnum.USER_DELETE, AuditStatusEnum.FAILED,
                     details("targetUserId", targetUserId, "keycloakUserId", keycloakUserId, "username", username, "error", e.getMessage())
             );
@@ -126,10 +125,9 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    public String updateUser(UUID uuid, UpdateUserByAdminReqDto reqDto) {
+    public String updateUser(UUID uuid, UpdateUserByAdminReqDto reqDto, AppUser actor) {
         User user = userRepository.findByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        User actor = localUserService.getAuthenticatedUser();
         //  변경 전 스냅샷 (joinedDate/yearNumber 비교용)
         LocalDate beforeJoined = user.getJoinedDate();
         Integer beforeYearNo = user.getYearNumber();
@@ -182,8 +180,8 @@ public class UserManagementServiceImpl implements UserManagementService {
             }
             // 5)  감사 로그
             auditLogService.saveLog(
-                    actor.getId(),
-                    actor.getUsername(),
+                    actor.id(),
+                    actor.username(),
                     AuditActionEnum.USER_UPDATE,
                     AuditStatusEnum.SUCCESS,
                     details(
@@ -201,8 +199,8 @@ public class UserManagementServiceImpl implements UserManagementService {
             );
         } catch (Exception e) {
             auditLogService.saveLog(
-                    actor != null ? actor.getId() : null,
-                    actor != null ? actor.getUsername() : "system",
+                    actor != null ? actor.id() : null,
+                    actor != null ? actor.username() : "system",
                     AuditActionEnum.USER_UPDATE, AuditStatusEnum.FAILED,
                     details(
                             "targetUserId", user.getId(),
