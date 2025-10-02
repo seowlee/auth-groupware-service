@@ -2,6 +2,7 @@ package pharos.groupware.service.common.security;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.RequestScope;
 import pharos.groupware.service.common.util.AuthUtils;
@@ -24,6 +25,17 @@ public class CurrentActorProvider {
 
         // JWT/OAuth2 어느 쪽이든 sub 추출
         String sub = AuthUtils.extractUserUUID();
+        if (sub == null || sub.isBlank()) {
+            // 401로 떨어지도록 인증 부족 예외 던짐
+            throw new InsufficientAuthenticationException("로그인이 필요합니다.");
+        }
+
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(sub);
+        } catch (IllegalArgumentException e) {
+            throw new InsufficientAuthenticationException("유효하지 않은 사용자 식별자입니다.");
+        }
         User u = userRepository.findByUserUuid(UUID.fromString(sub))
                 .orElseThrow(() -> new EntityNotFoundException("현재 사용자를 찾을 수 없습니다."));
 

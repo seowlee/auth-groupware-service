@@ -33,7 +33,7 @@ export async function loadPageIntoMainContent(path) {
     // // 로딩 경합 방지
     // const myToken = ++loadToken;
 
-    // 간단한 로딩 표시(필요 없으면 제거 가능)
+    // 로딩 표시
     container.dataset.loading = 'true';
 
     try {
@@ -46,7 +46,10 @@ export async function loadPageIntoMainContent(path) {
         //  인증/권한 만료 공통 처리
         if (res.status === 401 || res.status === 403) {
             alert('세션이 만료되었거나 권한이 없습니다. 다시 로그인해 주세요.');
-            window.location.href = '/login';
+            // window.location.href = '/login';
+            const back = window.location.pathname; // or path
+            window.location.href = '/login?redirect=' + encodeURIComponent(back);
+
             return;
         }
 

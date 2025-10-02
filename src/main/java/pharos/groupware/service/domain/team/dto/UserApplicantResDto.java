@@ -1,4 +1,4 @@
-package pharos.groupware.service.domain.account.dto;
+package pharos.groupware.service.domain.team.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,12 +11,14 @@ import pharos.groupware.service.domain.team.entity.User;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserApplicantResDto {
+    private Long id;
     private String userUuid;
     private String username;
     private String email;
 
     public static UserApplicantResDto toApplicantDto(User u) {
         return UserApplicantResDto.builder()
+                .id(u.getId())
                 .userUuid(u.getUserUuid().toString())
                 .username(u.getUsername())
                 .email(u.getEmail())

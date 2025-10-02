@@ -10,12 +10,16 @@ let featuresInitializedOnce = false;
 // ==============================
 // 홈 페이지 초기 세팅
 // ==============================
-export function setupHomePage() {
-    // document.addEventListener('DOMContentLoaded', () => {
-    //     onInitialLoad();
-    //     updateIntegrationButtonsFromDataset(); // nav 버튼이 이미 DOM에 존재하는 시점
-    // });
-    onInitialLoad();
+export async function setupHomePage() {
+    // 프래그먼트 로드 완료 이벤트를 한 곳에서 처리
+    window.addEventListener('page:loaded', (e) => {
+        onFragmentLoaded(e).catch(console.error);
+    });
+
+    await onInitialLoad();
+    // 1) 서버 플래시 메시지 토스트
+    showFlashToastIfAny();
+    // 2) 버튼 상태 즉시 반영
     updateIntegrationButtonsFromDataset();
     // 메뉴 링크 클릭 → SPA 네비게이션
     // document.querySelectorAll('.menu-link').forEach(link => {
@@ -27,7 +31,7 @@ export function setupHomePage() {
         if (!link) return;
         e.preventDefault();
         const url = link.dataset.url;
-        if (url) navigateTo(url);
+        if (url) void navigateTo(url);
     });
 
     // 햄버거
@@ -35,15 +39,13 @@ export function setupHomePage() {
     if (ham) ham.addEventListener('click', toggleMobileMenu);
 
     // 뒤로/앞으로
-    window.addEventListener('popstate', onPopState);
+    window.addEventListener('popstate', (e) => {
+        onPopState(e).catch(console.error);
+    });
 
     // 반응형
     window.addEventListener('resize', onWindowResize);
-    // [NEW] 프래그먼트 로드 완료 이벤트를 한 곳에서 처리
-    window.addEventListener('page:loaded', onFragmentLoaded);
-    // 서버 플래시 메시지 토스트
-    showFlashToastIfAny();
-    // updateIntegrationButtonsFromDataset();
+
 }
 
 // ==============================
@@ -53,7 +55,7 @@ async function onInitialLoad() {
     const path = window.location.pathname;
     if (path.startsWith('/home')) {
         // 로그인 후 홈 → 기본 탭
-        await replaceStateAndLoad('/team/users');
+        await replaceStateAndLoad('/leaves/calendar');
     } else {
         await loadPageIntoMainContent(path);
     }
@@ -93,7 +95,7 @@ async function onFragmentLoaded(e) {
     } // 사용자 상세 (/team/users/{id})
     else if (path.startsWith('/team/users/') && path !== '/team/users') {
         const m = await import('./user-detail.js');
-        m.initUserDetail?.();
+        await m.initUserDetail?.();
     } // 사용자 등록 (최고관리자)
     else if (path === '/admin/users/new') {
         const m = await import('./create-user-form.js');
@@ -132,4 +134,6 @@ async function onFragmentLoaded(e) {
 
 
 // 엔트리
-document.addEventListener('DOMContentLoaded', setupHomePage);
+document.addEventListener('DOMContentLoaded', () => {
+    setupHomePage().catch(console.error);
+});

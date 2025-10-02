@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import pharos.groupware.service.common.enums.LeaveStatusEnum;
 import pharos.groupware.service.common.enums.LeaveTypeEnum;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -16,19 +17,27 @@ import java.util.List;
 public interface LeaveRepository extends JpaRepository<Leave, Long> {
 
     @Query("""
-            SELECT l FROM Leave l
-            LEFT JOIN FETCH l.user u
-            WHERE (:teamId IS NULL OR u.team.id = :teamId)
-              AND ( LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                          OR :keyword IS NULL )
-              AND (:type IS NULL OR l.leaveType = :type)
-              AND (:status IS NULL OR l.status = :status)
+                SELECT l FROM Leave l
+                LEFT JOIN FETCH l.user u
+                WHERE (:teamId IS NULL OR u.team.id = :teamId)
+                  AND ( LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                              OR :keyword IS NULL )
+                  AND (:type IS NULL OR l.leaveType = :type)
+                  AND (:status IS NULL OR l.status = :status)
+                  AND (:userId IS NULL OR u.id = :userId)
+                  AND (:hasFrom = false OR l.startDt >= :from)
+                  AND (:hasTo   = false OR l.endDt   <= :to)
             """)
     Page<Leave> findAllBySearchFilter(
             @Param("keyword") String keyword,
             @Param("teamId") Long teamId,
             @Param("type") LeaveTypeEnum type,
             @Param("status") LeaveStatusEnum status,
+            @Param("userId") Long userId,
+            @Param("hasFrom") boolean hasFrom,
+            @Param("from") OffsetDateTime from,
+            @Param("hasTo") boolean hasTo,
+            @Param("to") OffsetDateTime to,
             Pageable pageable
     );
 

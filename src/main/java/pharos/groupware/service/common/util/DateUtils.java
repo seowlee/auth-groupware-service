@@ -18,6 +18,13 @@ public final class DateUtils {
         return odt.atZoneSameInstant(KST).format(LOCAL_FORMATTER);
     }
 
+    /**
+     * KST 기준 yyyy.MM.dd 문자열
+     */
+    public static String fmtYmd(OffsetDateTime odt) {
+        LocalDate d = odt.atZoneSameInstant(KST).toLocalDate();
+        return String.format("%04d.%02d.%02d", d.getYear(), d.getMonthValue(), d.getDayOfMonth());
+    }
 
     /**
      * LocalDateTime(타임존 없음)을 서울 시간 기준의 OffsetDateTime으로 변환합니다.

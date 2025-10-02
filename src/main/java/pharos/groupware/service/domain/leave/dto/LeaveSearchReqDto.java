@@ -31,7 +31,11 @@ public class LeaveSearchReqDto {
             nullable = true
     )
     private Boolean myOnly;   // 기본 true
+    @Schema(description = "내 것만 보기일 때 근속 연차 선택(n…1)", nullable = true, example = "2")
+    private Integer tenureYear;
 
+    @Schema(description = "관리자/팀장 모드에서 특정 신청자만 보기", nullable = true, example = "15")
+    private Long userId;
     @Schema(
             description = "기간 시작(ISO-8601, 예: 2025-01-01T00:00:00+09:00)",
             example = "2025-01-01T00:00:00+09:00",

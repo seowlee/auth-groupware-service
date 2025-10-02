@@ -28,17 +28,13 @@
     <button class="hamburger-btn">☰</button>
     <h1 th:text="|${username} (${roleDisplayName})|">사용자 (역할)</h1>
     <ul>
-        <li>
-            <a class="menu-link" data-url="/team/users" href="#"
-            >전체 사용자 목록</a
-            >
-        </li>
-        <li th:if="${isSuperAdmin}">
-            <a class="menu-link" data-url="/admin/users/new" href="#">사용자 등록</a>
-        </li>
         <li><a class="menu-link" data-url="/leaves/calendar" href="#">연차 캘린더</a></li>
         <li><a class="menu-link" data-url="/leaves" href="#">연차 신청 내역</a></li>
         <li><a class="menu-link" data-url="/leaves/apply" href="#">연차 신청</a></li>
+        <li><a class="menu-link" data-url="/team/users" href="#">전체 사용자 목록</a></li>
+        <li th:if="${isSuperAdmin}">
+            <a class="menu-link" data-url="/admin/users/new" href="#">사용자 등록</a>
+        </li>
         <li th:if="${isSuperAdmin}">
             <a class="menu-link" data-url="/admin/logs" href="#">로그 보기</a>
         </li>
@@ -63,5 +59,10 @@
 </main>
 <!-- [ENTRY] home.js 하나만 module로 로드하면 됨(내부에서 router/loader import) -->
 <script th:src="@{/js/home.js}" type="module"></script>
+<!--<script type="module">-->
+<!--    import {initHomeToasts} from /*[[@{/js/core/ui.js}]]*/ '/js/core/ui.js';-->
+
+<!--    initHomeToasts();-->
+<!--</script>-->
 </body>
 </html>

@@ -110,9 +110,32 @@ public interface UserRepository extends JpaRepository<User, Long> {
             """)
     List<User> findActiveUsersForSelect(@Param("q") String q);
 
+    @Query("""
+              SELECT u FROM User u
+              WHERE u.status='ACTIVE' AND u.team.id=:teamId
+                AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%'))
+                  OR LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%'))
+                  OR :q IS NULL)
+              ORDER BY u.username ASC
+            """)
+    List<User> findActiveUsersForSelectByTeam(@Param("teamId") Long teamId, @Param("q") String q);
+
     Optional<User> findByKakaoSub(String kakaoSub);
 
     Optional<User> findByPhoneNumber(String phoneNumber);
+
+    Optional<User> findByEmailIgnoreCase(String email);
+
+    // kakao_sub + ACTIVE
+    Optional<User> findByKakaoSubAndStatus(String kakaoSub, UserStatusEnum status);
+
+    // phone_number + ACTIVE
+    Optional<User> findByPhoneNumberAndStatus(String phoneNumber, UserStatusEnum status);
+
+    // email(무시 대소문자) + ACTIVE
+    @Query("select u from User u where lower(u.email) = lower(:email) and u.status = :status")
+    Optional<User> findByEmailIgnoreCaseAndStatus(@Param("email") String email,
+                                                  @Param("status") UserStatusEnum status);
 
     @Query("select u.userUuid from User u " +
             "where u.status = 'INACTIVE' " +
@@ -120,4 +143,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<UUID> findInactiveUserIdsOlderThan(OffsetDateTime cutoff);
 
     long deleteByUserUuidIn(List<UUID> chunk);
+
+    boolean existsByUserUuidAndKakaoSubIsNotNull(java.util.UUID uuid);
+
 }

@@ -45,25 +45,21 @@ public class AccountViewController {
             @SessionAttribute(value = SessionKeys.CURRENT_USER, required = false) AppUser actor,
             Model model
     ) {
+        boolean kakaoLinked = false;
+        boolean m365Linked = false;
+        boolean isSuperAdmin = false;
+
         if (actor != null) {
             model.addAttribute("actor", actor);
             User user = userService.getAuthenticatedUser();
-            boolean isSuperAdmin =
-                    actor.role() != null && actor.role().isSuperAdmin(); // 프로젝트에 맞게 판별
-            boolean kakaoLinked = user.getKakaoSub() != null;                // 필드명 프로젝트에 맞게
-            boolean m365Linked = isSuperAdmin && m365IntegrationReadService.isLinked();
-
-            // ↑ 조직 전체/테넌트 기준의 연결 여부를 읽는 서비스 (임의 예시)
-
-            model.addAttribute("isSuperAdmin", isSuperAdmin);
-            model.addAttribute("kakaoLinked", kakaoLinked);
-            model.addAttribute("m365Linked", m365Linked);
-            // ================
-        } else {
-            model.addAttribute("isSuperAdmin", false);
-            model.addAttribute("kakaoLinked", false);
-            model.addAttribute("m365Linked", false);
+            isSuperAdmin = actor.role() != null && actor.role().isSuperAdmin();
+            kakaoLinked = user.getKakaoSub() != null;
+            m365Linked = isSuperAdmin && m365IntegrationReadService.isLinked();
         }
+        model.addAttribute("isSuperAdmin", isSuperAdmin);
+        model.addAttribute("kakaoLinked", kakaoLinked);
+        model.addAttribute("m365Linked", m365Linked);
+
         return "account/home";
     }
 

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -24,7 +25,13 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import pharos.groupware.service.common.security.LoginSuccessHandler;
+
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -40,7 +47,14 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> auth
+                        // 프리플라이트(OPTIONS) 무조건 통과
+                        .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
+                        // Keycloak FTL에서 호출하는 공개 엔드포인트 허용
+                        .requestMatchers("/api/idp/fbl/decision").permitAll()
+                        // (필요 시 health, docs 등 추가)
+                        // .requestMatchers("/actuator/health").permitAll()
+                        .anyRequest().authenticated())
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) // 401
                         .accessDeniedHandler((req, res, ex) -> { // 403
@@ -66,11 +80,17 @@ public class SecurityConfig {
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/.well-known/**", "/favicon.ico").permitAll()
                         .requestMatchers("/health", "/login", "/api/admin/login", "/oauth2/**", "/link/kakao/callback", "/admin/m365/**").permitAll()
-                        .requestMatchers("/realms/**", "/api/admin/users/pending", "/error/pending-approval").permitAll()
+                        .requestMatchers("/realms/**", "/error/pending-approval").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .requestCache(c -> c.requestCache(requestCache()))
+                .exceptionHandling(e -> e
+                        .defaultAuthenticationEntryPointFor(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                new RequestHeaderRequestMatcher("X-Requested-With", "XMLHttpRequest")
+                        )
+                )
                 // 폼 로그인 : 실제 사용자 로그인 뷰 제공용
                 .formLogin(form -> form
                         .loginPage("/login")
@@ -141,5 +161,22 @@ public class SecurityConfig {
                 super.saveRequest(req, res);
             }
         };
+    }
+
+    // ===  Security CORS Bean: 여기 하나로만 관리 ===
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cfg = new CorsConfiguration();
+        // 개발: Keycloak 오리진만 허용 (필요 시 추가)
+        cfg.setAllowedOrigins(List.of("http://localhost:8081"));
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cfg.setAllowedHeaders(List.of("*"));
+        cfg.setAllowCredentials(false); // fetch: credentials: "omit"
+        cfg.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // 전체 또는 "/api/**"로 좁혀도 됨
+        source.registerCorsConfiguration("/**", cfg);
+        return source;
     }
 }

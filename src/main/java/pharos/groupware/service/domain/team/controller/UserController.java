@@ -11,12 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pharos.groupware.service.common.page.PagedResponse;
 import pharos.groupware.service.domain.account.dto.UpdateUserProfileReqDto;
+import pharos.groupware.service.domain.team.dto.UserApplicantResDto;
 import pharos.groupware.service.domain.team.dto.UserDetailResDto;
 import pharos.groupware.service.domain.team.dto.UserResDto;
 import pharos.groupware.service.domain.team.dto.UserSearchReqDto;
 import pharos.groupware.service.domain.team.service.UserService;
-import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "03. 사용자 계정 정보", description = "사용자 목록, 개별 정보 관련 API")
@@ -25,16 +26,6 @@ import java.util.UUID;
 @RequestMapping("/api/team")
 public class UserController {
     private final UserService userService;
-    private final KeycloakUserService keycloakUserService;
-
-    //    {
-//        "graphUserId": "leader1@gwco.onmicrosoft.com",
-//            "subject": "회의 알림",
-//            "bodyContent": "팀 전체 회의입니다.",
-//            "startDateTime": "2025-07-21T10:00:00",
-//            "endDateTime": "2025-07-21T11:00:00",
-//            "timezone": "Asia/Seoul"
-//    }
 
     @Operation(summary = "전체 사용자 조회", description = "조직 내 모든 사용자 정보를 조회합니다.")
     @GetMapping("/users")
@@ -51,6 +42,14 @@ public class UserController {
             @PathVariable UUID uuid, @RequestParam(defaultValue = "false") boolean includeBalances) {
         UserDetailResDto resDto = userService.getUserDetail(uuid, includeBalances);
         return ResponseEntity.ok(resDto);
+    }
+
+    @Operation(summary = "신청자 선택용 전체 목록", description = "연차 신청 시 선택 가능한 사용자 목록. SUPER_ADMIN 전용")
+    @GetMapping("/users/applicants")
+    public ResponseEntity<List<UserApplicantResDto>> getApplicants(
+            @RequestParam(required = false) String q
+    ) {
+        return ResponseEntity.ok(userService.findAllApplicants(q));
     }
 
     @Operation(summary = "사용자 내 정보 수정")

@@ -58,8 +58,13 @@ public class LeaveController {
     @GetMapping()
     public ResponseEntity<PagedResponse<LeaveDetailResDto>> getAllLeaves(
             @ParameterObject @ModelAttribute LeaveSearchReqDto searchDto,
-            @ParameterObject @PageableDefault(size = 5) Pageable pageable) {
-        Page<LeaveDetailResDto> response = leaveService.getAllLeaves(searchDto, pageable);
+            @ParameterObject @PageableDefault(size = 5) Pageable pageable,
+            @CurrentActor AppUser actor) {
+        // 기본값: null이면 true로
+        if (searchDto.getMyOnly() == null) {
+            searchDto.setMyOnly(Boolean.TRUE);
+        }
+        Page<LeaveDetailResDto> response = leaveService.getAllLeaves(searchDto, pageable, actor);
         return ResponseEntity.ok(new PagedResponse<>(response));
     }
 

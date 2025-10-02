@@ -1,11 +1,47 @@
 <div data-fragment="content" th:fragment="content">
     <div class="list-container">
+        <script th:inline="javascript">
+            /* 서버에서 모델로 내려준 JSON 문자열을 전역에 주입 */
+            window.__LEAVE_FILTER__ = /*[[${leaveFilterViewJson}]]*/ "{}";
+            window.__LEAVE_FILTER__ = JSON.parse(window.__LEAVE_FILTER__);
+        </script>
         <h1>연차 신청 내역</h1>
         <!-- 검색/필터 -->
         <div class="search-filter-container">
+            <!-- (A) 내 것만 보기 + 연차 선택 -->
+            <div class="myonly-group">
+                <label class="toggle">
+                    <input checked id="leaveMyOnly" type="checkbox">
+                    <span class="slider"></span>
+                    <span class="label">내 것만 보기</span>
+                </label>
+
+                <!-- 내 것만 보기일 때만 보이도록 -->
+                <div class="tenure-year hidden" id="tenureYearWrap">
+                    <label for="tenureYear">연차 선택</label>
+                    <select id="tenureYear">
+                        <!-- JS에서 동적 채움: (근속 n년차, n-1, ..., 1년차) -->
+                    </select>
+                </div>
+                <!-- 신청자 선택: myOnly 해제 + (팀장/슈퍼)일 때만 JS로 보이게 -->
+                <div class="applicant hidden" id="applicantWrap">
+                    <label for="applicantId">신청자</label>
+                    <select id="applicantId">
+                        <option value="">전체</option>
+                        <option th:each="u : ${applicants}"
+                                th:text="|${u.username} (${u.email})|"
+                                th:value="${u.id}"></option>
+                    </select>
+                </div>
+            </div>
             <input id="leaveKeyword" placeholder="신청자명 검색" type="text"/>
+            <!--            <select id="leaveTeamId">-->
+            <!--                <option value="">전체 팀</option>-->
+            <!--            </select>-->
+            <!-- 팀: 서버 렌더 -->
             <select id="leaveTeamId">
                 <option value="">전체 팀</option>
+                <option th:each="t : ${teams}" th:text="${t.name}" th:value="${t.id}"></option>
             </select>
             <select id="leaveType">
                 <option value="">전체 유형</option>

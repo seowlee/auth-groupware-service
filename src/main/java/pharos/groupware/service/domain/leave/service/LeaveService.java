@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface LeaveService {
-    Page<LeaveDetailResDto> getAllLeaves(LeaveSearchReqDto searchDto, Pageable pageable);
+    Page<LeaveDetailResDto> getAllLeaves(LeaveSearchReqDto searchDto, Pageable pageable, AppUser actor);
 
     LeaveDetailResDto getLeaveDetail(Long id);
 

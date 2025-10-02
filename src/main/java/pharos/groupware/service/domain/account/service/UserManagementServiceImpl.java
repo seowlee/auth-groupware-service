@@ -10,13 +10,10 @@ import pharos.groupware.service.common.enums.AuditActionEnum;
 import pharos.groupware.service.common.enums.AuditStatusEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.security.AppUser;
-import pharos.groupware.service.common.util.CommonUtils;
 import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.common.util.PartitionUtils;
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
 import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
-import pharos.groupware.service.domain.account.dto.UserApplicantResDto;
 import pharos.groupware.service.domain.audit.service.AuditLogService;
 import pharos.groupware.service.domain.leave.service.LeaveBalanceService;
 import pharos.groupware.service.domain.team.entity.User;
@@ -29,7 +26,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -283,62 +279,6 @@ public class UserManagementServiceImpl implements UserManagementService {
         log.info("User {} approved with temp password {}", localUser.getEmail(), tempPlain);
     }
 
-    @Override
-    @Transactional
-    public void registerOrLinkSocialUser(PendingUserReqDto reqDto) {
-        try {
-
-            String normalizedPhone = CommonUtils.phoneNumberNormalize(reqDto.getPhoneNumber());
-            String kakaoSub = reqDto.getProviderUserId();
-
-//        if (normalizedPhone == null || normalizedPhone.isBlank()) {
-//            throw new IllegalArgumentException("휴대전화 번호가 필요합니다.");
-//        }
-            if (kakaoSub == null || kakaoSub.isBlank()) {
-                throw new IllegalArgumentException("Kakao sub가 필요합니다.");
-            }
-
-            // 0) sub가 이미 다른 사용자에 등록되어 있으면 막기
-//        Optional<User> existingBySub = userRepository.findByKakaoSub(kakaoSub);
-//        if (existingBySub.isPresent()) {
-//            return; // 이미 등록되어 있으면 조용히 성공 처리하거나, 예외로 알림(정책)
-//        }
-
-            // 1) 휴대폰으로 기존 사용자 찾기
-            Optional<User> existingUserOpt = userRepository.findByPhoneNumber(normalizedPhone);
-            if (existingUserOpt.isPresent()) {
-                User existingUser = existingUserOpt.get();
-
-                // 1-a) 해당 사용자가 Keycloak 계정을 이미 가지고 있으면 → 그 계정에 Kakao 연동
-                String keycloakUserId = String.valueOf(existingUser.getUserUuid());
-                String kakaoUsername = reqDto.getEmail();
-                keycloakUserService.linkKakaoFederatedIdentity(
-                        keycloakUserId,
-                        kakaoSub,
-                        kakaoUsername
-                );
-                // 로컬에도 반영
-                localUserService.linkKakaoLocally(existingUser, kakaoSub);
-                return;
-
-            }
-            Long pendingUserId = localUserService.registerPendingUser(reqDto);
-            auditLogService.saveLog(null, "anonymous",
-                    AuditActionEnum.USER_PENDING, AuditStatusEnum.SUCCESS,
-                    details("reqDto", reqDto, "pendingUserId", pendingUserId));
-        } catch (Exception e) {
-            auditLogService.saveLog(
-                    null, "anonymous",
-                    AuditActionEnum.USER_PENDING, AuditStatusEnum.FAILED,
-                    details(
-                            "reqDto", reqDto,
-                            "error", e.getMessage()
-                    )
-            );
-            // 프론트 메시지용
-            throw new IllegalStateException("소셜 연동 사용자 대기 처리에 실패했습니다");
-        }
-    }
 
     @Override
     @Transactional
@@ -382,14 +322,6 @@ public class UserManagementServiceImpl implements UserManagementService {
                 )
         );
         log.info("Purge INACTIVE users finished. days={}, ok={}, fail={}, cutoff={}", days, ok.size(), fail, cutoff);
-    }
-
-    @Override
-    public List<UserApplicantResDto> findAllApplicants(String q) {
-        return userRepository.findActiveUsersForSelect(q)
-                .stream()
-                .map(UserApplicantResDto::toApplicantDto)
-                .toList();
     }
 
     private boolean needToSyncWithKeycloak(UpdateUserByAdminReqDto reqDto) {

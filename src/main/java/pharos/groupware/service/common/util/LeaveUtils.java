@@ -108,4 +108,49 @@ public class LeaveUtils {
         if (days.signum() < 0) return BigDecimal.ZERO.setScale(3, RoundingMode.HALF_UP);
         return days.setScale(3, RoundingMode.HALF_UP);
     }
+
+    /**
+     * 근속 k년차의 기간 [from, to] 계산 (KST, from=해당년 00:00:00, to=다음해 00:00:00 -1s)
+     */
+    public static Window computeTenureWindow(LocalDate joined, int k) {
+        if (joined == null) throw new IllegalArgumentException("joinedDate is null");
+        if (k <= 0) throw new IllegalArgumentException("k must be >= 1");
+
+        OffsetDateTime from = joined.plusYears(k - 1L)
+                .atStartOfDay(DateUtils.KST).toOffsetDateTime();
+        OffsetDateTime to = joined.plusYears(k)
+                .atStartOfDay(DateUtils.KST).toOffsetDateTime()
+                .minusSeconds(1);
+        return new Window(from, to);
+    }
+
+    /**
+     * UI 라벨: 예) "근속 2년차 (2025.02.26 ~ 2026.02.25)"
+     */
+    public static String tenureLabel(LocalDate joined, int currentYearNumber, int k) {
+        Window w = computeTenureWindow(joined, k);
+        String head = (k == currentYearNumber) ? ("근속 " + k + "년차") : (k + "년차");
+        return head + " (" + DateUtils.fmtYmd(w.from()) + " ~ " + DateUtils.fmtYmd(w.to()) + ")";
+    }
+
+    /**
+     * 결과 컨테이너 (record 대신 클래스로)
+     */
+    public static final class Window {
+        private final OffsetDateTime from;
+        private final OffsetDateTime to;
+
+        public Window(OffsetDateTime from, OffsetDateTime to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        public OffsetDateTime from() {
+            return from;
+        }
+
+        public OffsetDateTime to() {
+            return to;
+        }
+    }
 }

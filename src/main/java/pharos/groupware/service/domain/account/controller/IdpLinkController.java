@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
@@ -14,9 +16,15 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import pharos.groupware.service.common.annotation.CurrentActor;
+import pharos.groupware.service.common.enums.FblDecisionEnum;
 import pharos.groupware.service.common.security.AppUser;
+import pharos.groupware.service.domain.account.dto.FblAttemptDto;
 import pharos.groupware.service.domain.account.service.IdpLinkService;
 import pharos.groupware.service.infrastructure.keycloak.KeycloakUserService;
 
@@ -24,6 +32,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.Map;
+import java.util.UUID;
 
 @Tag(name = "02. 사용자 계정 정보", description = "사용자 계정 IdP 연동 관련 API")
 @Controller
@@ -42,8 +52,18 @@ public class IdpLinkController {
 
     @Operation(summary = "사용자: Kakao 연동 시작(리다이렉트)", description = "Kakao 인증 페이지로 이동 후 현재 계정에 IdP 연결합니다")
     @GetMapping("/link/kakao/start")
-    public void start(HttpServletResponse res, Authentication authentication, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client
+    public String start(HttpServletResponse res,
+                        Authentication authentication,
+                        @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client,
+                        @CurrentActor AppUser actor, RedirectAttributes ra
     ) throws Exception {
+        // 0) 이미 연동된 사용자는 즉시 안내 후 홈으로
+        if (idpLinkService.isKakaoLinked(actor.userUuid())) {
+            ra.addFlashAttribute("toastType", "info");
+            ra.addFlashAttribute("toastMsg", "이미 카카오 계정이 연동되어 있습니다.");
+            return "redirect:/home";
+        }
+
         // 1) 현재 로그인 사용자의 ID 토큰에서 session_state 추출
         String sessionState = extractSessionState(authentication, client);
         if (sessionState == null || sessionState.isBlank()) {
@@ -61,32 +81,62 @@ public class IdpLinkController {
 
 
         // 3) 링크 완료 후 돌아올 앱 주소 (Keycloak 클라이언트의 Redirect URIs에 반드시 포함)
-        String redirectUri = URLEncoder.encode(
-                "http://localhost:8081/link/kakao/callback",
-                StandardCharsets.UTF_8
-        );
+//        String redirectUri = URLEncoder.encode(
+//                "http://localhost:8080/link/kakao/callback",
+//                StandardCharsets.UTF_8
+//        );
+        String callbackAbs = ServletUriComponentsBuilder
+                .fromCurrentContextPath()              // 스킴/호스트/포트 + contextPath
+                .path("/link/kakao/callback")
+                .build()
+                .toUriString();
+
 
         // 4) 최종 링크 URL로 리다이렉트
         String url = String.format(
                 "%s/realms/%s/broker/%s/link?client_id=%s&redirect_uri=%s&nonce=%s&hash=%s",
-                kc, realm, PROVIDER, clientId, redirectUri, nonce, hash
+                kc, realm, PROVIDER, clientId, URLEncoder.encode(callbackAbs, StandardCharsets.UTF_8), nonce, hash
         );
         res.sendRedirect(url);
+        return null;
     }
 
     // 옵션: 완료 콜백(성공/실패 표시용)
     @GetMapping("/link/kakao/callback")
     public String callback(RedirectAttributes ra, @CurrentActor AppUser actor) {
-        String keycloakUserId = String.valueOf(actor.userUuid());
+        UUID keycloakUserId = actor.userUuid();
         try {
-            idpLinkService.persistKakaoSub(keycloakUserId);
+            idpLinkService.finalizeKakaoLink(keycloakUserId);
             ra.addFlashAttribute("toastType", "success");
             ra.addFlashAttribute("toastMsg", "카카오 계정이 연동되었습니다.");
+        } catch (IllegalStateException e) {
+            ra.addFlashAttribute("toastType", "error");
+            ra.addFlashAttribute("toastMsg", e.getMessage());
         } catch (Exception e) {
             ra.addFlashAttribute("toastType", "error");
             ra.addFlashAttribute("toastMsg", "카카오 연동 실패: " + e.getMessage());
         }
         return "redirect:/home?linkedKakao=1";
+    }
+
+    @Operation(summary = "FBL 판단: 대기 사용자 등록/링크 안내 (Keycloak FBL에서 호출)")
+    @PostMapping("/api/idp/fbl/decision")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> decideFbl(@RequestBody FblAttemptDto dto) {
+        FblDecisionEnum r = idpLinkService.assessSocialLoginAttempt(dto);
+
+        return switch (r) {
+            case LINKED -> ResponseEntity.ok(Map.of("code", "LINKED"));
+            case PENDING_CREATED -> ResponseEntity.ok(Map.of("code", "PENDING_CREATED", "message", "관리자 승인 후 이용하세요."));
+            case ALREADY_LINKED -> ResponseEntity.ok(Map.of(
+                    "code", "LINKED",
+                    "idempotent", true
+            ));
+            case LINK_REQUIRED -> ResponseEntity.status(HttpStatus.CONFLICT) // [ADDED]
+                    .body(Map.of("code", "LINK_REQUIRED", "message", "카카오 연동 후 이용해 주세요. [로그인] → '카카오 연동'"));
+            case LINK_CONFLICT -> ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("code", "LINK_CONFLICT", "message", "이미 다른 계정에 연동된 Kakao 계정입니다."));
+        };
     }
 
     private String extractSessionState(Authentication authentication, OAuth2AuthorizedClient client) {

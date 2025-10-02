@@ -31,17 +31,20 @@ import pharos.groupware.service.infrastructure.graph.GraphUserService;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import static pharos.groupware.service.common.util.AuditLogUtils.details;
+import static pharos.groupware.service.common.util.LeaveUtils.computeTenureWindow;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class LeaveServiceImpl implements LeaveService {
+    private static final ZoneOffset KST = ZoneOffset.ofHours(9);
     private final GraphUserService graphUserService;
     private final GraphGroupService graphGroupService;
     private final UserService userService;
@@ -52,28 +55,72 @@ public class LeaveServiceImpl implements LeaveService {
     private final PublicHolidayRepository publicHolidayRepository;
     private final UserRepository userRepository;
 
-
     @Override
-    public Page<LeaveDetailResDto> getAllLeaves(LeaveSearchReqDto searchDto, Pageable pageable) {
+    public Page<LeaveDetailResDto> getAllLeaves(LeaveSearchReqDto searchDto, Pageable pageable, AppUser actor) {
         // 정렬 조건 없으면 신청일 내림차순
         if (pageable.getSort().isUnsorted()) {
             Sort defaultSort = Sort.by(Sort.Order.desc("appliedAt"), Sort.Order.asc("id"));
             pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), defaultSort);
         }
-        LeaveTypeEnum typeEnum = null;
-        String typeStr = searchDto.getType();
-        if (StringUtils.hasText(typeStr)) {
-            typeEnum = LeaveTypeEnum.valueOf(typeStr.toUpperCase());
+        LeaveTypeEnum typeEnum = StringUtils.hasText(searchDto.getType())
+                ? LeaveTypeEnum.valueOf(searchDto.getType().toUpperCase()) : null;
+        LeaveStatusEnum statusEnum = StringUtils.hasText(searchDto.getStatus())
+                ? LeaveStatusEnum.valueOf(searchDto.getStatus().toUpperCase()) : null;
+
+        User me = userRepository.findByUserUuid(actor.userUuid())
+                .orElseThrow(() -> new EntityNotFoundException("현재 사용자를 찾을 수 없습니다."));
+
+        Long userIdFilter = null;
+        boolean superAdmin = actor.role() != null && actor.role().isSuperAdmin();
+        boolean teamLeader = actor.role() != null && actor.role().isTeamLeader();
+
+        if (Boolean.TRUE.equals(searchDto.getMyOnly())) {
+            userIdFilter = me.getId();
+            Integer k = searchDto.getTenureYear();
+            if (k != null && k > 0 && me.getJoinedDate() != null) {
+                var win = computeTenureWindow(me.getJoinedDate(), k);
+                searchDto.setFrom(win.from());
+                searchDto.setTo(win.to());
+            }
+        } else {
+            if (superAdmin) {
+                // 전체 허용. 선택된 신청자가 있으면 그 사용자만.
+                if (searchDto.getUserId() != null) userIdFilter = searchDto.getUserId();
+            } else if (teamLeader) {
+                // 팀장: 팀 강제 고정
+                Long myTeamId = me.getTeam() != null ? me.getTeam().getId() : null;
+                searchDto.setTeamId(myTeamId);
+                // 신청자 선택이 있으면 팀 내 사용자만 허용(아닐 경우 무시)
+                if (searchDto.getUserId() != null) {
+                    // 팀 검증 (간단 검증)
+                    userRepository.findById(searchDto.getUserId()).ifPresent(u -> {
+                        if (u.getTeam() != null && u.getTeam().getId().equals(myTeamId)) {
+                            // OK
+                        } else {
+                            // 팀 외 사용자는 무시
+                            searchDto.setUserId(null);
+                        }
+                    });
+                }
+                if (searchDto.getUserId() != null) userIdFilter = searchDto.getUserId();
+            } else {
+                // 일반 멤버가 우회로 myOnly=false를 보내도 내 것만으로 강제
+                userIdFilter = me.getId();
+                searchDto.setMyOnly(true);
+            }
         }
-
-        LeaveStatusEnum statusEnum = null;
-        String statusStr = searchDto.getStatus();
-        if (StringUtils.hasText(statusStr)) {
-            statusEnum = LeaveStatusEnum.valueOf(statusStr.toUpperCase());
-        }
-
-
-        Page<Leave> page = leaveRepository.findAllBySearchFilter(searchDto.getKeyword(), searchDto.getTeamId(), typeEnum, statusEnum, pageable);
+        boolean hasKeyword = StringUtils.hasText(searchDto.getKeyword());
+        boolean hasFrom = searchDto.getFrom() != null;
+        boolean hasTo = searchDto.getTo() != null;
+        Page<Leave> page = leaveRepository.findAllBySearchFilter(
+                searchDto.getKeyword(),
+                searchDto.getTeamId(),
+                typeEnum,
+                statusEnum,
+                userIdFilter,
+                hasFrom, searchDto.getFrom(),
+                hasTo, searchDto.getTo(),
+                pageable);
 
         return page.map(LeaveDetailResDto::fromEntity);
     }
@@ -87,7 +134,6 @@ public class LeaveServiceImpl implements LeaveService {
         return LeaveDetailResDto.fromEntity(leave, user);
 
     }
-
 
     @Override
     @Transactional

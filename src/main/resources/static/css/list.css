@@ -445,23 +445,129 @@ th.sortable {
     .date-range span {
         display: none;
     }
-}
 
-@media (max-width: 480px) {
-    .data-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
+    .search-filter-container {
+        grid-template-columns: 260px repeat(3, minmax(200px, 1fr)) auto auto;
     }
 
-    .status-active,
-    .status-inactive,
-    .status-pending,
-    .status-approved,
-    .status-rejected {
-        white-space: nowrap;
-        padding: 0.3em 0.8em;
-        border-radius: 12px;
-        font-weight: 500;
+    .myonly-group {
+        grid-column: auto; /* 첫 칸 */
     }
 }
+
+/*@media (max-width: 480px) {*/
+/*    .data-table {*/
+/*        display: block;*/
+/*        overflow-x: auto;*/
+/*        white-space: nowrap;*/
+/*    }*/
+
+/*    .status-active,*/
+/*    .status-inactive,*/
+/*    .status-pending,*/
+/*    .status-approved,*/
+/*    .status-rejected {*/
+/*        white-space: nowrap;*/
+/*        padding: 0.3em 0.8em;*/
+/*        border-radius: 12px;*/
+/*        font-weight: 500;*/
+/*    }*/
+/*}*/
+/* 맨 앞에 오는 MyOnly 그룹을 조금 강하게 */
+.myonly-group {
+    grid-column: 1 / -1; /* 모바일/작은폭에서 첫 줄 전체 사용 */
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f7fafc, #edf2f7);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+/* 토글 스위치 */
+.toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+.toggle input {
+    display: none;
+}
+
+.toggle .slider {
+    width: 48px;
+    height: 28px;
+    background: #cbd5e0;
+    border-radius: 999px;
+    position: relative;
+    transition: background .2s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.toggle .slider::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.toggle input:checked + .slider {
+    background: linear-gradient(135deg, #4299e1, #3182ce);
+}
+
+.toggle input:checked + .slider::after {
+    transform: translateX(20px);
+}
+
+.toggle .label {
+    font-size: 14px;
+    color: #2d3748;
+}
+
+/* 근속 연차 셀렉트 */
+.tenure-year,
+.applicant {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tenure-year label,
+.applicant label {
+    min-width: 90px;
+    color: #4a5568;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1; /* 정렬 */
+}
+
+.tenure-year select,
+.applicant select {
+    padding: 10px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    transition: all .2s;
+}
+
+.tenure-year select:focus,
+.applicant select:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, .1)
+}
+

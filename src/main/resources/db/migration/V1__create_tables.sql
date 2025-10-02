@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS groupware.users
     updated_by   VARCHAR(50)                  DEFAULT 'system',
     CONSTRAINT uq_users_username UNIQUE (username, status),
     CONSTRAINT uq_users_email UNIQUE (email, status),
-    CONSTRAINT uq_users_phone UNIQUE (phone_number, status)
+    CONSTRAINT uq_users_phone UNIQUE (phone_number, status),
+    CONSTRAINT uq_users_kakao_sub UNIQUE (kakao_sub)
 );
 
 -- 연차 신청(leaves)

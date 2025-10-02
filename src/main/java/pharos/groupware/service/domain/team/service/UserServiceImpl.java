@@ -16,10 +16,11 @@ import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.common.util.AuthUtils;
 import pharos.groupware.service.common.util.LeaveUtils;
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
+import pharos.groupware.service.domain.account.dto.FblAttemptDto;
 import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
 import pharos.groupware.service.domain.leave.entity.LeaveBalance;
 import pharos.groupware.service.domain.leave.entity.LeaveBalanceRepository;
+import pharos.groupware.service.domain.team.dto.UserApplicantResDto;
 import pharos.groupware.service.domain.team.dto.UserDetailResDto;
 import pharos.groupware.service.domain.team.dto.UserResDto;
 import pharos.groupware.service.domain.team.dto.UserSearchReqDto;
@@ -74,7 +75,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Long registerPendingUser(PendingUserReqDto reqDto) {
+    public Long registerPendingUser(FblAttemptDto reqDto) {
         Team defaultTeam = teamRepository.findTopByOrderByIdAsc()
                 .orElseThrow(() -> new IllegalStateException("등록된 팀이 없습니다"));
         User user = User.fromPendingDto(reqDto, defaultTeam, passwordEncoder);
@@ -173,12 +174,24 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void linkKakaoLocally(User user, String kakaoSub) {
         // sub 충돌 검사
-        Optional<User> conflict = userRepository.findByKakaoSub(kakaoSub);
+        Optional<User> conflict = userRepository.findByKakaoSubAndStatus(kakaoSub, UserStatusEnum.ACTIVE);
         if (conflict.isPresent() && !conflict.get().getUserUuid().equals(user.getUserUuid())) {
             throw new IllegalStateException("이미 다른 계정에 연동된 Kakao 계정입니다.");
         }
         user.linkKakao(kakaoSub);
     }
 
+    @Override
+    public List<UserApplicantResDto> findAllApplicants(String q) {
+        return userRepository.findActiveUsersForSelect(q)
+                .stream()
+                .map(UserApplicantResDto::toApplicantDto)
+                .toList();
+    }
 
+    public List<UserApplicantResDto> findApplicantsByTeam(Long teamId, String q) {
+        return userRepository.findActiveUsersForSelectByTeam(teamId, q).stream()
+                .map(UserApplicantResDto::toApplicantDto)
+                .toList();
+    }
 }

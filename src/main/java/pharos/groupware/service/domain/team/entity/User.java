@@ -9,7 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import pharos.groupware.service.common.enums.UserRoleEnum;
 import pharos.groupware.service.common.enums.UserStatusEnum;
 import pharos.groupware.service.domain.account.dto.CreateUserReqDto;
-import pharos.groupware.service.domain.account.dto.PendingUserReqDto;
+import pharos.groupware.service.domain.account.dto.FblAttemptDto;
 import pharos.groupware.service.domain.account.dto.UpdateUserByAdminReqDto;
 
 import java.time.LocalDate;
@@ -114,7 +114,7 @@ public class User {
     }
 
     public static User fromPendingDto(
-            PendingUserReqDto dto,
+            FblAttemptDto dto,
             Team defaultTeam,
             PasswordEncoder passwordEncoder
     ) {
@@ -124,6 +124,7 @@ public class User {
         u.kakaoSub = dto.getProviderUserId();
         u.email = dto.getEmail();
         u.password = passwordEncoder.encode("1234");
+        u.phoneNumber = dto.getPhoneNumber();
         u.firstName = dto.getFirstName();
         u.lastName = dto.getLastName();
         u.joinedDate = LocalDate.now();

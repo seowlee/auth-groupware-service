@@ -37,7 +37,8 @@ public class TeamViewController {
             return "team/user-list :: content";
         }
         // 전체 페이지 (최초 진입 시)
-        return "account/home";
+        return "forward:/home";
+
     }
 
     // 사용자 상세 정보
@@ -47,7 +48,7 @@ public class TeamViewController {
 //                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 //
 //        model.addAttribute("user", user); // Thymeleaf 바인딩용
-        // (선택) 타 페이지에서 재사용할 수도 있으니 model에도 그대로 넣어둠
+
         model.addAttribute("roles", UserRoleEnum.values());
         model.addAttribute("userStatuses", UserStatusEnum.values());
         model.addAttribute("leaveTypes", LeaveTypeEnum.values());
@@ -92,6 +93,7 @@ public class TeamViewController {
             return "team/user-detail :: content";
         }
         // 직접 주소 접근이면 home 전체 + fragment
-        return "account/home";
+        return "forward:/home";
+
     }
 }
