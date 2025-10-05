@@ -108,12 +108,6 @@
     position: relative;
 }
 
-/*.date-field .date-input {*/
-/*    padding-right: 44px;*/
-/*    cursor: pointer;*/
-/*    line-height: normal;*/
-/*}*/
-
 /* 인풋+아이콘 래퍼 */
 .date-input-wrap {
     position: relative;
@@ -208,3 +202,11 @@
     border-radius: 50%;
     background: #ef4444;
 }
+
+/* 월 타이틀(예: 2025년 10월) 더 진하게 */
+#leaveCalendar .fc-toolbar-title {
+    color: #1f2937; /* 더 진한 글자색 (gray-800) */
+    font-weight: 800; /* 굵게 */
+    letter-spacing: -0.3px; /* 선택: 약간 조밀하게 */
+}
+

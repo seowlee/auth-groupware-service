@@ -3,66 +3,64 @@
 <head>
     <meta charset="UTF-8"/>
     <title>Home</title>
+    <!-- 모바일 뷰포트 -->
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <!-- CSS: 페이지 스타일 -->
     <link rel="stylesheet" th:href="@{/css/home.css}"/>
     <link rel="stylesheet" th:href="@{/css/list.css}"/>
     <link rel="stylesheet" th:href="@{/css/form.css}"/>
     <link rel="stylesheet" th:href="@{/css/calendar.css}"/>
+
     <!-- 초기 토스트 메시지 -->
     <meta name="toast-msg" th:content="${toastMsg}">
     <meta name="toast-type" th:content="${toastType}">
-
-    <!-- [OPTION] 연동 상태를 data-*로 내려 UI에서 즉시 반영 -->
-    <!--    <script th:inline="javascript">-->
-    <!--        document.addEventListener('DOMContentLoaded', function () {-->
-    <!--            document.body.dataset.kakaoLinked = /*[[${kakaoLinked}]]*/ 'false';-->
-    <!--            document.body.dataset.m365Linked = /*[[${m365Linked}]]*/ 'false';-->
-    <!--            document.body.dataset.isSuperAdmin = /*[[${isSuperAdmin}]]*/ 'false';-->
-    <!--        });-->
-    <!--    </script>-->
 </head>
 <body th:attr="data-kakao-linked=${kakaoLinked},
                 data-m365-linked=${m365Linked},
                 data-is-super-admin=${isSuperAdmin}">
 <nav>
-    <!-- 모바일용 햄버거 버튼 -->
-    <button class="hamburger-btn">☰</button>
-    <h1 th:text="|${username} (${roleDisplayName})|">사용자 (역할)</h1>
-    <ul>
-        <li><a class="menu-link" data-url="/leaves/calendar" href="#">연차 캘린더</a></li>
-        <li><a class="menu-link" data-url="/leaves" href="#">연차 신청 내역</a></li>
-        <li><a class="menu-link" data-url="/leaves/apply" href="#">연차 신청</a></li>
-        <li><a class="menu-link" data-url="/team/users" href="#">전체 사용자 목록</a></li>
-        <li th:if="${isSuperAdmin}">
-            <a class="menu-link" data-url="/admin/users/new" href="#">사용자 등록</a>
-        </li>
-        <li th:if="${isSuperAdmin}">
-            <a class="menu-link" data-url="/admin/logs" href="#">로그 보기</a>
-        </li>
-    </ul>
-    <!-- 최고관리자만 보이는 M365 연결 버튼 -->
-    <form class="nav-action-form" method="get" th:action="@{/admin/m365/connect}"
-          th:if="${isSuperAdmin }">
-        <!-- 최초 1회 눌러 Azure 동의 → refresh_token 저장 -->
-        <button class="nav-btn" id="btn-m365-link" type="submit">M365 캘린더 연결</button>
-    </form>
-    <!-- Keycloak 브로커를 통한 Kakao 연동 버튼 -->
-    <form class="nav-action-form link-form" method="get" th:action="@{/link/kakao/start}">
-        <button class="nav-btn link-kakao-btn" id="btn-kakao-link" type="submit">카카오 로그인 연동</button>
-    </form>
-    <!-- 로그아웃 -->
-    <form class="nav-action-form logout-form" method="post" th:action="@{/logout}">
-        <button class="nav-btn logout-btn" type="submit">로그아웃</button>
-    </form>
+    <!-- 모바일용 햄버거 버튼 (기존 CSS 규칙 그대로 사용) -->
+    <button aria-label="Toggle navigation" class="hamburger-btn">☰</button>
+    <!-- 드로어: 헤더 + 메뉴 + 액션버튼 -->
+    <div class="nav-drawer">
+        <h1 th:text="|${username} (${roleDisplayName})|">사용자 (역할)</h1>
+
+        <ul>
+            <li><a class="menu-link" data-url="/leaves/calendar" href="#">연차 캘린더</a></li>
+            <li><a class="menu-link" data-url="/leaves" href="#">연차 신청 내역</a></li>
+            <li><a class="menu-link" data-url="/leaves/apply" href="#">연차 신청</a></li>
+            <li><a class="menu-link" data-url="/team/users" href="#">전체 사용자 목록</a></li>
+            <li th:if="${isSuperAdmin}">
+                <a class="menu-link" data-url="/admin/users/new" href="#">사용자 등록</a>
+            </li>
+            <li th:if="${isSuperAdmin}">
+                <a class="menu-link" data-url="/admin/logs" href="#">로그 보기</a>
+            </li>
+        </ul>
+        <div class="nav-actions">
+            <!-- 최고관리자만 보이는 M365 연결 버튼 -->
+            <form class="nav-action-form" method="get" th:action="@{/admin/m365/connect}" th:if="${isSuperAdmin}">
+                <!-- 최초 1회 눌러 Azure 동의 → refresh_token 저장 -->
+                <button class="nav-btn" id="btn-m365-link" type="submit">M365 캘린더 연동</button>
+            </form>
+            <!-- Keycloak 브로커를 통한 Kakao 연동 버튼 -->
+            <form class="nav-action-form link-form" method="get" th:action="@{/link/kakao/start}">
+                <button class="nav-btn link-kakao-btn" id="btn-kakao-link" type="submit">카카오 로그인 연동</button>
+            </form>
+            <!-- 로그아웃 -->
+            <form class="nav-action-form logout-form" method="post" th:action="@{/logout}">
+                <button class="nav-btn logout-btn" type="submit">로그아웃</button>
+            </form>
+        </div>
+    </div>
 </nav>
+<!-- 오프캔버스용 백드롭 -->
+<div class="nav-backdrop" hidden></div>
+
 <main id="main-content">
     <!-- SPA 프래그먼트 영역 -->
 </main>
-<!-- [ENTRY] home.js 하나만 module로 로드하면 됨(내부에서 router/loader import) -->
+<!-- [ENTRY] home.js 하나만 module로 로드(내부에서 router/loader import) -->
 <script th:src="@{/js/home.js}" type="module"></script>
-<!--<script type="module">-->
-<!--    import {initHomeToasts} from /*[[@{/js/core/ui.js}]]*/ '/js/core/ui.js';-->
-
-<!--    initHomeToasts();-->
-<!--</script>-->
 </body>
 </html>

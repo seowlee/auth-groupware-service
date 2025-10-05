@@ -21,23 +21,13 @@ export async function setupHomePage() {
     showFlashToastIfAny();
     // 2) 버튼 상태 즉시 반영
     updateIntegrationButtonsFromDataset();
-    // 메뉴 링크 클릭 → SPA 네비게이션
-    // document.querySelectorAll('.menu-link').forEach(link => {
-    //     link.addEventListener('click', onMenuClick);
-    // });
-    // 메뉴 클릭(이벤트 위임)
-    document.addEventListener('click', (e) => {
-        const link = e.target.closest('.menu-link');
-        if (!link) return;
-        e.preventDefault();
-        const url = link.dataset.url;
-        if (url) void navigateTo(url);
-    });
+
+    // SPA 네비게이션 (이벤트 위임)
+    document.addEventListener('click', onAnyMenuClick);
 
     // 햄버거
-    const ham = document.querySelector('.hamburger-btn');
-    if (ham) ham.addEventListener('click', toggleMobileMenu);
-
+    // 오프캔버스 초기화(모바일 네비 클릭 시 닫기 + 네비게이션 보장)
+    initNavOffcanvas();
     // 뒤로/앞으로
     window.addEventListener('popstate', (e) => {
         onPopState(e).catch(console.error);
@@ -61,11 +51,12 @@ async function onInitialLoad() {
     }
 }
 
-async function onMenuClick(e) {
+function onAnyMenuClick(e) {
+    const a = e.target.closest('a.menu-link');
+    if (!a) return;
     e.preventDefault();
-    const url = e.currentTarget.dataset.url;
-    if (!url) return;
-    await navigateTo(url);
+    const url = a.dataset.url;
+    if (url) void navigateTo(url);
 }
 
 async function onPopState(e) {
@@ -77,9 +68,69 @@ function toggleMobileMenu() {
     document.querySelector('nav ul')?.classList.toggle('show');
 }
 
+// 모바일 오프캔버스: drawer 전체를 토글 + 내부 항목 클릭 시 네비 후 닫기
+function initNavOffcanvas() {
+    if (window.__navInitDone) return;
+    window.__navInitDone = true;
+
+    const nav = document.querySelector('nav');
+    const drawer = nav && nav.querySelector('.nav-drawer');
+    const btn = nav && nav.querySelector('.hamburger-btn');
+    const backdrop = document.querySelector('.nav-backdrop');
+    if (!nav || !drawer || !btn || !backdrop) return;
+
+    const open = () => {
+        drawer.classList.add('open');
+        backdrop.hidden = false;
+        document.body.style.overflow = 'hidden';
+    };
+    const close = () => {
+        drawer.classList.remove('open');
+        backdrop.hidden = true;
+        document.body.style.overflow = '';
+    };
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        (drawer.classList.contains('open') ? close : open)();
+    });
+
+    backdrop.addEventListener('click', close);
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+    });
+
+    // (A) 드로어 내부 메뉴 링크 클릭 시: 닫기만 (네비게이션은 전역 onAnyMenuClick이 처리)
+    drawer.addEventListener('click', (e) => {
+        const a = e.target.closest('a.menu-link');
+        if (!a) return;
+        // 기본 앵커 동작은 전역에서 preventDefault + navigateTo 수행
+        // 여기서는 드로어만 닫아 UI가 가리지 않게 함
+        close();
+    });
+
+    // (B) 드로어 내부 폼 제출(카카오 연동/로그아웃/M365): 제출은 그대로, 바로 닫기
+    drawer.addEventListener('submit', () => {
+        // 기본 제출 흐름 보장 후 비동기적으로 닫기
+        setTimeout(close, 0);
+    });
+
+    // (C) 버튼 클릭만으로도 닫히게 (submit은 기본대로 진행됨)
+    drawer.querySelectorAll('.nav-action-form .nav-btn')
+        .forEach(b => b.addEventListener('click', () => {
+            // 제출 버튼이면 폼 submit과 함께 닫힘, 단순 버튼도 닫힘
+            setTimeout(close, 0);
+        }));
+}
+
 function onWindowResize() {
-    if (window.innerWidth > 768) {
-        document.querySelector('nav ul')?.classList.remove('show');
+    if (window.innerWidth > 1024) {
+        // document.querySelector('nav ul')?.classList.remove('show');
+        const drawer = document.querySelector('.nav-drawer');
+        const backdrop = document.querySelector('.nav-backdrop');
+        if (drawer) drawer.classList.remove('open');
+        if (backdrop) backdrop.hidden = true;
+        document.body.style.overflow = '';
     }
 }
 
