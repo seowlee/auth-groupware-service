@@ -24,7 +24,7 @@ public interface UserService {
 
     Page<UserResDto> findAllUsers(UserSearchReqDto userSearchReqDto, Pageable pageable);
 
-    UserDetailResDto getUserDetail(UUID uuid, boolean includeBalances);
+    UserDetailResDto getUserDetail(UUID uuid, boolean includeBalances, Integer yearNumber);
 
     Long createUser(CreateUserReqDto createDto, String currentUsername);
 

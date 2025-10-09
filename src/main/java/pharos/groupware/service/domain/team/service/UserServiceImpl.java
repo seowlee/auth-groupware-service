@@ -139,15 +139,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDetailResDto getUserDetail(UUID uuid, boolean includeBalances) {
+    public UserDetailResDto getUserDetail(UUID uuid, boolean includeBalances, Integer yearNumber) {
         User user = userRepository.findByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
         UserDetailResDto userDetailResDto = UserDetailResDto.fromEntity(user);
 
         if (includeBalances) {
-            Integer yearNumber = user.getYearNumber();
-            List<LeaveBalance> balances = leaveBalanceRepository.findByUserIdAndYearNumber(user.getId(), yearNumber);
-            userDetailResDto.setLeaveBalances(mapToDtos(balances, yearNumber));
+            Integer yn = (yearNumber != null ? yearNumber : user.getYearNumber());
+            List<LeaveBalance> balances = leaveBalanceRepository.findByUserIdAndYearNumber(user.getId(), yn);
+            userDetailResDto.setLeaveBalances(mapToDtos(balances, yn));
         }
         return userDetailResDto;
     }

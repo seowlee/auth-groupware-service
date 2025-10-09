@@ -39,8 +39,10 @@ public class UserController {
     @Operation(summary = "단일 사용자 조회")
     @GetMapping("/users/{uuid}")
     public ResponseEntity<UserDetailResDto> getUserDetail(
-            @PathVariable UUID uuid, @RequestParam(defaultValue = "false") boolean includeBalances) {
-        UserDetailResDto resDto = userService.getUserDetail(uuid, includeBalances);
+            @PathVariable UUID uuid,
+            @RequestParam(required = false, defaultValue = "false") boolean includeBalances,
+            @RequestParam(required = false) Integer yearNumber) {
+        UserDetailResDto resDto = userService.getUserDetail(uuid, includeBalances, yearNumber);
         return ResponseEntity.ok(resDto);
     }
 

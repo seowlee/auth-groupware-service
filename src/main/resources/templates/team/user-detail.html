@@ -34,6 +34,13 @@
             <!-- 연차 섹션 -->
             <section class="tab-pane" id="leaveSection">
                 <h2>연차 보유 현황</h2>
+                <!-- 근속 연차 선택 드롭다운 -->
+                <div class="form-group" id="lbYearSelectGroup">
+                    <label for="lbYearSelect">근속 연차 보기:</label>
+                    <select id="lbYearSelect"></select>
+                    <!-- 힌트(선택): 현재 근속연차 표시 -->
+                    <small class="lb-small" id="lbYearHint"></small>
+                </div>
                 <div id="leaveBalances"></div>
                 <div class="action-buttons" th:if="${isSuperAdmin}">
                     <button class="btn btn-balance" id="editLeaveBtn">연차 수정</button>

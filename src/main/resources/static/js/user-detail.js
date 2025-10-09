@@ -20,6 +20,7 @@ class UserDetailManager {
         this.balEditing = false;
         this.apiPrefix = '/api';
         this.activeTab = 'profile'; // 'profile' | 'leave'
+        this.selectedYear = null;
     }
 
     /**
@@ -37,11 +38,19 @@ class UserDetailManager {
     /**
      * 사용자 정보 조회 및 렌더링
      */
-    async loadUser() {
-        const res = await fetch(`${this.apiPrefix}/team/users/${this.userId}?includeBalances=true`);
+    async loadUser(yearNumber = null) {
+        const q = new URLSearchParams({includeBalances: 'true'});
+        if (yearNumber != null) q.set('yearNumber', String(yearNumber));
+        const res = await fetch(`${this.apiPrefix}/team/users/${this.userId}?${q.toString()}`);
         if (!res.ok) throw new Error('사용자 조회 실패');
         this.userData = await res.json();
+        // 최초 진입 시 selectedYear가 없으면 “현재 근속연차”로 설정
+        if (this.selectedYear == null) this.selectedYear = this.userData.yearNumber;
+
         this.render(this.userData);
+
+        // 연차 드롭다운 동기화(leave 탭 DOM이 이미 있으면 옵션/값 반영)
+        this.syncYearSelect();
     }
 
     /**
@@ -79,7 +88,7 @@ class UserDetailManager {
         roleSelect.value = user.role;
 
         // 연차 테이블
-        this.renderLeaveBalances(user.leaveBalances || [], false, user.yearNumber);
+        this.renderLeaveBalances(user.leaveBalances || [], false, this.selectedYear);
     }
 
     /**
@@ -148,7 +157,7 @@ ${rowsSorted.map(r => {
                 const remain = Math.max(0, total - used);
                 const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
                 const yr = r.yearNumber ?? yearNumber ?? '';
-                const yrLabel = yearNumberLabel(yr, yearNumber);
+                const yrLabel = yearNumberLabel(yr, this.userData?.yearNumber)
                 // 들여쓰기 라벨 처리 (연차 하위)
                 // const label = mapLeaveType(code);
                 return `
@@ -198,11 +207,11 @@ ${rowsSorted.map(r => {
             const used = Number(r.used ?? 0);
             const remain = Math.max(0, total - used);
             const yr = r.yearNumber ?? yearNumber ?? '';
-            const yrLabel = yearNumberLabel(yr, yearNumber);
+            const yrLabel = yearNumberLabel(yr, this.userData?.yearNumber);
             return `
                 <tr>
                   <td class="lb-type-cell"><select class="lb-type">${leaveTypeOptionsHtml(code)}</select></td>
-                  <td><input class="lb-total" type="number" step="0.001" min="0" value="${total || ''}"></td>
+                      <td><input class="lb-total" type="number" step="0.001" min="0" value="${Number.isFinite(total) ? total : ''}"></td>
                   <td class="lb-num lb-unit">${fmt3(used)}</td>
                   <td class="lb-num lb-unit">${fmt3(remain)}</td>
                   <td> <div class="lb-small lb-dim">${yrLabel}</div></td>
@@ -245,6 +254,17 @@ ${rowsSorted.map(r => {
         if (editLeaveBtn) editLeaveBtn.addEventListener('click', this.onEditBalancesToggle.bind(this))
         // if (deactivateUserBtn) deactivateUserBtn.addEventListener('click', this.onInActiveBtnClick.bind(this));
         if (backBtn) backBtn.addEventListener('click', this.onBackBtnClick.bind(this));
+
+        // 연차 드롭다운 변경 시 데이터 재로드
+        const yearSel = document.getElementById('lbYearSelect');
+        if (yearSel) {
+            yearSel.addEventListener('change', async (e) => {
+                if (this.balEditing) return; // 편집 중에는 연차 변경 잠금
+                this.selectedYear = parseInt(e.target.value, 10);
+                await this.loadUser(this.selectedYear); // 해당 연차로 재조회(서버)
+                // loadUser 내부에서 render + syncYearSelect 수행
+            });
+        }
     }
 
     // 탭 이벤트 바인딩
@@ -291,6 +311,7 @@ ${rowsSorted.map(r => {
             ensureEnums();
             document.getElementById('leaveSection')?.classList.add('active');
             document.querySelector('.tab-nav li[data-tab="leave"]')?.classList.add('active');
+            this.syncYearSelect();
             if (!this.balEditing) {
                 this.renderLeaveBalances(this.userData?.leaveBalances || [], false, this.userData?.yearNumber);
             }
@@ -349,6 +370,7 @@ ${rowsSorted.map(r => {
         const btn = e.currentTarget;
         if (!this.balEditing) {
             this.balEditing = true;
+            this.setYearSelectDisabled(true);
             this.renderLeaveBalances(this.userData.leaveBalances || [], true, this.userData.yearNumber);
             btn.textContent = '연차 저장';
             return;
@@ -359,11 +381,13 @@ ${rowsSorted.map(r => {
         await this.saveLeaveBalances(items);
         btn.textContent = '연차 수정';
         this.balEditing = false;
+        this.setYearSelectDisabled(false);
         await this.loadUser();
     }
 
     collectLeaveBalancesFromForm() {
         const rows = Array.from(document.querySelectorAll('#leaveBalances tbody tr'));
+        const selectedYear = this.selectedYear ?? this.userData?.yearNumber ?? null;
         return rows.map(tr => {
             const code = tr.querySelector('.lb-type')?.value?.trim();
             const total = tr.querySelector('.lb-total')?.value;
@@ -372,7 +396,7 @@ ${rowsSorted.map(r => {
             return {
                 leaveType: code,
                 totalAllocated: total ? Number(total) : null,
-                yearNumber: year ? Number(year) : null
+                yearNumber: selectedYear
             };
         }).filter(x => x.leaveType);
     }
@@ -412,6 +436,41 @@ ${rowsSorted.map(r => {
     toggleProfileEditMode(enable) {
         ['detailPhoneNumber', 'detailFirstName', 'detailLastName', 'detailRole', 'detailStatus', 'detailJoinedDate', 'detailTeam']
             .forEach(id => document.getElementById(id).disabled = !enable);
+    }
+
+    // =========================
+    // ✅ NEW: 연차 드롭다운 유틸
+    // =========================
+    syncYearSelect() {
+        const sel = document.getElementById('lbYearSelect');
+        const hint = document.getElementById('lbYearHint');
+        if (!sel) return;
+
+        const current = this.userData?.yearNumber ?? 1;
+        const selected = this.selectedYear ?? current;
+
+        sel.innerHTML = this.buildYearOptions(current, selected);
+        sel.value = String(selected);
+        sel.disabled = !!this.balEditing;
+
+        if (hint) {
+            hint.textContent = `현재 근속연차: ${current}년차`;
+        }
+    }
+
+    buildYearOptions(current, selected) {
+        // 1년차 ~ current년차까지 오름차순; 표시 텍스트는 “1년차 … (현재)”
+        const opts = [];
+        for (let i = 1; i <= current; i++) {
+            const label = (i === current) ? `현재(${i}년차)` : `${i}년차`;
+            opts.push(`<option value="${i}" ${i === selected ? 'selected' : ''}>${label}</option>`);
+        }
+        return opts.join('');
+    }
+
+    setYearSelectDisabled(disabled) {
+        const sel = document.getElementById('lbYearSelect');
+        if (sel) sel.disabled = !!disabled;
     }
 
 }
