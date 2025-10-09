@@ -1,45 +1,48 @@
 <div data-fragment="content" th:fragment="content">
-    <!-- ENUM 데이터를 JS가 읽을 수 있도록 JSON으로 삽입 -->
-    <script id="enums-data" th:utext="${enumsJson}" type="application/json"></script>
-    <!-- 탭 네비게이션 -->
-    <ul class="tab-nav">
-        <li class="active" data-tab="profile">사용자 상세 정보</li>
-        <li data-tab="leave">연차 보유 현황</li>
-    </ul>
-    <!-- 탭 콘텐츠 -->
-    <div class="tab-content">
-        <!-- 프로필 섹션 -->
-        <section class="tab-pane active" id="profileSection">
-            <div class="form-group"><label>사용자명:</label><span id="detailUsername"></span></div>
-            <div class="form-group"><label>이메일:</label><span id="detailEmail"></span></div>
-            <div class="form-group"><label>휴대전화:</label><input disabled id="detailPhoneNumber" type="text"></div>
-            <div class="form-group"><label>이름:</label><input disabled id="detailFirstName" type="text"></div>
-            <div class="form-group"><label>성:</label><input disabled id="detailLastName" type="text"></div>
+    <div class="form-container" id="userDetailContainer">
+        <!-- ENUM 데이터를 JS가 읽을 수 있도록 JSON으로 삽입 -->
+        <script id="enums-data" th:utext="${enumsJson}" type="application/json"></script>
+        <h1>사용자 상세 정보</h1>
+        <!-- 탭 네비게이션 -->
+        <ul class="tab-nav">
+            <li class="active" data-tab="profile">사용자 상세 정보</li>
+            <li data-tab="leave">연차 보유 현황</li>
+        </ul>
+        <!-- 탭 콘텐츠 -->
+        <div class="tab-content">
+            <!-- 프로필 섹션 -->
+            <section class="tab-pane active" id="profileSection">
+                <div class="form-group"><label>사용자명:</label><span id="detailUsername"></span></div>
+                <div class="form-group"><label>이메일:</label><span id="detailEmail"></span></div>
+                <div class="form-group"><label>휴대전화:</label><input disabled id="detailPhoneNumber" type="text"></div>
+                <div class="form-group"><label>이름:</label><input disabled id="detailFirstName" type="text"></div>
+                <div class="form-group"><label>성:</label><input disabled id="detailLastName" type="text"></div>
 
-            <div class="form-group"><label>역할:</label><select disabled id="detailRole"></select></div>
+                <div class="form-group"><label>역할:</label><select disabled id="detailRole"></select></div>
 
-            <div class="form-group"><label for="detailTeam">소속 팀:</label><select disabled id="detailTeam"></select>
-            </div>
-            <div class="form-group">
-                <label for="detailJoinedDate">입사일:</label>
-                <input disabled id="detailJoinedDate" name="detailJoinedDate" required type="date"/>
-            </div>
-            <div class="form-group"><label>상태:</label><select disabled id="detailStatus"></select></div>
-            <div class="action-buttons" th:if="${isSuperAdmin}">
-                <button class="btn" id="editProfileBtn">프로필 수정</button>
-            </div>
-        </section>
-        <!-- 연차 섹션 -->
-        <section class="tab-pane" id="leaveSection">
-            <h2>연차 보유 현황</h2>
-            <div id="leaveBalances"></div>
-            <div class="action-buttons" th:if="${isSuperAdmin}">
-                <button class="btn btn-balance" id="editLeaveBtn">연차 수정</button>
-            </div>
+                <div class="form-group"><label for="detailTeam">소속 팀:</label><select disabled id="detailTeam"></select>
+                </div>
+                <div class="form-group">
+                    <label for="detailJoinedDate">입사일:</label>
+                    <input disabled id="detailJoinedDate" name="detailJoinedDate" required type="date"/>
+                </div>
+                <div class="form-group"><label>상태:</label><select disabled id="detailStatus"></select></div>
+                <div class="action-buttons" th:if="${isSuperAdmin}">
+                    <button class="btn" id="editProfileBtn">프로필 수정</button>
+                </div>
+            </section>
+            <!-- 연차 섹션 -->
+            <section class="tab-pane" id="leaveSection">
+                <h2>연차 보유 현황</h2>
+                <div id="leaveBalances"></div>
+                <div class="action-buttons" th:if="${isSuperAdmin}">
+                    <button class="btn btn-balance" id="editLeaveBtn">연차 수정</button>
+                </div>
 
-            <div class="action-buttons">
-                <button class="btn btn-secondary" id="backBtn">목록으로</button>
-            </div>
-        </section>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="backBtn">목록으로</button>
+                </div>
+            </section>
+        </div>
     </div>
 </div>

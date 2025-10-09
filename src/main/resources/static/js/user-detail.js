@@ -26,6 +26,7 @@ class UserDetailManager {
      * 초기화: 사용자/팀 데이터 로드 후 이벤트 바인딩
      */
     async init() {
+        ensureEnums();
         await this.loadUser();
         await this.loadTeams();
         this.bindEvents();
@@ -65,7 +66,7 @@ class UserDetailManager {
             .map(s => `<option value="${s.name}">${s.description}</option>`)
             .join('');
         userStatus.value = user.status;
-        // 역할 셀렉트
+        // 역할
         const roleSelect = document.getElementById('detailRole');
         // roleSelect.innerHTML = [
         //     {v: 'TEAM_MEMBER', t: '팀원'},
@@ -77,6 +78,7 @@ class UserDetailManager {
             .join('');
         roleSelect.value = user.role;
 
+        // 연차 테이블
         this.renderLeaveBalances(user.leaveBalances || [], false, user.yearNumber);
     }
 
@@ -89,7 +91,7 @@ class UserDetailManager {
     renderLeaveBalances(balances, editable, yearNumber) {
         const el = document.getElementById('leaveBalances');
         const rows = balances || [];
-        // 🔹 parent 기반 정렬 시퀀스 만들기 (ENUMS.leaveTypes의 정의 순서 기준)
+        // parent 기반 정렬 시퀀스 만들기 (ENUMS.leaveTypes의 정의 순서 기준)
         const {leaveTypes = []} = ensureEnums();
         const parents = leaveTypes.filter(t => !t.parent).map(t => t.name);
         const childMap = new Map(); // parent -> [childName...]
@@ -105,7 +107,7 @@ class UserDetailManager {
             (childMap.get(p) || []).forEach(c => seq.push(c));
         });
 
-        // 🔹 balances를 seq 순서로 정렬 (seq에 없는 타입은 뒤로)
+        // balances를 seq 순서로 정렬 (seq에 없는 타입은 뒤로)
         const idx = (code) => {
             const i = seq.indexOf(code);
             return i === -1 ? Number.MAX_SAFE_INTEGER : i;
@@ -285,8 +287,13 @@ ${rowsSorted.map(r => {
             document.getElementById('profileSection')?.classList.add('active');
             document.querySelector('.tab-nav li[data-tab="profile"]')?.classList.add('active');
         } else {
+            // 탭 전환 직전에 최신 ENUM 보장
+            ensureEnums();
             document.getElementById('leaveSection')?.classList.add('active');
             document.querySelector('.tab-nav li[data-tab="leave"]')?.classList.add('active');
+            if (!this.balEditing) {
+                this.renderLeaveBalances(this.userData?.leaveBalances || [], false, this.userData?.yearNumber);
+            }
         }
 
         this.activeTab = target;
@@ -407,19 +414,6 @@ ${rowsSorted.map(r => {
             .forEach(id => document.getElementById(id).disabled = !enable);
     }
 
-}
-
-function getEnums() {
-    if (window.ENUMS) return window.ENUMS;                    // 이미 있으면 재사용
-    const el = document.getElementById('enums-data');
-    if (!el) return (window.ENUMS = {roles: [], statuses: [], leaveTypes: []});
-    try {
-        window.ENUMS = JSON.parse(el.textContent.trim());
-    } catch (e) {
-        console.error('ENUM 파싱 오류', e);
-        window.ENUMS = {roles: [], statuses: [], leaveTypes: []};
-    }
-    return window.ENUMS;
 }
 
 /**

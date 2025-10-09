@@ -14,15 +14,20 @@
 //     ).join('');
 // ===== ENUM 로딩 공통 =====
 export const ensureEnums = () => {
-    if (window.ENUMS) return window.ENUMS;
+    // 프래그먼트에 #enums-data가 있으면 항상 재파싱하여 window.ENUMS 갱신
     const el = document.getElementById('enums-data');
-    try {
-        window.ENUMS = el ? JSON.parse(el.textContent.trim()) : {roles: [], statuses: [], leaveTypes: []};
-    } catch {
-        window.ENUMS = {roles: [], statuses: [], leaveTypes: []};
+    if (el) {
+        try {
+            window.ENUMS = JSON.parse(el.textContent.trim());   // ← 최신 프래그먼트 기준으로 덮어쓰기
+        } catch (e) {
+            console.error('ENUM 파싱 오류', e);
+            window.ENUMS = {roles: [], statuses: [], leaveTypes: []};
+        }
+        return window.ENUMS;
     }
-    return window.ENUMS;
-}
+    // 프래그먼트에 없을 때만 기존 캐시 사용
+    return window.ENUMS || (window.ENUMS = {roles: [], statuses: [], leaveTypes: []});
+};
 
 
 // ── 코드 → 라벨(들여쓰기 반영)
@@ -36,7 +41,7 @@ export const mapLeaveType = (code) => {
 // ── 코드 → 배지 클래스
 export const mapLeaveClass = (code) => {
     const {leaveTypes = []} = ensureEnums();
-    return (leaveTypes.find(t => t.name === code)?.cls) || 'lb-type-custom';
+    return leaveTypes.find(t => t.name === code)?.cls || 'lb-type-custom';
 };
 
 // ── 편집 Select 옵션(필요 시 특정 타입 제외 가능)
