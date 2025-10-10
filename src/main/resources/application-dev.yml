@@ -1,0 +1,102 @@
+spring:
+  application:
+    name: auth-groupware
+  config:
+    activate:
+      on-profile: dev      # ← (변경) dev 프로파일
+  datasource:
+    # Postgres가 같은 호스트(도커가 5432를 호스트로 publish)라면 localhost 그대로 OK
+    url: jdbc:postgresql://localhost:5432/groupware_db?options=-c%20TimeZone=Asia/Seoul
+    username: myuser
+    password: ENC(bg3SOL/khQb3hTHXdQ6a7Cc34D7c7SFq2DeqkSxg/ct7VZU9LCNmMmpCdmtAwZ6Z)
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        default_schema: groupware
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    schemas: groupware
+    baseline-on-migrate: true
+    table: flyway_schema_history
+
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: groupware-app
+            client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: [ openid, profile, email ]
+            provider: keycloak
+        provider:
+          keycloak:
+            # ← (변경) 고정 IP의 Keycloak
+            issuer-uri: http://192.168.0.50:8081/realms/groupware
+      resourceserver:
+        jwt:
+          # ← (변경) 동일하게
+          issuer-uri: http://192.168.0.50:8081/realms/groupware
+
+# Keycloak Admin API
+keycloak:
+  # ← (변경) 고정 IP의 Keycloak
+  auth-server-url: http://192.168.0.50:8081
+  realm: groupware
+  client-id: groupware-app
+  client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
+  token-uri: "${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token"
+
+graph:
+  base-url: https://graph.microsoft.com/v1.0
+  timezone: Asia/Seoul
+  tenant-id: 3c6e1605-cc29-4ef2-8ac8-ad3901cb0d85
+  client-id: 1ce57593-86c4-4ceb-a024-c2b15a0c129e
+  client-secret: ENC(0btuSDMFX+RI7OHTLBRJlle36AwkHGpDa4+v6LmmoGEnxadgD6oDdCabqn7jdXjgEMWuwL3tGA+fMyGG96SDv1C4lxk2WSZc6KKlJz/KX/c=)
+  authorize-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/authorize
+  token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
+  # ← (변경) 콜백도 고정 IP로
+  redirect-uri: http://192.168.0.50:8080/admin/m365/callback
+  delegated-scope: "openid profile offline_access Group.ReadWrite.All"
+  scope: https://graph.microsoft.com/.default
+  calendar-user-id: 9950969b-933c-4860-aece-c7396e2c16cc
+  calendar:
+    target: group
+    group-id: 664b7722-a8b1-40a3-9e44-7a16c58bab21
+
+external:
+  holiday:
+    base-url: https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService
+    service-key: ENC(u5URnJm/ZUKyv1KfSDb2l05dfONvdSKZOZ74OM9OUkvQUDv++NfXYrv/ijiE33FNOorhRBrEp8JZYQpvxPb2oRq06pWnhvBfuh9+dG5m2liRTonEmnMiiuR5NBdH1rGdODvSh9rtn2w769WFTxmKJfcSu8KIQuwFSuB3KTc4TQo8KvlEdcK4Tci3a5K+Rw4o)
+
+jwt:
+  secret-key: "VW5saWtlbHlMb25nU2VjdXJlU2VjcmV0S2V5U3RyaW5nQ2hhbmdlVGhpcyEhMTIz"
+  access-token-validity: 900000
+  refresh-token-validity: 604800000
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG
+    sun.rmi.transport.tcp: WARN
+
+export:
+  leave-balance:
+    # ← (변경) 리눅스 서버 경로
+    dir: /srv/groupware/exports
+
+springdoc:
+  swagger-ui:
+    tagsSorter: alpha
+
+server:
+  port: 8080
+  forward-headers-strategy: framework
