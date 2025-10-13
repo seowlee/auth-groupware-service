@@ -203,10 +203,65 @@
     background: #ef4444;
 }
 
-/* 월 타이틀(예: 2025년 10월) 더 진하게 */
-#leaveCalendar .fc-toolbar-title {
-    color: #1f2937; /* 더 진한 글자색 (gray-800) */
-    font-weight: 800; /* 굵게 */
-    letter-spacing: -0.3px; /* 선택: 약간 조밀하게 */
+/*!* 월 타이틀(예: 2025년 10월) 더 진하게 *!*/
+/*#leaveCalendar .fc-toolbar-title {*/
+/*    color: #1f2937; !* 더 진한 글자색 (gray-800) *!*/
+/*    font-weight: 800; !* 굵게 *!*/
+/*    letter-spacing: -0.3px; !* 선택: 약간 조밀하게 *!*/
+/*}*/
+
+/* 5) FullCalendar 헤더 레이아웃 안정화 */
+#leaveCalendar .fc .fc-toolbar { /* NEW: 헤더 줄바꿈 허용 + 간격 */
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
+#leaveCalendar .fc .fc-toolbar-chunk { /* NEW: 각 청크도 자연 줄바꿈 */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+#leaveCalendar .fc .fc-toolbar-title { /* NEW: 제목 크기/줄바꿈 */
+    font-size: 1.4rem;
+    line-height: 1.2;
+}
+
+/* 6) 태블릿/모바일에서 헤더 재배치:
+   [이전/오늘/다음] (왼쪽) → [제목] (가운데, 전체폭) → [month/week/day] (오른쪽)
+*/
+@media (max-width: 1024px) {
+    #leaveCalendar .fc .fc-toolbar-title {
+        font-size: 1.3rem; /* NEW */
+    }
+}
+
+@media (max-width: 768px) {
+    #leaveCalendar .fc .fc-toolbar-title {
+        order: 2; /* NEW: 가운데 블록이 2번째 줄에 오도록 */
+        flex: 1 0 100%; /* NEW: 제목이 한 줄 전체 차지 */
+        text-align: center; /* NEW */
+    }
+
+    #leaveCalendar .fc .fc-toolbar-chunk:first-child {
+        order: 1;
+    }
+
+    /* prev/today/next */
+    #leaveCalendar .fc .fc-toolbar-chunk:last-child {
+        order: 3;
+    }
+
+    /* month/week/day */
+    #leaveCalendar .fc .fc-button {
+        min-height: 34px;
+    }
+
+    /* NEW: 터치편의 */
+}
+
+/* 7) 캘린더 본문 최소 높이 보장(모바일에서 가로 스크롤 방지) */
+#leaveCalendar {
+    min-height: 600px; /* UPDATED: 기존 720px에서 상황에 따라 줄여 모바일에서 여백 덜 차지 */
+}

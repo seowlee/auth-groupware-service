@@ -38,6 +38,19 @@ class CreateUserForm {
             });
 
             if (!res.ok) {
+                let payload = null;
+                try {
+                    payload = await res.json();
+                } catch { /* text fallback */
+                }
+
+                if (res.status === 409 && payload) {
+                    // 백엔드가 준 상세 메시지/필드 활용
+                    const {field, message} = payload;
+                    this.showFieldError(field, message);
+                    alert(message);
+                    return;
+                }
                 const text = await res.text();
                 throw new Error(text || "등록 실패");
             }
@@ -56,6 +69,16 @@ class CreateUserForm {
             console.error("사용자 등록 실패:", err);
             alert("오류: " + err.message);
         }
+    }
+
+    showFieldError(field, message) {
+        const map = {username: "#username", email: "#email", phoneNumber: "#phoneNumber"};
+        const el = document.querySelector(map[field] || "");
+        if (!el) return;
+        el.focus();
+        el.setCustomValidity(message);
+        el.reportValidity();
+        setTimeout(() => el.setCustomValidity(""), 3000); // 옵션: 3초 후 리셋
     }
 
     collectFormData() {

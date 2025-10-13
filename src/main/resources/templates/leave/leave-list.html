@@ -50,7 +50,7 @@
             <select id="leaveStatus">
                 <option value="">전체 상태</option>
                 <option th:each="s : ${leaveStatuses}"
-                        th:text="${s}"
+                        th:text="${s.description}"
                         th:value="${s.name()}"></option>
             </select>
 

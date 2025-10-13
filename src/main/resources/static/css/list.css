@@ -208,6 +208,8 @@ th.sortable {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
+    align-items: center; /* NEW: 드롭다운/버튼 수직 정렬 */
+    row-gap: 12px;
     /*align-items: center;*/
     /*flex-wrap: wrap;*/
 }
@@ -398,6 +400,18 @@ th.sortable {
 }
 
 /* 반응형 디자인 */
+/* 2) 태블릿 구간: 3열 그리드로 줄이고, 버튼은 가로폭 꽉 차게 */
+@media (max-width: 1024px) {
+    .search-filter-container {
+        grid-template-columns: repeat(3, minmax(160px, 1fr)); /* NEW */
+    }
+
+    .search-filter-container .btn {
+        width: 100%; /* NEW: 버튼 가로 꽉 */
+        justify-self: stretch; /* NEW */
+    }
+}
+
 @media (max-width: 768px) {
     .list-container {
         padding: 16px;
@@ -405,7 +419,7 @@ th.sortable {
 
     .list-container h1 {
         font-size: 1.5rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
     }
 
     .action-buttons {
@@ -447,7 +461,12 @@ th.sortable {
     }
 
     .search-filter-container {
-        grid-template-columns: 260px repeat(3, minmax(200px, 1fr)) auto auto;
+        grid-template-columns: repeat(2, minmax(140px, 1fr)); /* NEW */
+        gap: .75rem; /* NEW: 조밀하게 */
+    }
+
+    .search-filter-container .btn {
+        grid-column: 1 / -1; /* NEW: 버튼들은 한 줄 전체 사용 */
     }
 
     .myonly-group {
@@ -455,24 +474,20 @@ th.sortable {
     }
 }
 
-/*@media (max-width: 480px) {*/
-/*    .data-table {*/
-/*        display: block;*/
-/*        overflow-x: auto;*/
-/*        white-space: nowrap;*/
-/*    }*/
+/* 4) 초소형(<=480px): 1열 스택, 터치간격 확보 */
+@media (max-width: 480px) {
+    .search-filter-container {
+        grid-template-columns: 1fr; /* NEW */
+        gap: 10px; /* NEW */
+    }
 
-/*    .status-active,*/
-/*    .status-inactive,*/
-/*    .status-pending,*/
-/*    .status-approved,*/
-/*    .status-rejected {*/
-/*        white-space: nowrap;*/
-/*        padding: 0.3em 0.8em;*/
-/*        border-radius: 12px;*/
-/*        font-weight: 500;*/
-/*    }*/
-/*}*/
+    .search-filter-container select,
+    .search-filter-container input,
+    .search-filter-container .btn {
+        min-height: 42px; /* NEW: 터치편의 */
+    }
+}
+
 /* 맨 앞에 오는 MyOnly 그룹을 조금 강하게 */
 .myonly-group {
     grid-column: 1 / -1; /* 모바일/작은폭에서 첫 줄 전체 사용 */
