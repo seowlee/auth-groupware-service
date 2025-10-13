@@ -76,8 +76,11 @@ public class User {
     @Column(name = "status")
     private UserStatusEnum status;
 
+    @Column(name = "team_id", nullable = false)
+    private Long teamId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id")
+    @JoinColumn(name = "team_id", insertable = false, updatable = false)
     private Team team;
 
     @Column(name = "created_at")
@@ -92,7 +95,7 @@ public class User {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
-    public static User create(CreateUserReqDto reqDTO, Team team, String currentUsername, PasswordEncoder passwordEncoder) {
+    public static User create(CreateUserReqDto reqDTO, String currentUsername, PasswordEncoder passwordEncoder) {
         User user = new User();
         user.userUuid = reqDTO.getUserUUID() != null ? UUID.fromString(reqDTO.getUserUUID()) : UUID.randomUUID();
         user.username = reqDTO.getUsername();
@@ -105,7 +108,7 @@ public class User {
         user.yearNumber = reqDTO.getYearNumber();
         user.role = UserRoleEnum.valueOf(reqDTO.getRole());
         user.status = UserStatusEnum.ACTIVE;
-        user.team = team;
+        user.teamId = reqDTO.getTeamId();
         user.createdAt = OffsetDateTime.now();
         user.createdBy = currentUsername;
         user.updatedAt = OffsetDateTime.now();

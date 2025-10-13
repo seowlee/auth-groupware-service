@@ -167,9 +167,9 @@ public class Leave {
         if (this.status == LeaveStatusEnum.CANCELED) {
             throw new IllegalStateException("이미 취소된 연차입니다.");
         }
-        if (this.endDt != null && this.endDt.isBefore(OffsetDateTime.now())) {
-            throw new IllegalStateException("이미 종료된 연차는 취소할 수 없습니다.");
-        }
+//        if (this.endDt != null && this.endDt.isBefore(OffsetDateTime.now())) {
+//            throw new IllegalStateException("이미 종료된 연차는 취소할 수 없습니다.");
+//        }
     }
 
 

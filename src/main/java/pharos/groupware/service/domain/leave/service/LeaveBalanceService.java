@@ -22,10 +22,21 @@ public interface LeaveBalanceService {
 
     void update(UUID uuid, @Valid List<UpdateLeaveBalanceReqDto> reqDto);
 
+
+    /**
+     * 수정 시: (새사용량 - 이전사용량) 만큼만 증감 적용
+     */
+    void applyDelta(User user, LeaveTypeEnum type, int yearNumber, BigDecimal delta);
+
+    /**
+     * 생성 시: usedDays 전체 반영 (기존과 동일)
+     */
     void applyUsage(User user, LeaveTypeEnum type, int yearNumber, BigDecimal usedDays);
 
+    /**
+     * 취소/되돌리기: usedDays 전체 복구 (기존과 동일)
+     */
     void revertUsage(User user, LeaveTypeEnum type, int yearNumber, BigDecimal usedDays);
-
 
     Path exportLatestBalances(LeaveTypeEnum filter);
 

@@ -68,7 +68,7 @@ public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
         // 3) 세션에 AppUser 저장 (UI에서 가볍게 사용)
         request.getSession().setAttribute(
                 SessionKeys.CURRENT_USER,
-                new AppUser(u.getId(), u.getUserUuid(), u.getUsername(), u.getRole())
+                new AppUser(u.getId(), u.getUserUuid(), u.getUsername(), u.getRole(), u.getTeamId())
         );
         // 4) 의심 SavedRequest 가드: DevTools/파비콘/continue 유발 리다이렉트는 무시하고 /home
         HttpSessionRequestCache cache = new HttpSessionRequestCache();

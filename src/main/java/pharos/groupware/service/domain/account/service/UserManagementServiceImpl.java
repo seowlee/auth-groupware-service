@@ -69,6 +69,10 @@ public class UserManagementServiceImpl implements UserManagementService {
                     details("reqDto", reqDto, "localUserId", userId)
             );
             return keycloakId;
+        } catch (org.springframework.dao.DataIntegrityViolationException dup) {
+            if (keycloakId != null) keycloakUserService.deleteUser(keycloakId);
+            throw dup;
+
         } catch (Exception e) {
             log.error("사용자 생성 실패", e);
             auditLogService.saveLog(

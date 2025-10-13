@@ -39,7 +39,7 @@ public class CurrentActorProvider {
         User u = userRepository.findByUserUuid(UUID.fromString(sub))
                 .orElseThrow(() -> new EntityNotFoundException("현재 사용자를 찾을 수 없습니다."));
 
-        cached = new AppUser(u.getId(), u.getUserUuid(), u.getUsername(), u.getRole());
+        cached = new AppUser(u.getId(), u.getUserUuid(), u.getUsername(), u.getRole(), u.getTeamId());
         return cached;
     }
 }

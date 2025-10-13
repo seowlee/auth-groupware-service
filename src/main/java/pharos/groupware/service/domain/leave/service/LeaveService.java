@@ -13,7 +13,7 @@ import java.util.List;
 public interface LeaveService {
     Page<LeaveDetailResDto> getAllLeaves(LeaveSearchReqDto searchDto, Pageable pageable, AppUser actor);
 
-    LeaveDetailResDto getLeaveDetail(Long id);
+    LeaveDetailResDto getLeaveDetail(Long id, AppUser actor);
 
     Long applyLeave(CreateLeaveReqDto reqDto, AppUser actor);
 

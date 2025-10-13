@@ -30,12 +30,10 @@ import pharos.groupware.service.infrastructure.graph.GraphGroupService;
 import pharos.groupware.service.infrastructure.graph.GraphUserService;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static pharos.groupware.service.common.util.AuditLogUtils.details;
 import static pharos.groupware.service.common.util.LeaveUtils.computeTenureWindow;
@@ -48,6 +46,7 @@ public class LeaveServiceImpl implements LeaveService {
     private final GraphUserService graphUserService;
     private final GraphGroupService graphGroupService;
     private final UserService userService;
+    private final LeavePolicyService leavePolicyService;
     private final LeaveBalanceService leaveBalanceService;
     private final WorkDayService workDayService;
     private final AuditLogService auditLogService;
@@ -126,29 +125,48 @@ public class LeaveServiceImpl implements LeaveService {
     }
 
     @Override
-    public LeaveDetailResDto getLeaveDetail(Long id) {
+    public LeaveDetailResDto getLeaveDetail(Long id, AppUser actor) {
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("해당 연차 정보가 존재하지 않습니다."));
-        User user = userRepository.findById(leave.getUserId())
+        User owner = userRepository.findById(leave.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("해당 사용자 정보가 존재하지 않습니다."));
-        return LeaveDetailResDto.fromEntity(leave, user);
+
+        boolean isOwner = owner.getUserUuid().equals(actor.userUuid());
+        boolean isSuperAdmin = actor.role() != null && actor.role().isSuperAdmin();
+        boolean isTeamLeaderSameTeam = actor.role() != null && actor.role().isTeamLeader()
+                && Objects.equals(actor.teamId(), owner.getTeamId());
+
+        boolean canEdit = isSuperAdmin || isTeamLeaderSameTeam || isOwner;
+        boolean canCancel = isSuperAdmin || isTeamLeaderSameTeam || isOwner;
+        boolean canViewReason = isSuperAdmin || isTeamLeaderSameTeam || isOwner;
+        return LeaveDetailResDto.fromEntityWithPerms(leave, owner, canEdit, canCancel, canViewReason);
+//        return LeaveDetailResDto.fromEntity(leave, owner);
 
     }
 
     @Override
     @Transactional
     public Long applyLeave(CreateLeaveReqDto dto, AppUser actor) {
-        User user = userRepository.findByUserUuid(UUID.fromString(dto.getUserUuid()))
+        User owner = userRepository.findByUserUuid(UUID.fromString(dto.getUserUuid()))
                 .orElseThrow(() -> new EntityNotFoundException("해당 사용자를 찾을 수 없습니다."));
-        // 권한 체크
-        boolean isSuperAdmin = actor.role().isSuperAdmin();
-        if (!isSuperAdmin && !user.getUserUuid().equals(actor.userUuid())) {
+
+        boolean isOwner = owner.getUserUuid().equals(actor.userUuid());
+        boolean isSuperAdmin = actor.role() != null && actor.role().isSuperAdmin();
+        boolean isTeamLeaderSameTeam = actor.role() != null && actor.role().isTeamLeader()
+                && Objects.equals(actor.teamId(), owner.getTeamId());
+
+        // 권한체크
+        if (!(isSuperAdmin || isTeamLeaderSameTeam || isOwner)) {
             throw new AccessDeniedException("신청 권한이 없습니다.");
         }
 
-        dto.setUserName(user.getUsername());
-        dto.setUserEmail(user.getEmail());
+        // 연차 신청 기간 중복 체크
+        leavePolicyService.assertNoOverlapOrThrow(owner.getUserUuid(), dto.getStartDt(), dto.getEndDt());
+
+        dto.setUserName(owner.getUsername());
+        dto.setUserEmail(owner.getEmail());
         LeaveTypeEnum leaveType = LeaveTypeEnum.valueOf(dto.getLeaveType());
+        // 연차 사용량 계산
         BigDecimal usedDays = workDayService.countLeaveDays(dto.getStartDt(), dto.getEndDt());
         dto.setUsedDays(usedDays);
 
@@ -165,11 +183,11 @@ public class LeaveServiceImpl implements LeaveService {
                     dto.getEndDt()
             );
 
-            Leave leave = Leave.create(dto, user, eventId, actor.username());
+            Leave leave = Leave.create(dto, owner, eventId, actor.username());
             Leave savedLeave = leaveRepository.save(leave);
 
-
-            leaveBalanceService.applyUsage(user, leaveType, user.getYearNumber(), usedDays);
+            // 연차 사용량 반영
+            leaveBalanceService.applyUsage(owner, leaveType, owner.getYearNumber(), usedDays);
             auditLogService.saveLog(actor.id(), actor.username(),
                     AuditActionEnum.LEAVE_APPLY_GRAPH_CREATE, AuditStatusEnum.SUCCESS,
                     details("applyDto", dto, "subject", subject, "body", body,
@@ -207,26 +225,42 @@ public class LeaveServiceImpl implements LeaveService {
     public Long updateLeave(Long id, UpdateLeaveReqDto reqDto, AppUser actor) {
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("연차를 찾을 수 없습니다."));
-        User applicantUser = leave.getUser();
+        User owner = leave.getUser();
+
         // 권한 체크
-        boolean isSuperAdmin = actor.role().isSuperAdmin();
-        if (!isSuperAdmin && !applicantUser.getUserUuid().equals(actor.userUuid())) {
+        boolean isOwner = owner.getUserUuid().equals(actor.userUuid());
+        boolean isSuperAdmin = actor.role() != null && actor.role().isSuperAdmin();
+        boolean isTeamLeaderSameTeam = actor.role() != null && actor.role().isTeamLeader()
+                && Objects.equals(actor.teamId(), owner.getTeamId());
+        if (!(isSuperAdmin || isTeamLeaderSameTeam || isOwner)) {
             throw new AccessDeniedException("수정 권한이 없습니다.");
+        }
+        // 타입 변경 금지
+        LeaveTypeEnum oldType = leave.getLeaveType();
+        LeaveTypeEnum newType = LeaveTypeEnum.valueOf(reqDto.getLeaveType());
+        if (oldType != newType) {
+            throw new IllegalArgumentException("연차 유형은 수정할 수 없습니다. 기존 연차를 취소하고 새로운 유형으로 다시 신청해 주세요.");
         }
         // 비즈니스 룰 검증 (기간/슬롯/영업일 등)
         leave.validateUpdatable(reqDto.getStartDt(), reqDto.getEndDt(), reqDto.getLeaveType());
+        // 공휴일만 선택 한 케이스 검증 - 굳이?
+//        workDayService.assertBusinessRange(reqDto.getStartDt(), reqDto.getEndDt());
 
-        // 공휴일만 선택 한 케이스 검증
-        workDayService.assertBusinessRange(reqDto.getStartDt(), reqDto.getEndDt());
+        // 연차 신청 기간 중복 체크 - 현재 수정중인 연차 제외
+        leavePolicyService.assertNoOverlapOrThrow(owner.getUserUuid(), leave.getId(), reqDto.getStartDt(), reqDto.getEndDt());
 
-        BigDecimal usedDays = workDayService.countLeaveDays(reqDto.getStartDt(), reqDto.getEndDt());
-        reqDto.setUsedDays(usedDays);
+        // 연차 사용량 계산
+        // 새 used 산출
+        BigDecimal oldUsedDays = leave.getUsedDays() == null ? BigDecimal.ZERO : leave.getUsedDays();
+        BigDecimal newUsedDays = workDayService.countLeaveDays(reqDto.getStartDt(), reqDto.getEndDt());
+        reqDto.setUsedDays(newUsedDays);
+
         String calendarEventId = leave.getCalendarEventId();
 
-        String subject = LeaveTypeEnum.valueOf(reqDto.getLeaveType()).getKrName() + " 신청 (" + applicantUser.getUsername() + ")";
+        String subject = LeaveTypeEnum.valueOf(reqDto.getLeaveType()).getKrName() + " 신청 (" + owner.getUsername() + ")";
         String body = "연차 유형: " + LeaveTypeEnum.valueOf(reqDto.getLeaveType()).getKrName() + "\n"
-                + "사용일수: " + usedDays.stripTrailingZeros().toPlainString() + "일\n"
-                + "신청자: " + applicantUser.getUsername() + " (" + applicantUser.getEmail() + ")\n"
+                + "사용일수: " + newUsedDays.stripTrailingZeros().toPlainString() + "일\n"
+                + "신청자: " + owner.getUsername() + " (" + owner.getEmail() + ")\n"
                 + "사유: " + (reqDto.getReason() != null ? reqDto.getReason() : "없음");
         try {
             // 캘린더 이벤트도 update
@@ -237,7 +271,9 @@ public class LeaveServiceImpl implements LeaveService {
                     reqDto.getStartDt(),
                     reqDto.getEndDt()
             );
-
+            // 사용량 조정 (기간 변경 반영)
+            BigDecimal deltaUsedDays = newUsedDays.subtract(oldUsedDays);
+            leaveBalanceService.applyDelta(owner, leave.getLeaveType(), owner.getYearNumber(), deltaUsedDays);
             // 도메인 업데이트
             leave.updateFrom(reqDto, actor.username());
             log.info("Updating leave with id {}", id);
@@ -278,16 +314,31 @@ public class LeaveServiceImpl implements LeaveService {
     public void cancelLeave(Long id, AppUser actor) {
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("연차를 찾을 수 없습니다."));
-        User applicantUser = leave.getUser();
+        User owner = leave.getUser();
 
         // 권한 체크
-        boolean isSuperAdmin = actor.role().isSuperAdmin();
-        if (!isSuperAdmin && !applicantUser.getUserUuid().equals(actor.userUuid())) {
+        boolean isOwner = owner.getUserUuid().equals(actor.userUuid());
+        boolean isSuperAdmin = actor.role() != null && actor.role().isSuperAdmin();
+        boolean isTeamLeaderSameTeam = actor.role() != null && actor.role().isTeamLeader()
+                && Objects.equals(actor.teamId(), owner.getTeamId());
+
+        if (!(isSuperAdmin || isTeamLeaderSameTeam || isOwner)) {
             throw new AccessDeniedException("취소 권한이 없습니다.");
         }
-        // 상태/시점 검증
+        // 상태 검증
         leave.validateCancelable();
+        // 시점 검증: 종료 후 취소 제한(역할/유예기간)
+        OffsetDateTime now = OffsetDateTime.now();
+        boolean ended = leave.getEndDt() != null && leave.getEndDt().isBefore(now);
 
+        // 예: 관리자/팀장만 종료 후 15일 이내 취소 허용
+        if (ended) {
+            long days = Duration.between(leave.getEndDt(), now).toDays();
+            boolean privileged = isSuperAdmin || isTeamLeaderSameTeam;
+            if (!(privileged && days <= 15)) {
+                throw new IllegalStateException("종료된 연차는 관리자/팀장이 15일 이내에만 취소할 수 있습니다.");
+            }
+        }
         String calendarEventId = leave.getCalendarEventId();
 
         // LeaveBalance used 복구
@@ -295,9 +346,9 @@ public class LeaveServiceImpl implements LeaveService {
         try {
             if (usedDays.signum() > 0) {
                 leaveBalanceService.revertUsage(
-                        applicantUser,
+                        owner,
                         leave.getLeaveType(),
-                        applicantUser.getYearNumber(),
+                        owner.getYearNumber(),
                         usedDays
                 );
             }
@@ -305,7 +356,6 @@ public class LeaveServiceImpl implements LeaveService {
             // Leave 상태 전이
             leave.cancel(actor.username());
             // 그래프 이벤트 삭제(실패해도 취소는 계속)
-
             graphGroupService.deleteGroupEvent(leave.getCalendarEventId());
         } catch (RestClientResponseException e) {
             log.warn("Graph API 오류(연차 취소) - 이벤트 삭제 실패: leaveId={}, eventId={}, status={}, body={}",
@@ -330,7 +380,7 @@ public class LeaveServiceImpl implements LeaveService {
             );
             throw new IllegalArgumentException("연차 취소에 실패했습니다.");
         }
-        log.info("Canceled leave id={} (userId={}, usedDays={})", leave.getId(), applicantUser.getId(), usedDays);
+        log.info("Canceled leave id={} (userId={}, usedDays={})", leave.getId(), owner.getId(), usedDays);
     }
 
     @Override

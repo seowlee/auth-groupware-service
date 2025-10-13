@@ -65,9 +65,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public Long createUser(CreateUserReqDto reqDTO, String currentUsername) {
 
-        Team team = teamRepository.findById(reqDTO.getTeamId())
+        teamRepository.findById(reqDTO.getTeamId())
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
-        User user = User.create(reqDTO, team, currentUsername, passwordEncoder);
+        User user = User.create(reqDTO, currentUsername, passwordEncoder);
         User savedUser = userRepository.save(user);
 
         return savedUser.getId();

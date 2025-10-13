@@ -12,6 +12,7 @@ import pharos.groupware.service.common.enums.LeaveTypeEnum;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface LeaveRepository extends JpaRepository<Leave, Long> {
@@ -57,4 +58,33 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
             @Param("start") java.time.OffsetDateTime start,
             @Param("end") java.time.OffsetDateTime end
     );
+
+    @Query("""
+            SELECT CASE WHEN COUNT(l) > 0 THEN TRUE ELSE FALSE END
+            FROM Leave l JOIN l.user u
+            WHERE u.userUuid = :userUuid
+              AND l.status IN :blockingStatuses
+              AND l.endDt   >= :start
+              AND l.startDt <= :end
+            """)
+    boolean existsOverlapForUser(@Param("userUuid") UUID userUuid,
+                                 @Param("start") OffsetDateTime start,
+                                 @Param("end") OffsetDateTime end,
+                                 @Param("blockingStatuses") Collection<LeaveStatusEnum> blockingStatuses);
+
+    @Query("""
+            SELECT CASE WHEN COUNT(l) > 0 THEN TRUE ELSE FALSE END
+            FROM Leave l JOIN l.user u
+            WHERE u.userUuid = :userUuid
+              AND l.id <> :excludeId
+              AND l.status IN :blockingStatuses
+              AND l.endDt   >= :start
+              AND l.startDt <= :end
+            """)
+    boolean existsOverlapForUserExcludingId(@Param("userUuid") UUID userUuid,
+                                            @Param("excludeId") Long excludeId,
+                                            @Param("start") OffsetDateTime start,
+                                            @Param("end") OffsetDateTime end,
+                                            @Param("blockingStatuses") Collection<LeaveStatusEnum> blockingStatuses);
+
 }

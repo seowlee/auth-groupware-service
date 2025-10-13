@@ -46,14 +46,6 @@ public class LeaveController {
         }
     }
 
-
-//    @Operation(summary = "특정 사용자의 연차 목록 조회", description = "지정된 사용자 연차 목록을 조회합니다.")
-//    @GetMapping("/user/{userUuid}")
-//    public ResponseEntity<PagedResponse<LeaveDetailResDto>> getUserLeaves() {
-//        // TODO: SELECT * FROM leaves WHERE user_id = me
-//        return ResponseEntity.ok("내 연차 목록");
-//    }
-
     @Operation(summary = "연차 목록 조회", description = "조직 내 모든 사용자 연차 목록을 조회합니다.")
     @GetMapping()
     public ResponseEntity<PagedResponse<LeaveDetailResDto>> getAllLeaves(
@@ -70,8 +62,8 @@ public class LeaveController {
 
     @Operation(summary = "연차 상세 조회", description = "ID로 연차 상세 정보를 조회합니다.")
     @GetMapping("/{id}")
-    public ResponseEntity<LeaveDetailResDto> getLeave(@PathVariable Long id) {
-        LeaveDetailResDto dto = leaveService.getLeaveDetail(id);
+    public ResponseEntity<LeaveDetailResDto> getLeave(@PathVariable Long id, @CurrentActor AppUser actor) {
+        LeaveDetailResDto dto = leaveService.getLeaveDetail(id, actor);
         return ResponseEntity.ok(dto);
     }
 

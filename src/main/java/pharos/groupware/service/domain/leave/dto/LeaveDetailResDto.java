@@ -47,6 +47,10 @@ public class LeaveDetailResDto {
     @Schema(description = "신청 일자")
     private String appliedAt;
 
+    // 권한/표시 제어용 플래그
+    private boolean canEdit;        // 편집 버튼/입력 허용
+    private boolean canCancel;      // 취소 버튼 허용
+    private boolean canViewReason;  // 사유 필드(실제 값) 내려줄지 여부
 
     // leave detail
     public static LeaveDetailResDto fromEntity(Leave leave, User user) {
@@ -94,4 +98,24 @@ public class LeaveDetailResDto {
                 .build();
     }
 
+    // 권한/상태를 반영해서 만드는 팩토리
+    public static LeaveDetailResDto fromEntityWithPerms(Leave leave, User owner,
+                                                        boolean canEdit, boolean canCancel, boolean canViewReason) {
+        return LeaveDetailResDto.builder()
+                .id(leave.getId())
+                .userUuid(owner.getUserUuid().toString())
+                .userName(owner.getUsername())
+                .userEmail(owner.getEmail())
+                .startDt(DateUtils.formatKst(leave.getStartDt()))
+                .endDt(DateUtils.formatKst(leave.getEndDt()))
+                .usedDays(leave.getUsedDays())
+                .leaveType(leave.getLeaveType().name())
+                .status(leave.getStatus().name())
+                .reason(canViewReason ? leave.getReason() : null) // 🔐 마스킹
+                .calendarEventId(leave.getCalendarEventId())
+                .canEdit(canEdit)
+                .canCancel(canCancel)
+                .canViewReason(canViewReason)
+                .build();
+    }
 }

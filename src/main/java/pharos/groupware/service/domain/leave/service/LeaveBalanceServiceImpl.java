@@ -205,6 +205,17 @@ public class LeaveBalanceServiceImpl implements LeaveBalanceService {
 
     @Override
     @Transactional
+    public void applyDelta(User user, LeaveTypeEnum type, int yearNumber, BigDecimal delta) {
+        if (delta == null || delta.signum() == 0) return;
+        if (delta.signum() > 0) {
+            applyUsage(user, type, yearNumber, delta);
+        } else {
+            revertUsage(user, type, yearNumber, delta.abs());
+        }
+    }
+
+    @Override
+    @Transactional
     public void applyUsage(User user, LeaveTypeEnum type, int yearNumber, BigDecimal usedDays) {
         if (usedDays.signum() <= 0) return;
 

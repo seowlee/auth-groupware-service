@@ -6,6 +6,13 @@ import lombok.Getter;
 public enum LeaveTypeEnum {
     // 법정
     ANNUAL("연차", "연차(법정)", 15, true, true, null),
+
+    // 약정
+    BIRTHDAY("생일휴가", "생일휴가(약정)", 1, true, true, null),
+    SICK("병가", "병가(약정)", 5, true, true, null),   // 필요시 false로
+    OFFICIAL_DUTY("공가/교육", "공가/교육(약정)", 0, false, true, null),
+    
+    // 법정 2
     MENSTRUAL_UNPAID("생리휴가", "생리휴가(법정·무급·월1일)", 0, false, false, null),
     FAMILY_CARE_UNPAID("가족돌봄휴가", "가족돌봄휴가(법정·무급·연90일)", 90, false, false, null),
     MATERNITY("출산전후휴가", "출산전후휴가(법정·유급)", 0, false, true, null),
@@ -13,11 +20,8 @@ public enum LeaveTypeEnum {
     MISCARRIAGE_STILLBIRTH("유산·사산휴가", "유산·사산휴가(법정·유급)", 0, false, true, null),
     PRENATAL_CHECKUP("산전검진시간", "산전검진시간(법정·유급·시간)", 0, false, true, null),
 
-    // 약정
-    BIRTHDAY("생일휴가", "생일휴가(약정)", 1, true, true, null),
-    SICK("병가", "병가(약정)", 5, true, true, null),   // 필요시 false로
+    // 약정 2
     COMPENSATORY("보상휴가", "보상휴가(약정)", 0, false, true, null),
-    OFFICIAL_DUTY("공가/교육", "공가/교육(약정)", 0, false, true, null),
     CUSTOM("기타 휴가", "기타 휴가(약정)", 0, false, false, null),
 
     // 정산
