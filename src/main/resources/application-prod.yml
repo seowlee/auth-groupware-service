@@ -6,8 +6,8 @@ spring:
       on-profile: prod
   datasource:
     url: jdbc:postgresql://localhost:5432/groupware_db?options=-c%20TimeZone=Asia/Seoul
-    username: myuser
-    password: ENC(bg3SOL/khQb3hTHXdQ6a7Cc34D7c7SFq2DeqkSxg/ct7VZU9LCNmMmpCdmtAwZ6Z)
+    username: gwuser
+    password: ENC(3QuCwD0A54PZnvrxnrsBeQ5sNEdWSrDu8b0p3CsGRx6NuLV2P88oY4uL5iovvuTM)
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -34,26 +34,11 @@ spring:
             client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope:
-              - openid
-              - profile
-              - email
+            scope: [ openid, profile, email ]
             provider: keycloak
-          graph-delegated:
-            provider: azure
-            client-id: ${graph.client-id}
-            client-secret: ${graph.client-secret}   # 서버 측 Authorization Code면 사용
-            scope: openid, profile, offline_access, Group.ReadWrite.All
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
         provider:
           keycloak:
             issuer-uri: http://localhost:8081/realms/groupware
-          azure:
-            authorization-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/authorize
-            token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
-            user-info-uri: https://graph.microsoft.com/oidc/userinfo
-            user-name-attribute: sub
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8081/realms/groupware
@@ -71,10 +56,16 @@ graph:
   calendar:
     target: group        # group | mailbox | user-calendar
     group-id: c2ff4957-08e0-4b66-8a08-cf7309747efc
+
   client-id: 5ca27977-ddbd-46c9-9e42-9217d573e234
   client-secret: ENC(qlv/dftI4g9UQ7OB6DuyAnG/krRNNcWS2GLNLrm7Kd4hz9FvvlJayKh1CW557wJWelW3vZyhzFB/PAvta64jF9h2hUoSE2iK2Xjv+YUn3bs=)
   tenant-id: 5f4afae7-6bef-4a88-8bdd-46858cb0bef8
+
+  authorize-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/authorize
   token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
+  redirect-uri: http://localhost:8080/admin/m365/callback
+  delegated-scope: "openid profile offline_access Group.ReadWrite.All"
+
   scope: https://graph.microsoft.com/.default
   calendar-user-id: 3bc50c15-03a9-4ea7-a2c5-b095dc82474a
 external:
@@ -96,7 +87,7 @@ logging:
 
 export:
   leave-balance:
-    dir: /Users/yourname/exports   # Mac/Linux
+    dir: /srv/groupware/exports   # Mac/Linux
     # dir: C:/exports               # Windows
 
 springdoc:

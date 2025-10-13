@@ -18,8 +18,19 @@ repositories {
     mavenCentral()
 }
 
-// 외부 톰캣(WAR) 스위치: -PexternalTomcat
+// 외부 톰캣(WAR) 스위치: -PexternalTomcat 주면 외부 톰캣 WAR로 패키징
 def externalTomcat = project.hasProperty('externalTomcat')
+
+bootJar { enabled = !externalTomcat }                          // ← 로컬(JAR) 빌드 on/off
+bootWar {
+    enabled = externalTomcat                                   // ← 서버(WAR) 빌드 on/off
+    archiveFileName = "auth-groupware.war"                     // ← 산출물명(서버에서는 ROOT.war로 배포)
+}
+
+configurations {
+    compileOnly { extendsFrom annotationProcessor }
+    providedRuntime                                             // ← 외부 톰캣이 제공할 런타임 의존성
+}
 
 dependencies {
     // === Web stack ===
@@ -28,14 +39,19 @@ dependencies {
         implementation('org.springframework.boot:spring-boot-starter-web') {
             exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
         }
-        providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat' // 외부 톰캣
+        // ★ 컴파일만 필요 (런타임은 외부 Tomcat이 제공)
+        compileOnly 'jakarta.servlet:jakarta.servlet-api'
+        // ★ 외부 Tomcat이 제공할 런타임 의존성
+        providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+        // (JSP를 쓰면 필요)
+        // compileOnly 'jakarta.servlet.jsp:jakarta.servlet.jsp-api'
+        // compileOnly 'jakarta.el:jakarta.el-api'
     } else {
         // 개발(JAR): 내장 톰캣 포함 → bootRun 편리
         implementation 'org.springframework.boot:spring-boot-starter-web'
     }
     // ── Spring Boot 스타터 ────────────────────────────────
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
@@ -43,6 +59,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     testImplementation 'io.projectreactor:reactor-test'
 
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6:3.1.3.RELEASE'
@@ -61,15 +78,7 @@ dependencies {
 
     // ── 유효성 검사, JSON 처리 ─────────────────────────────
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.1'
-    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
-
-    // ── Lombok, 설정 프로세서 ──────────────────────────────
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    testCompileOnly 'org.projectlombok:lombok'
-    testAnnotationProcessor 'org.projectlombok:lombok'
-
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+//    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 
     // ── Jackson XML 모듈 ──────────────────────────────
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
@@ -79,11 +88,19 @@ dependencies {
 
     // ── 캐시 데이터 ─────────────────────────
     implementation 'com.github.ben-manes.caffeine:caffeine'
-    
+
     // ── 엑셀 저장 ─────────────────────────
     implementation 'org.apache.poi:poi-ooxml:5.4.1'
     // ── swagger-ui ─────────────────────────
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+
+    // ── Lombok, 설정 프로세서 ──────────────────────────────
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // ── 테스트 ─────────────────────────────────────────────
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

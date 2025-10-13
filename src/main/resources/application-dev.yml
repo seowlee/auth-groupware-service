@@ -7,8 +7,8 @@ spring:
   datasource:
     # Postgres가 같은 호스트(도커가 5432를 호스트로 publish)라면 localhost 그대로 OK
     url: jdbc:postgresql://localhost:5432/groupware_db?options=-c%20TimeZone=Asia/Seoul
-    username: myuser
-    password: ENC(bg3SOL/khQb3hTHXdQ6a7Cc34D7c7SFq2DeqkSxg/ct7VZU9LCNmMmpCdmtAwZ6Z)
+    username: gwuser
+    password: ENC(3QuCwD0A54PZnvrxnrsBeQ5sNEdWSrDu8b0p3CsGRx6NuLV2P88oY4uL5iovvuTM)
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -32,27 +32,27 @@ spring:
         registration:
           keycloak:
             client-id: groupware-app
-            client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
+            client-secret: ENC(il7CfrPo5DmzKmOCK0fomJ6qsnknQcvte+bjqSJLfjZRemgvbPFk5rkEv0I/LZkG5pTdfVvBAmbdj155D6GjtKmiwkT7K3fXo58eNREg1gQ=)
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope: [ openid, profile, email ]
             provider: keycloak
         provider:
           keycloak:
-            # ← (변경) 고정 IP의 Keycloak
+            # (변경) 고정 IP의 Keycloak
             issuer-uri: http://192.168.0.50:8081/realms/groupware
       resourceserver:
         jwt:
-          # ← (변경) 동일하게
+          # (변경) 동일하게
           issuer-uri: http://192.168.0.50:8081/realms/groupware
 
 # Keycloak Admin API
 keycloak:
-  # ← (변경) 고정 IP의 Keycloak
+  # (변경) 고정 IP의 Keycloak
   auth-server-url: http://192.168.0.50:8081
   realm: groupware
   client-id: groupware-app
-  client-secret: ENC(sD+z3xFyfBNEq5Uy6FcB5Sc0j0QmLnso5fceID0CkPPWHOpztuo5Iwn0ZMdMc+4H5EntVm2i3/e9AUJ5u9UFmG8oKm0ccjClAk8pRCKBnY0=)
+  client-secret: ENC(il7CfrPo5DmzKmOCK0fomJ6qsnknQcvte+bjqSJLfjZRemgvbPFk5rkEv0I/LZkG5pTdfVvBAmbdj155D6GjtKmiwkT7K3fXo58eNREg1gQ=)
   token-uri: "${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token"
 
 graph:
@@ -63,7 +63,7 @@ graph:
   client-secret: ENC(0btuSDMFX+RI7OHTLBRJlle36AwkHGpDa4+v6LmmoGEnxadgD6oDdCabqn7jdXjgEMWuwL3tGA+fMyGG96SDv1C4lxk2WSZc6KKlJz/KX/c=)
   authorize-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/authorize
   token-uri: https://login.microsoftonline.com/${graph.tenant-id}/oauth2/v2.0/token
-  # ← (변경) 콜백도 고정 IP로
+  # (변경) 콜백도 고정 IP로
   redirect-uri: http://192.168.0.50:8080/admin/m365/callback
   delegated-scope: "openid profile offline_access Group.ReadWrite.All"
   scope: https://graph.microsoft.com/.default
@@ -90,7 +90,7 @@ logging:
 
 export:
   leave-balance:
-    # ← (변경) 리눅스 서버 경로
+    # (변경) 리눅스 서버 경로
     dir: /srv/groupware/exports
 
 springdoc:
